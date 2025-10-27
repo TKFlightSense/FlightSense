@@ -1,15 +1,31 @@
 name: ci
 on: [push, pull_request]
+
 jobs:
-  py:
+  lint-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with: {python-version: "3.11"}
-    - run: pip install -U pip
-    - run: pip install black ruff mypy pytest httpx fastapi uvicorn pydantic
-    - run: black --check .
-    - run: ruff .
-    - run: mypy packages services || true
-    - run: pytest -q || true
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pre-commit and deps
+        run: |
+          python -m pip install -U pip
+          pip install pre-commit
+          # Optional: if you want mypy to see pydantic, etc.
+          pip install pydantic
+
+      - name: Run pre-commit (all hooks)
+        uses: pre-commit/action@v3.0.0
+
+      - name: Export OpenAPI
+        run: python -m scripts.export_openapi
+
+      - name: Upload OpenAPI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: docs/api/openapi.json
