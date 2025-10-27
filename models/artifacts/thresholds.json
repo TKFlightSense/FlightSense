@@ -1,0 +1,14 @@
+{
+  "flight_delay_cancellation_negative": 0.50,
+  "flight_delay_cancellation_positive": 0.50,
+  "checkin_boarding_process_negative": 0.50,
+  "checkin_boarding_process_positive": 0.50,
+  "baggage_issues_negative": 0.50,
+  "baggage_issues_positive": 0.50,
+  "inflight_experience_negative": 0.50,
+  "inflight_experience_positive": 0.50,
+  "pricing_fees_negative": 0.50,
+  "pricing_fees_positive": 0.50,
+  "online_booking_negative": 0.50,
+  "online_booking_positive": 0.50
+}

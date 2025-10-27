@@ -1,0 +1,8 @@
+[project]
+name = "tkfs-common"
+version = "0.1.0"
+dependencies = ["pydantic>=2.5"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

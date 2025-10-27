@@ -1,0 +1,8 @@
+[project]
+name = "tkfs-classifier"
+version = "0.1.0"
+dependencies = ["fastapi", "uvicorn[standard]", "pydantic", "numpy", "tkfs-common @ file://../../packages/tkfs_common"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

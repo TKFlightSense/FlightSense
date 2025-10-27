@@ -1,0 +1,15 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+.env
+# data & artifacts
+data/**
+!data/.gitkeep
+models/artifacts/*.bin
+models/artifacts/*.pt
+models/artifacts/tokenizer.*
+# node
+node_modules/
+# misc
+.DS_Store

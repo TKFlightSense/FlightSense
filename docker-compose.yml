@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: tkfs
+      POSTGRES_PASSWORD: tkfs
+      POSTGRES_DB: tkfs
+    ports: ["5432:5432"]
+    volumes: [dbdata:/var/lib/postgresql/data]
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  classifier:
+    build: ./services/classifier
+    env_file: [.env]
+    ports: ["8001:8001"]
+    depends_on: [db]
+
+  api:
+    build: ./services/api
+    env_file: [.env]
+    ports: ["8000:8000"]
+    depends_on: [db, classifier, redis]
+
+  reporting:
+    build: ./services/reporting
+    env_file: [.env]
+    depends_on: [db, api]
+
+volumes:
+  dbdata:
