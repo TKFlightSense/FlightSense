@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Optional, List, Tuple
 import logging
-from models.enums.enums import SentimentLabel, StatusSuffix, UserRole
+from models.enums.enums import SentimentLabel, StatusSuffix, UserRole, StatusNumericalVal
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -271,7 +271,7 @@ class DbService:
     def get_processed_data(self,
                            limit: Optional[int] = None,
                            label_type: Optional[SentimentLabel] = None,
-                           label_status: Optional[StatusSuffix] = None,  # false enum
+                           label_status: Optional[StatusNumericalVal] = None,  # false enum
                            date_from: Optional[str] = None,
                            date_to: Optional[str] = None) -> pd.DataFrame:
         """
@@ -297,7 +297,7 @@ class DbService:
                     params.append(0)
                 else:
                     query += f" AND {label_type.value} == ?"
-                    params.append(label_status.value.value)
+                    params.append(label_status.value)
 
             if date_from:
                 query += " AND date >= ?"

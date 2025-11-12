@@ -13,10 +13,13 @@ class SentimentLabel(Enum):
     PRICING_FEES = "pricing_fees"
     ONLINE_BOOKING = "online_booking"
 
-
-class StatusSuffix(Enum):
+class StatusNumericalVal(Enum):
     POSITIVE = 1
     NEGATIVE = -1
+
+class StatusSuffix(Enum):
+    POSITIVE = "_positive"
+    NEGATIVE = "_negative"
 
 
 class UserRole(Enum):
