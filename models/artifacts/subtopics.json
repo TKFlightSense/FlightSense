@@ -1,0 +1,88 @@
+{
+  "inflight_experience": {
+    "food_beverage": {
+      "neutral": ["food", "meal", "snack", "drink", "coffee", "tea", "wine", "menu"],
+      "negative": ["cold", "bad", "awful", "tasteless", "uneatable", "disgusting", "small portion", "expensive"]
+    },
+    "seats_comfort": {
+      "neutral": ["seat", "legroom", "space", "temperature", "noise", "light"],
+      "negative": ["cramped", "uncomfortable", "tight", "noisy", "warm", "small", "old"]
+    },
+    "entertainment": {
+      "neutral": ["movie", "screen", "TV", "game", "earphones", "music", "Wi-Fi", "IFE"],
+      "negative": ["broken", "limited", "outdated", "pixelated", "unavailable"]
+    },
+    "cabin_service": {
+      "neutral": ["staff", "crew", "attendant", "service"],
+      "negative": ["rude", "impolite", "unhelpful", "careless", "inattentive"]
+    },
+    "cleanliness": {
+      "negative": ["messy", "dirty", "clogged", "trash", "smell", "filthy"]
+    }
+  },
+
+  "checkin_boarding_process": {
+    "queue_time": {
+      "neutral": ["queue", "line", "check-in", "counter", "waiting"],
+      "negative": ["slow", "crowded", "disorganized", "long", "hours"]
+    },
+    "staff_interaction": {
+      "neutral": ["staff", "crew", "attendant"],
+      "negative": ["rude", "unhelpful", "impolite", "unapproachable"]
+    },
+    "boarding_organization": {
+      "neutral": ["boarding", "gate", "priority", "announcement", "scanning"],
+      "negative": ["chaotic", "confusing", "delayed"]
+    },
+    "technical_issues": {
+      "neutral": ["mobile boarding pass", "system", "ticket", "kiosk"],
+      "negative": ["failed", "error", "crash", "not working"]
+    }
+  },
+
+  "flight_delay_cancellation": {
+    "delayed": ["delay", "late", "hours", "waiting", "rescheduled", "long wait"],
+    "cancelled": ["cancel", "cancellation", "called off", "not flying"],
+    "on_time": ["on time", "early", "punctual"],
+    "communication": ["update", "announcement", "information", "notification"],
+    "support": ["refund", "voucher", "rebook", "hotel", "compensation"]
+  },
+
+  "baggage_issues": {
+    "lost": ["lost", "missing", "not received", "stolen"],
+    "delayed": ["delay", "delayed", "late delivery"],
+    "damaged": ["broken", "cracked", "scratched", "damaged", "mishandled"],
+    "safe": ["received", "arrived", "intact"]
+  },
+
+  "pricing_fees": {
+    "value": {
+      "neutral": ["price", "ticket", "fare"],
+      "positive": ["affordable", "fair", "worth", "reasonable", "cheap"],
+      "negative": ["expensive", "overpriced", "not worth"]
+    },
+    "extra_fees": {
+      "neutral": ["fee", "charge", "cost"],
+      "negative": ["extra charge", "hidden cost", "unexpected", "charged more"]
+    }
+  },
+
+  "online_booking": {
+    "usability": {
+      "neutral": ["website", "app", "chatbot", "portal"],
+      "negative": ["error", "crash", "confusing", "slow"]
+    },
+    "payment": {
+      "neutral": ["payment", "card", "checkout"],
+      "negative": ["charged twice", "refund", "payment failed", "security"]
+    },
+    "ticket_management": {
+      "neutral": ["ticket", "email", "confirmation", "booking ID"],
+      "negative": ["not received", "missing", "change request failed"]
+    },
+    "customer_service": {
+      "neutral": ["service", "support", "call center", "chat"],
+      "negative": ["unhelpful", "rude", "did not respond", "busy"]
+    }
+  }
+}
