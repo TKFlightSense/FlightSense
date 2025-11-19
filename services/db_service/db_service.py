@@ -3,7 +3,10 @@ import pandas as pd
 from pathlib import Path
 from typing import Optional, List, Tuple
 import logging
-from models.enums.enums import SentimentLabel, StatusSuffix, UserRole, StatusNumericalVal
+from models.enums.enums import (
+    SentimentLabel,
+    StatusNumericalVal,
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -11,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class DbService:
-    def __init__(self, db_path: str = '../../data/processed/FlightSense.db'):
+    def __init__(self, db_path: str = "../../data/processed/FlightSense.db"):
         """
         Initialize database connection and create tables if they don't exist.
 
@@ -29,16 +32,16 @@ class DbService:
 
     def _check_if_first_run(self) -> bool:
         """Check if database is being initialized for the first time."""
-        count = self._get_row_count('processed_data')
+        count = self._get_row_count("processed_data")
         return count == 0
 
     def _initialize_default_data(self):
         """Ingest default CSV on first run."""
         if self._check_if_first_run():
-            default_csv_path = '../../data/raw/labeled_data.csv'
+            default_csv_path = "../../data/raw/labeled_data.csv"
             if Path(default_csv_path).exists():
                 logger.info("First run detected. Ingesting default data...")
-                self._ingest_preprocessed_csv(default_csv_path, 'processed_data')
+                self._ingest_preprocessed_csv(default_csv_path, "processed_data")
             else:
                 logger.warning(f"Default CSV not found: {default_csv_path}")
 
@@ -142,22 +145,30 @@ class DbService:
             logger.error(f"Error creating user_data table: {e}")
             raise
 
-    def create_user(self, username: str, email: str, password_hash: str,
-                    role: str = 'viewer', department: Optional[str] = None) -> int:
+    def create_user(
+        self,
+        username: str,
+        email: str,
+        password_hash: str,
+        role: str = "viewer",
+        department: Optional[str] = None,
+    ) -> int:
         """Create a new user."""
         try:
             query = """
             INSERT INTO user_data (username, email, password_hash, role, department)
             VALUES (?, ?, ?, ?, ?)
             """
-            self.cursor.execute(query, (username, email, password_hash, role, department))
+            self.cursor.execute(
+                query, (username, email, password_hash, role, department)
+            )
             self.connection.commit()
             user_id = self.cursor.lastrowid
             logger.info(f"Created user: {username} with ID: {user_id}")
             return user_id
         except sqlite3.IntegrityError as e:
             logger.error(f"User already exists: {e}")
-            raise ValueError(f"Username or email already exists")
+            raise ValueError("Username or email already exists")
         except Exception as e:
             logger.error(f"Error creating user: {e}")
             self.connection.rollback()
@@ -190,7 +201,11 @@ class DbService:
             logger.error(f"Error updating last login: {e}")
             raise
 
-    def _ingest_preprocessed_csv(self, path: str = 'data/raw/labeled_data.csv', table_name: str = 'processed_data') -> None:
+    def _ingest_preprocessed_csv(
+        self,
+        path: str = "data/raw/labeled_data.csv",
+        table_name: str = "processed_data",
+    ) -> None:
         """
         Ingest CSV file into the specified table.
 
@@ -207,9 +222,11 @@ class DbService:
             logger.info(f"Loaded CSV with {len(df)} rows from {path}")
 
             # Insert into database
-            df.to_sql(table_name, self.connection, if_exists='append', index=False)
+            df.to_sql(table_name, self.connection, if_exists="append", index=False)
             self.connection.commit()
-            logger.info(f"Successfully ingested {len(df)} rows into '{table_name}' table")
+            logger.info(
+                f"Successfully ingested {len(df)} rows into '{table_name}' table"
+            )
 
         except FileNotFoundError as e:
             logger.error(str(e))
@@ -233,10 +250,12 @@ class DbService:
             Number of rows inserted
         """
         try:
-            initial_count = self._get_row_count('processed_data')
-            df.to_sql('processed_data', self.connection, if_exists='append', index=False)
+            initial_count = self._get_row_count("processed_data")
+            df.to_sql(
+                "processed_data", self.connection, if_exists="append", index=False
+            )
             self.connection.commit()
-            final_count = self._get_row_count('processed_data')
+            final_count = self._get_row_count("processed_data")
             rows_inserted = final_count - initial_count
             logger.info(f"Pushed {rows_inserted} rows to processed_data table")
             return rows_inserted
@@ -256,10 +275,12 @@ class DbService:
             Number of rows inserted
         """
         try:
-            initial_count = self._get_row_count('statistics_data')
-            df.to_sql('statistics_data', self.connection, if_exists='append', index=False)
+            initial_count = self._get_row_count("statistics_data")
+            df.to_sql(
+                "statistics_data", self.connection, if_exists="append", index=False
+            )
             self.connection.commit()
-            final_count = self._get_row_count('statistics_data')
+            final_count = self._get_row_count("statistics_data")
             rows_inserted = final_count - initial_count
             logger.info(f"Pushed {rows_inserted} rows to statistics_data table")
             return rows_inserted
@@ -268,12 +289,14 @@ class DbService:
             self.connection.rollback()
             raise
 
-    def get_processed_data(self,
-                           limit: Optional[int] = None,
-                           label_type: Optional[SentimentLabel] = None,
-                           label_status: Optional[StatusNumericalVal] = None,  # false enum
-                           date_from: Optional[str] = None,
-                           date_to: Optional[str] = None) -> pd.DataFrame:
+    def get_processed_data(
+        self,
+        limit: Optional[int] = None,
+        label_type: Optional[SentimentLabel] = None,
+        label_status: Optional[StatusNumericalVal] = None,  # false enum
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
+    ) -> pd.DataFrame:
         """
         Retrieve processed data from the database.
 
@@ -290,7 +313,7 @@ class DbService:
         try:
             query = "SELECT * FROM processed_data WHERE 1=1"
             params = []
-                # fdc cbp bi ife pc ob
+            # fdc cbp bi ife pc ob
             if label_type:
                 if not label_status:
                     query += f" AND {label_type.value} != ?"
@@ -319,10 +342,12 @@ class DbService:
             logger.error(f"Error retrieving processed data: {e}")
             raise
 
-    def get_statistics_data(self,
-                            metric_name: Optional[str] = None,
-                            pos_source: Optional[str] = None,
-                            limit: Optional[int] = None) -> pd.DataFrame:
+    def get_statistics_data(
+        self,
+        metric_name: Optional[str] = None,
+        pos_source: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> pd.DataFrame:
         """
         Retrieve statistics data from the database.
 
@@ -439,8 +464,10 @@ class DbService:
             table_name: Name of the table to clear
         """
         try:
-            confirm = input(f"Are you sure you want to clear table '{table_name}'? (yes/no): ")
-            if confirm.lower() == 'yes' or confirm.lower() == 'y':
+            confirm = input(
+                f"Are you sure you want to clear table '{table_name}'? (yes/no): "
+            )
+            if confirm.lower() == "yes" or confirm.lower() == "y":
                 self.cursor.execute(f"DELETE FROM {table_name}")
                 self.connection.commit()
                 logger.info(f"Table '{table_name}' cleared successfully")
@@ -490,7 +517,7 @@ if __name__ == "__main__":
     db = DbService()
 
     print("\nProcessed Data Table Schema:")
-    print(db.get_table_info('processed_data'))
+    print(db.get_table_info("processed_data"))
 
     df = db.get_processed_data(limit=10)
     print(df.to_string())

@@ -1,6 +1,4 @@
-# core/statistics_service.py
-
-from collections import defaultdict, Counter
+from collections import defaultdict
 from typing import Dict, List
 import pandas as pd
 from .analyzer import analyze_review
@@ -68,7 +66,9 @@ class StatisticsEngine:
 
         for _, row in neg_df.iterrows():
             sentiments = {
-                "flight_delay_cancellation": int(row.get("flight_delay_cancellation", 0)),
+                "flight_delay_cancellation": int(
+                    row.get("flight_delay_cancellation", 0)
+                ),
                 "checkin_boarding_process": int(row.get("checkin_boarding_process", 0)),
                 "baggage_issues": int(row.get("baggage_issues", 0)),
                 "inflight_experience": int(row.get("inflight_experience", 0)),
@@ -103,8 +103,10 @@ class StatisticsEngine:
             return []
 
         # Week periods
-        df["week_start"] = df["date"].dt.to_period("W").apply(
-            lambda p: p.start_time.date().isoformat()
+        df["week_start"] = (
+            df["date"]
+            .dt.to_period("W")
+            .apply(lambda p: p.start_time.date().isoformat())
         )
 
         grouped = df.groupby(["week_start", label]).size().unstack(fill_value=0)
@@ -135,7 +137,7 @@ class StatisticsEngine:
         }
 
 
-#Test statistics
+# Test statistics
 if __name__ == "__main__":
     file_path = "data/raw/labeled_data.csv"  # <-- update name here
     df = load_reviews(file_path)

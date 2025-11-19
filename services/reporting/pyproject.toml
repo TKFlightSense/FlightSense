@@ -1,8 +1,0 @@
-[project]
-name = "tkfs-reporting"
-version = "0.1.0"
-dependencies = ["jinja2","pydantic","tkfs-common @ file://../../packages/tkfs_common"]
-
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"

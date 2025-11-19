@@ -1,2 +1,0 @@
-models/artifacts/*.{bin,pt} filter=lfs diff=lfs merge=lfs -text
-models/artifacts/tokenizer.* filter=lfs diff=lfs merge=lfs -text

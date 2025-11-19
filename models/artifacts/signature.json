@@ -1,5 +1,0 @@
-{
-  "inputs": ["text", "route", "cabin", "date"],
-  "task": "multilabel_classification",
-  "outputs": ["scores", "labels"]
-}

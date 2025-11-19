@@ -1,5 +1,3 @@
-# core/analyzer.py
-
 import json
 import os
 import re
@@ -13,6 +11,7 @@ JSON_PATH = os.path.join(PROJECT_ROOT, "models", "artifacts", "subtopics.json")
 
 with open(JSON_PATH, "r", encoding="utf-8") as f:
     SUBTOPICS = json.load(f)
+
 
 def _keyword_hit(text: str, keywords):
     """Return True if any keyword matches the text."""
@@ -86,7 +85,7 @@ def analyze_review(text: str, sentiments: Dict[str, int]):
             label=label,
             subtopics=SUBTOPICS[label],
             results=results,
-            only_negative=config["only_negative"]
+            only_negative=config["only_negative"],
         )
 
     return results
