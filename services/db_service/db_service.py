@@ -66,7 +66,74 @@ class DbService:
         self._create_processed_data_table()
         self._create_statistics_table()
         self._create_user_table()
+        self._create_tickets_table()  # Jira Ticket Table  
         logger.info("All tables created/verified successfully")
+
+    def _create_tickets_table(self):
+        """
+        Table to store 'Jira-like' tickets.
+        This is your Jira clone — you can later sync real Jira keys here.
+        """
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS tickets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            processed_data_id INTEGER,           -- FK to processed_data.id (optional)
+            primary_label TEXT,                  -- main label used for routing
+            department TEXT,                     -- e.g. 'GroundOps', 'Catering'
+            summary TEXT NOT NULL,
+            description TEXT NOT NULL,
+            external_key TEXT,                   -- real Jira key when you integrate
+            source TEXT DEFAULT 'mock',          -- 'mock' or 'jira'
+            status TEXT DEFAULT 'OPEN',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+        self.cursor.execute(create_table_query)
+        self.connection.commit()
+        logger.info("Table 'tickets' created/verified")
+
+    def insert_ticket(
+        self,
+        processed_data_id: Optional[int],
+        primary_label: str,
+        department: str,
+        summary: str,
+        description: str,
+        external_key: Optional[str] = None,
+        source: str = "mock",
+        status: str = "OPEN",
+    ) -> int:
+        query = """
+        INSERT INTO tickets (
+            processed_data_id, primary_label, department,
+            summary, description, external_key, source, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        self.cursor.execute(
+            query,
+            (
+                processed_data_id,
+                primary_label,
+                department,
+                summary,
+                description,
+                external_key,
+                source,
+                status,
+            ),
+        )
+        self.connection.commit()
+        return self.cursor.lastrowid
+
+    def get_tickets_for_processed_id(self, processed_data_id: int):
+        query = "SELECT * FROM tickets WHERE processed_data_id = ?"
+        return pd.read_sql_query(query, self.connection, params=[processed_data_id])
+
+    def get_open_tickets(self, limit: Optional[int] = None):
+        query = "SELECT * FROM tickets WHERE status = 'OPEN' ORDER BY created_at DESC"
+        if limit:
+            query += f" LIMIT {limit}"
+        return pd.read_sql_query(query, self.connection)
 
     def _create_processed_data_table(self):
         """

@@ -4,6 +4,7 @@ import logging
 from services.db_service.db_service import DbService
 from services.orchestrator.filter import DataFilter
 from packages.llm.segmentation_service import SegmentationService
+from services.orchestrator.jira_agent import JiraTicketAgent
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +21,11 @@ class FlightSenseOrchestrator:
         self.token_expiry_hours = 24
         self.segmentation = SegmentationService()
 
-        # Map user roles to their allowed sentiment categories
+        self.jira_agent = JiraTicketAgent(db=self.db)
+        # self.email_agent = EmailSummaryAgent(db=self.db)  # later
+
         self.role_to_category = {
-            # TODO Görkem: Update categories as per actual roles
+            # TODO: update for new labels
         }
 
     def label_single_review(self, review: str):
@@ -394,7 +397,86 @@ class FlightSenseOrchestrator:
         except Exception as e:
             logger.error(f"Error getting category analytics: {e}")
             return {"success": False, "error": str(e)}
+        
 
+    def create_tickets_for_filtered(
+        self,
+        token: str,
+        filters: Union[Dict, DataFilter],
+    ) -> Dict:
+        """
+        Use filters + role permissions to select feedback rows,
+        then create Jira-like tickets for them (using the mock ticket client for now).
+
+        This is the core "ticket-creation automation" entrypoint.
+        """
+        try:
+            user_info = self.verify_token(token)
+            if not user_info:
+                return {"success": False, "error": "Unauthorized"}
+
+            # Only ADMIN and MANAGER can trigger bulk ticket creation
+            if not self.is_full_access_role(user_info["role"]):
+                return {
+                    "success": False,
+                    "error": "Only admin/manager can trigger ticket creation",
+                }
+
+            if isinstance(filters, dict):
+                data_filter = DataFilter.from_dict(filters)
+            else:
+                data_filter = filters
+
+            validation_errors = data_filter.validate()
+            if validation_errors:
+                return {
+                    "success": False,
+                    "error": "Validation failed",
+                    "details": validation_errors,
+                }
+
+            data_filter.to_enum()
+
+            # Reuse existing DB method to get processed data
+            df = self.db.get_processed_data(
+                limit=data_filter.limit,
+                label_type=data_filter.label_type,
+                label_status=data_filter.label_status,
+                date_from=data_filter.date_from,
+                date_to=data_filter.date_to,
+            )
+
+            if df.empty:
+                return {
+                    "success": True,
+                    "created_tickets": [],
+                    "message": "No matching feedback for ticket creation",
+                }
+
+            # If only_without_ticket: drop rows that already have tickets
+            if data_filter.only_without_ticket:
+                # join with tickets table in Python
+                ticket_df = self.db.get_open_tickets()
+                if not ticket_df.empty:
+                    existing_ids = ticket_df["processed_data_id"].dropna().unique().tolist()
+                    df = df[~df["id"].isin(existing_ids)]
+
+            created = []
+            for _, row in df.iterrows():
+                resp = self.jira_agent.create_ticket_for_row(row)
+                if resp is not None:
+                    created.append(resp)
+
+            return {
+                "success": True,
+                "created_tickets": created,
+                "count": len(created),
+            }
+
+        except Exception as e:
+            logger.error(f"Error during ticket creation: {e}")
+            return {"success": False, "error": str(e)}
+        
     # ============ ADMIN-ONLY OPERATIONS ============
 
     def push_processed_data(self, token: str, data) -> Dict:

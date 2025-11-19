@@ -1,0 +1,18 @@
+{
+  "GroundOps": {
+    "project_key": "GOPS",
+    "issue_type": "Incident"
+  },
+  "Catering": {
+    "project_key": "CAT",
+    "issue_type": "Task"
+  },
+  "Baggage": {
+    "project_key": "BAG",
+    "issue_type": "Incident"
+  },
+  "CustomerSupport": {
+    "project_key": "CS",
+    "issue_type": "Task"
+  }
+}

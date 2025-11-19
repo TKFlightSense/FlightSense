@@ -11,6 +11,8 @@ class DataFilter:
     label_status: Optional[Union[str, StatusSuffix]] = None
     date_from: Optional[str] = None
     date_to: Optional[str] = None
+    only_without_ticket: bool = False
+
 
     def validate(self) -> Dict[str, str]:
         """Validate filter parameters and return errors if any."""
