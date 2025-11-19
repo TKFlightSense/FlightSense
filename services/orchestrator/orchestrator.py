@@ -1,11 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, List, Union
-import jwt
-import bcrypt
 import logging
 from services.db_service.db_service import DbService
-from models.enums.enums import SentimentLabel, UserRole
 from services.orchestrator.filter import DataFilter
+from packages.llm.segmentation_service import SegmentationService
 
 logger = logging.getLogger(__name__)
 
@@ -20,20 +18,18 @@ class FlightSenseOrchestrator:
         self.db = db_service
         self.secret_key = secret_key
         self.token_expiry_hours = 24
+        self.segmentation = SegmentationService()
 
         # Map user roles to their allowed sentiment categories
         self.role_to_category = {
-            UserRole.FLIGHT_DELAY: [SentimentLabel.FLIGHT_DELAY_CANCELLATION],
-            UserRole.CHECKIN_BOARDING_PROCESS: [
-                SentimentLabel.CHECKIN_BOARDING_PROCESS
-            ],
-            UserRole.BAGGAGE: [SentimentLabel.BAGGAGE_ISSUES],
-            UserRole.INFLIGHT_EXPERIENCE: [SentimentLabel.INFLIGHT_EXPERIENCE],
-            UserRole.PRICING_FEES: [SentimentLabel.PRICING_FEES],
-            UserRole.ONLINE_BOOKING: [SentimentLabel.ONLINE_BOOKING],
-            UserRole.MANAGER: list(SentimentLabel),  # All categories
-            UserRole.ADMIN: list(SentimentLabel),  # All categories
+            # TODO Görkem: Update categories as per actual roles
         }
+
+    def label_single_review(self, review: str):
+        segments = self.segmentation.segment_review(review, max_segments=3)
+        # TODO: either store this in a table, or use segments to
+        # build your per-review label row for processed_data
+        return segments
 
     # ============ AUTHENTICATION (Same as before) ============
 

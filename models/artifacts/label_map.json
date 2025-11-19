@@ -1,17 +1,17 @@
 {
-  "labels": [
-    "flight_delay_cancellation_negative",
-    "flight_delay_cancellation_positive",
-    "checkin_boarding_process_negative",
-    "checkin_boarding_process_positive",
-    "baggage_issues_negative",
-    "baggage_issues_positive",
-    "inflight_experience_negative",
-    "inflight_experience_positive",
-    "pricing_fees_negative",
-    "pricing_fees_positive",
-    "online_booking_negative",
-    "online_booking_positive"
-  ],
-  "topk": 3
+  "inflight_experience_food_beverage": "Anything about food or drinks during the flight (quality, taste, temperature, freshness, quantity, variety, special meals, drink service).",
+  "inflight_experience_seats_comfort": "Seat comfort on board (legroom, recline, seat width, cushioning, ability to sleep/rest, personal space, seat layout).",
+  "inflight_experience_entertainment": "In-flight entertainment and connectivity (screens, movies/TV/music, games, Wi-Fi/internet, system usability, system not working).",
+  "inflight_experience_cabin_service": "Cabin crew and service during the flight (friendliness, politeness, professionalism, responsiveness, language skills, service speed/attentiveness).",
+  "inflight_experience_cleanliness": "Cleanliness inside the aircraft (seats, tray tables, toilets, floors, smell, general hygiene, trash not collected, dirty cabin).",
+
+  "checkin_process": "Check-in experience at the airport or online (desks, kiosks, queues, waiting time, staff at check-in, technical issues with check-in).",
+  "boarding_process": "Boarding at the gate (announcements, boarding order, priority boarding, crowd management, waiting at the gate, confusion during boarding).",
+
+  "baggage_lost": "Lost or missing baggage (bags not arriving, bags delayed to another flight, bags sent to the wrong airport or never found).",
+  "baggage_damaged": "Damaged baggage (broken wheels, torn bags, damaged contents, visible damage after arrival).",
+
+  "booking_and_ticketing": "Booking and ticket management (website/app issues, payment problems, ticket changes, rebooking, schedule changes, errors during purchase, confirmation issues).",
+  "customer_support": "Any interaction with customer support (call center, email, chat, social media), including response time, politeness, clarity, helpfulness, and resolution quality.",
+  "pricing_and_loyalty": "Ticket prices, extra fees, value for money, and loyalty/miles (fare levels, hidden charges, surcharges, fairness of price, miles/points, status, benefits)."
 }
