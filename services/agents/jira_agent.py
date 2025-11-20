@@ -1,13 +1,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 import pandas as pd
 
-from services.db_service.db_service import DbService
-from packages.tickets.client import AbstractTicketClient, MockTicketClient, TicketPayload
+from packages.tickets.client import AbstractTicketClient, TicketPayload
 
-
+# TODO: POLAT: Adjust with new Label - department routing
 LABEL_TO_DEPARTMENT = {
     "checkin_process": "GroundOps",
     "boarding_process": "GroundOps",
@@ -41,16 +40,17 @@ DEPARTMENT_CONFIG = {
 class JiraTicketAgent:
     """
     Agent responsible for turning classified feedback into tickets.
-    Works against a TicketClient (mock Jira now, real Jira later).
+
+    IMPORTANT: this agent does NOT talk to the DB directly.
+    It only:
+      - reads rows (pd.Series / DataFrame) passed by the orchestrator
+      - calls a TicketClient (mock Jira now, real Jira later)
     """
 
-    def __init__(
-        self,
-        db: Optional[DbService] = None,
-        ticket_client: Optional[AbstractTicketClient] = None,
-    ):
-        self.db = db or DbService()
-        self.client = ticket_client or MockTicketClient(self.db)
+    def __init__(self, ticket_client: AbstractTicketClient):
+        self.client = ticket_client
+
+    # ---------- internal helpers ----------
 
     def _pick_primary_label(self, labels: str) -> Optional[str]:
         if not labels:
@@ -74,7 +74,13 @@ class JiraTicketAgent:
             f"*Raw feedback:*\n{review}\n"
         )
 
+    # ---------- public API ----------
+
     def create_ticket_for_row(self, row: pd.Series) -> Optional[Dict[str, Any]]:
+        """
+        Create a single ticket for a processed_data row.
+        Returns ticket metadata dict or None if no suitable label/department.
+        """
         primary_label = self._pick_primary_label(row.get("labels", ""))
         if not primary_label:
             return None
@@ -87,7 +93,7 @@ class JiraTicketAgent:
         summary = self._build_summary(row, primary_label)
         description = self._build_description(row)
 
-        processed_id = row.get("id")  # requires processed_data.id in the DF
+        processed_id = row.get("id")  # requires 'id' column in DataFrame
 
         payload = TicketPayload(
             project_key=cfg.project_key,
@@ -100,3 +106,15 @@ class JiraTicketAgent:
         )
 
         return self.client.create_issue(payload)
+
+    def create_tickets_for_dataframe(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
+        """
+        Create tickets for all applicable rows in a DataFrame.
+        Returns list of ticket metadata dicts.
+        """
+        created: List[Dict[str, Any]] = []
+        for _, row in df.iterrows():
+            resp = self.create_ticket_for_row(row)
+            if resp is not None:
+                created.append(resp)
+        return created

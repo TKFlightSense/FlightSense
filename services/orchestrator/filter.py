@@ -67,13 +67,13 @@ class DataFilter:
 
     @classmethod
     def from_dict(cls, data: Dict) -> "DataFilter":
-        """Create DataFilter from dictionary."""
         return cls(
             limit=data.get("limit"),
             label_type=data.get("label_type"),
             label_status=data.get("label_status"),
             date_from=data.get("date_from"),
             date_to=data.get("date_to"),
+            only_without_ticket=data.get("only_without_ticket", False),
         )
 
 

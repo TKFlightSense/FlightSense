@@ -4,7 +4,8 @@ import logging
 from services.db_service.db_service import DbService
 from services.orchestrator.filter import DataFilter
 from packages.llm.segmentation_service import SegmentationService
-from services.orchestrator.jira_agent import JiraTicketAgent
+from packages.tickets.client import MockTicketClient
+from services.agents.jira_agent import JiraTicketAgent
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +22,13 @@ class FlightSenseOrchestrator:
         self.token_expiry_hours = 24
         self.segmentation = SegmentationService()
 
-        self.jira_agent = JiraTicketAgent(db=self.db)
+        ticket_client = MockTicketClient(self.db)
+        self.jira_agent = JiraTicketAgent(ticket_client=ticket_client)
+
         # self.email_agent = EmailSummaryAgent(db=self.db)  # later
 
         self.role_to_category = {
-            # TODO: update for new labels
+            # TODO: Görkem: update for new labels
         }
 
     def label_single_review(self, review: str):
@@ -398,7 +401,6 @@ class FlightSenseOrchestrator:
             logger.error(f"Error getting category analytics: {e}")
             return {"success": False, "error": str(e)}
         
-
     def create_tickets_for_filtered(
         self,
         token: str,
@@ -408,7 +410,11 @@ class FlightSenseOrchestrator:
         Use filters + role permissions to select feedback rows,
         then create Jira-like tickets for them (using the mock ticket client for now).
 
-        This is the core "ticket-creation automation" entrypoint.
+        Orchestrator responsibilities:
+          - auth + role check
+          - build and validate DataFilter
+          - query DB + apply 'only_without_ticket'
+          - delegate ticket creation to JiraTicketAgent
         """
         try:
             user_info = self.verify_token(token)
@@ -422,11 +428,13 @@ class FlightSenseOrchestrator:
                     "error": "Only admin/manager can trigger ticket creation",
                 }
 
+            # Normalize to DataFilter
             if isinstance(filters, dict):
                 data_filter = DataFilter.from_dict(filters)
             else:
                 data_filter = filters
 
+            # Validate filters
             validation_errors = data_filter.validate()
             if validation_errors:
                 return {
@@ -437,7 +445,7 @@ class FlightSenseOrchestrator:
 
             data_filter.to_enum()
 
-            # Reuse existing DB method to get processed data
+            # Query processed_data
             df = self.db.get_processed_data(
                 limit=data_filter.limit,
                 label_type=data_filter.label_type,
@@ -450,22 +458,32 @@ class FlightSenseOrchestrator:
                 return {
                     "success": True,
                     "created_tickets": [],
+                    "count": 0,
                     "message": "No matching feedback for ticket creation",
                 }
 
-            # If only_without_ticket: drop rows that already have tickets
+            # Optionally drop rows that already have tickets
             if data_filter.only_without_ticket:
-                # join with tickets table in Python
                 ticket_df = self.db.get_open_tickets()
                 if not ticket_df.empty:
-                    existing_ids = ticket_df["processed_data_id"].dropna().unique().tolist()
+                    existing_ids = (
+                        ticket_df["processed_data_id"]
+                        .dropna()
+                        .unique()
+                        .tolist()
+                    )
                     df = df[~df["id"].isin(existing_ids)]
 
-            created = []
-            for _, row in df.iterrows():
-                resp = self.jira_agent.create_ticket_for_row(row)
-                if resp is not None:
-                    created.append(resp)
+            if df.empty:
+                return {
+                    "success": True,
+                    "created_tickets": [],
+                    "count": 0,
+                    "message": "All matching feedback already has tickets",
+                }
+
+            # Delegate to agent
+            created = self.jira_agent.create_tickets_for_dataframe(df)
 
             return {
                 "success": True,
@@ -476,7 +494,7 @@ class FlightSenseOrchestrator:
         except Exception as e:
             logger.error(f"Error during ticket creation: {e}")
             return {"success": False, "error": str(e)}
-        
+
     # ============ ADMIN-ONLY OPERATIONS ============
 
     def push_processed_data(self, token: str, data) -> Dict:
