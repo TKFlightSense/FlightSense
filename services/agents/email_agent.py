@@ -92,7 +92,7 @@ class EmailSummaryAgent:
 
         return "\n".join(lines)
 
-    def _send_email(self, to_addrs: List[string], subject: str, body: str) -> None:
+    def _send_email(self, to_addrs: List[str], subject: str, body: str) -> None:
         msg = EmailMessage()
         msg["From"] = self.email_config.from_addr
         msg["To"] = ", ".join(to_addrs)

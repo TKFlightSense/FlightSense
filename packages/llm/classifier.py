@@ -151,16 +151,19 @@ class FeedbackClassifier:
         today = date.today()
 
         for idx, text in enumerate(feedbacks):
+            # Get segments with fine-grained labels
+            segments_result = self.label_review(text, max_segments=5)
+            segments = segments_result.get("segments", [])
+            
+            # Extract unique fine-grained labels from segments
+            fine_labels = list(set(seg["label"] for seg in segments))
+            labels_str = ",".join(fine_labels)
+            
+            # Get coarse categories for the category columns
             result = self._call_llm(text)
-
-            # Ensure all main columns exist; default to 0
             cat_values: Dict[str, int] = {
                 col: int(result.categories.get(col, 0)) for col in MAIN_CATEGORY_COLUMNS
             }
-
-            # labels text = comma-separated active main categories
-            active_labels = [k for k, v in cat_values.items() if v != 0]
-            labels_str = ",".join(active_labels)
 
             row_date = dates[idx] if dates and idx < len(dates) else today
 
