@@ -5,6 +5,7 @@ pydantic>=2.6
 httpx>=0.26
 jinja2>=3.1
 numpy>=1.26
+pandas>=2.3
 
 # Local shared package (schemas/enums)
 -e packages/tkfs_common
