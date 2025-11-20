@@ -15,7 +15,7 @@ class ReportingService:
     """
     Handles reporting-related operations:
       - LLM-based segmentation & labeling
-      - Ticket creation via JiraTicketAgent (using mock Jira now)
+      - Ticket creation via JiraTicketAgent
     """
 
     def __init__(
@@ -48,8 +48,10 @@ class ReportingService:
         then create Jira-like tickets for them (via JiraTicketAgent).
         """
         try:
-            # Only ADMIN/MANAGER can trigger bulk ticket creation
-            if not self.access.is_full_access_role(user_info["role"]):
+            role = user_info["role"]
+
+            # Only admin/manager can trigger bulk ticket creation
+            if not self.access.is_full_access_role(role):
                 return {
                     "success": False,
                     "error": "Only admin/manager can trigger ticket creation",
@@ -73,7 +75,6 @@ class ReportingService:
             df = self.db.get_processed_data(
                 limit=data_filter.limit,
                 label_type=data_filter.label_type,
-                label_status=data_filter.label_status,
                 date_from=data_filter.date_from,
                 date_to=data_filter.date_to,
             )
@@ -86,8 +87,8 @@ class ReportingService:
                     "message": "No matching feedback for ticket creation",
                 }
 
-            # Optional: only rows without existing tickets
-            if getattr(data_filter, "only_without_ticket", False):
+            # Optionally: only rows without existing tickets
+            if data_filter.only_without_ticket:
                 ticket_df = self.db.get_open_tickets()
                 if not ticket_df.empty:
                     existing_ids = (
@@ -117,3 +118,4 @@ class ReportingService:
         except Exception as e:
             logger.error(f"Error during ticket creation: {e}")
             return {"success": False, "error": str(e)}
+    

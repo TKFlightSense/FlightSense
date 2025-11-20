@@ -1,7 +1,7 @@
-# packages/tickets/client.py
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
+
 from services.db_service.db_service import DbService
 
 
@@ -18,8 +18,9 @@ class TicketPayload:
 
 class AbstractTicketClient:
     """
-    Interface so we can swap between a mock client and real Jira later.
+    Abstract interface for ticketing clients (mock Jira, real Jira, etc.).
     """
+
     def create_issue(self, payload: TicketPayload) -> Dict[str, Any]:
         raise NotImplementedError
 
@@ -34,6 +35,7 @@ class MockTicketClient(AbstractTicketClient):
 
     def create_issue(self, payload: TicketPayload) -> Dict[str, Any]:
         fake_key = f"MOCK-{payload.project_key}-{payload.issue_type}"
+
         ticket_id = self.db.insert_ticket(
             processed_data_id=payload.processed_data_id,
             primary_label=payload.primary_label,
@@ -44,6 +46,7 @@ class MockTicketClient(AbstractTicketClient):
             source="mock",
             status="OPEN",
         )
+
         return {
             "id": ticket_id,
             "key": fake_key,

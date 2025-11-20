@@ -8,7 +8,7 @@ import jwt
 
 from services.db_service.db_service import DbService
 from services.access_control_service import AccessControlService
-from models.enums.enums import UserRole
+from models.roles import VALID_ROLES
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 class AuthService:
     """
     Authentication: register, login, token generation/verification.
+
+    Roles are simple strings validated against VALID_ROLES.
     """
 
     def __init__(
@@ -45,20 +47,15 @@ class AuthService:
             if len(password) < 8:
                 raise ValueError("Password must be at least 8 characters")
 
-            if isinstance(role, UserRole):
-                role_str = role.value
-            else:
-                role_str = role
-                valid_roles = [r.value for r in UserRole]
-                if role_str not in valid_roles:
-                    raise ValueError(f"Invalid role. Must be one of: {valid_roles}")
+            if role not in VALID_ROLES:
+                raise ValueError(f"Invalid role. Must be one of: {VALID_ROLES}")
 
             password_hash = bcrypt.hashpw(
                 password.encode("utf-8"), bcrypt.gensalt()
             ).decode("utf-8")
 
             user_id = self.db.create_user(
-                username, email, password_hash, role_str, department
+                username, email, password_hash, role, department
             )
 
             return {

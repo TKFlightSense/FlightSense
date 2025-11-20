@@ -25,7 +25,6 @@ class FlightSenseOrchestrator:
 
         self.access = AccessControlService()
         self.auth = AuthService(self.db, secret_key, self.access)
-
         self.data = DataService(self.db, self.access)
 
         segmentation = SegmentationService()
@@ -46,7 +45,7 @@ class FlightSenseOrchestrator:
     def verify_token(self, token: str) -> Optional[Dict]:
         return self.auth.verify_token(token)
 
-    # ---------- DATA wrappers (take token, resolve user, delegate) ----------
+    # ---------- DATA wrappers (token → user_info) ----------
 
     def get_processed_data_filtered(
         self, token: str, filters: Union[Dict, DataFilter]
@@ -62,11 +61,11 @@ class FlightSenseOrchestrator:
             return {"success": False, "error": "Unauthorized"}
         return self.data.get_dashboard_summary(user_info, page)
 
-    def get_category_analytics(self, token: str, category: str) -> Dict:
+    def get_category_analytics(self, token: str, label: str) -> Dict:
         user_info = self.verify_token(token)
         if not user_info:
             return {"success": False, "error": "Unauthorized"}
-        return self.data.get_category_analytics(user_info, category)
+        return self.data.get_category_analytics(user_info, label)
 
     def push_processed_data(self, token: str, data) -> Dict:
         user_info = self.verify_token(token)

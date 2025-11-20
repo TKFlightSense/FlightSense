@@ -1,3 +1,4 @@
+# services/agents/jira_agent.py
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List
@@ -6,7 +7,8 @@ import pandas as pd
 
 from packages.tickets.client import AbstractTicketClient, TicketPayload
 
-# TODO: POLAT: Adjust with new Label - department routing
+
+# TODO: POLAT: add correct Label - department routing
 LABEL_TO_DEPARTMENT = {
     "checkin_process": "GroundOps",
     "boarding_process": "GroundOps",
@@ -41,10 +43,9 @@ class JiraTicketAgent:
     """
     Agent responsible for turning classified feedback into tickets.
 
-    IMPORTANT: this agent does NOT talk to the DB directly.
-    It only:
-      - reads rows (pd.Series / DataFrame) passed by the orchestrator
-      - calls a TicketClient (mock Jira now, real Jira later)
+    It doesn't touch the DB directly; it only:
+      - reads DataFrame rows
+      - sends TicketPayloads to a TicketClient (mock Jira or real Jira).
     """
 
     def __init__(self, ticket_client: AbstractTicketClient):
@@ -92,7 +93,6 @@ class JiraTicketAgent:
 
         summary = self._build_summary(row, primary_label)
         description = self._build_description(row)
-
         processed_id = row.get("id")  # requires 'id' column in DataFrame
 
         payload = TicketPayload(
