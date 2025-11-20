@@ -8,7 +8,7 @@ from services.access_control_service import AccessControlService
 from services.auth_service import AuthService
 from services.data_service import DataService
 from services.reporting_service import ReportingService
-from packages.llm.segmentation_service import SegmentationService
+from packages.llm.classifier import FeedbackClassifier
 from packages.tickets.client import MockTicketClient
 from services.agents.jira_agent import JiraTicketAgent
 
@@ -27,11 +27,11 @@ class FlightSenseOrchestrator:
         self.auth = AuthService(self.db, secret_key, self.access)
         self.data = DataService(self.db, self.access)
 
-        segmentation = SegmentationService()
+        classifier = FeedbackClassifier()
         ticket_client = MockTicketClient(self.db)
         jira_agent = JiraTicketAgent(ticket_client=ticket_client)
         self.reporting = ReportingService(
-            self.db, self.access, segmentation, jira_agent
+            self.db, self.access, classifier, jira_agent
         )
 
     # ---------- AUTH wrappers ----------

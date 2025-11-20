@@ -58,27 +58,72 @@ class FeedbackClassifier:
     - returns DataFrame matching processed_data schema.
     """
 
-    def __init__(self, llm_client: LLMClient, prompt_builder: Optional[PromptBuilder] = None):
-        self.llm_client = llm_client
+    def __init__(self, llm_client: Optional[LLMClient] = None, prompt_builder: Optional[PromptBuilder] = None):
+        try:
+            self.llm_client = llm_client or LLMClient()
+        except Exception as e:
+            logger.warning(f"Failed to initialize LLM client: {e}")
+            self.llm_client = None
         self.prompt_builder = prompt_builder or PromptBuilder()
 
-    def _call_llm(self, feedback: str) -> ClassificationResult:
-        messages = self.prompt_builder.build_classification_messages(feedback)
-        raw = self.llm_client.complete(messages).strip()
-
+    def label_review(self, review: str, max_segments: int = 3) -> Dict[str, Any]:
+        """
+        Label a single review and return segments with labels.
+        Returns: {"segments": [{"start": int, "length": int, "label": str}, ...]}
+        """
+        if self.llm_client is None:
+            logger.error("LLM client not initialized")
+            return {"segments": []}
+        
+        prompt = self.prompt_builder.build_classification_messages(review, max_segments)
+        raw = self.llm_client.complete(prompt).strip()
+        
         try:
             data = json.loads(raw)
+            return data
         except json.JSONDecodeError:
             logger.error("LLM returned invalid JSON. Raw response: %s", raw)
-            # Fallback: mark everything as 0/neutral
-            data = {
-                "categories": {col: 0 for col in MAIN_CATEGORY_COLUMNS},
-                "sentiment": "neutral",
-                "subcategories": {},
-                "summary": "",
-            }
+            return {"segments": []}
 
-        return ClassificationResult.from_dict(data)
+    def _call_llm(self, feedback: str) -> ClassificationResult:
+        """
+        Internal method for batch classification.
+        Calls label_review and extracts labels from segments.
+        """
+        segments_result = self.label_review(feedback, max_segments=5)
+        segments = segments_result.get("segments", [])
+        
+        # Extract unique labels from segments
+        labels = list(set(seg["label"] for seg in segments))
+        
+        # Map fine-grained labels to coarse categories
+        # Initialize all categories to 0
+        categories = {col: 0 for col in MAIN_CATEGORY_COLUMNS}
+        
+        # Simple mapping logic
+        for label in labels:
+            if "delay" in label or "cancellation" in label:
+                categories["flight_delay_cancellation"] = -1
+            elif "checkin" in label or "boarding" in label:
+                categories["checkin_boarding_process"] = -1
+            elif "baggage" in label:
+                categories["baggage_issues"] = -1
+            elif "inflight_experience" in label:
+                categories["inflight_experience"] = -1
+            elif "pricing" in label or "loyalty" in label:
+                categories["pricing_fees"] = -1
+            elif "booking" in label or "ticketing" in label:
+                categories["online_booking"] = -1
+        
+        # Determine overall sentiment based on presence of negative labels
+        sentiment = "negative" if any(v == -1 for v in categories.values()) else "neutral"
+        
+        return ClassificationResult(
+            categories=categories,
+            sentiment=sentiment,
+            subcategories={},
+            summary="",
+        )
 
     def classify_batch(
         self,

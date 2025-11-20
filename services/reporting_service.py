@@ -5,7 +5,7 @@ import logging
 from services.db_service.db_service import DbService
 from services.orchestrator.filter import DataFilter
 from services.access_control_service import AccessControlService
-from packages.llm.segmentation_service import SegmentationService
+from packages.llm.classifier import FeedbackClassifier
 from services.agents.jira_agent import JiraTicketAgent
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ReportingService:
     """
     Handles reporting-related operations:
-      - LLM-based segmentation & labeling
+      - LLM-based labeling
       - Ticket creation via JiraTicketAgent
     """
 
@@ -22,18 +22,18 @@ class ReportingService:
         self,
         db_service: DbService,
         access_control: AccessControlService,
-        segmentation: SegmentationService,
+        classifier: FeedbackClassifier,
         jira_agent: JiraTicketAgent,
     ):
         self.db = db_service
         self.access = access_control
-        self.segmentation = segmentation
+        self.classifier = classifier
         self.jira_agent = jira_agent
 
-    # ---------- segmentation / labeling ----------
+    # ---------- labeling ----------
 
     def label_single_review(self, review: str):
-        segments = self.segmentation.segment_review(review, max_segments=3)
+        segments = self.classifier.label_review(review, max_segments=3)
         return segments
 
     # ---------- ticket creation ----------

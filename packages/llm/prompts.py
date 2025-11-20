@@ -4,8 +4,8 @@ from typing import Dict
 import json
 
 
-SEGMENTATION_PROMPT_TEMPLATE = """
-You are a precise data segmenting and labeling assistant for AIRLINE PASSENGER FEEDBACK.
+CLASSIFICATION_PROMPT_TEMPLATE = """
+You are a precise data labeling assistant for AIRLINE PASSENGER FEEDBACK.
 Use ONLY the labels from the provided list. Follow instructions STRICTLY.
 Do NOT add any extra text beyond the requested JSON output.
 
@@ -18,25 +18,28 @@ ALLOWED LABELS (exact strings + explanations)
 
 TASK
 ----
-Split the review into 0 or more CONTIGUOUS segments and assign EXACTLY ONE label from the list ABOVE to EACH segment that clearly expresses that topic.
+Analyze the review and provide segmentation with classification.
+
+For each segment:
+1. Identify CONTIGUOUS text spans that clearly express one of the topics
+2. Assign EXACTLY ONE label from the list ABOVE to each segment
+3. Provide character-level position (start index and length)
 
 Segmentation rules:
-- Use 0-based character indexes into the ORIGINAL review string (the exact text shown above).
-- Each segment is defined by:
-  - "start": the index of the FIRST character of the segment.
-  - "length": the NUMBER of characters in the segment.
-- Segments MUST NOT overlap.
-- Segments should only cover parts of the text that clearly relate to one of the labels.
-- If a sentence talks about multiple different issues (e.g., baggage and cabin service), create separate segments for the parts that relate to each label.
-- Keep segments as short as possible while still clearly matching their label.
-- Return AT MOST {max_segments} segments.
-- If NO part of the review fits any label, return an empty list: {{"segments": []}}.
+- Use 0-based character indexes into the ORIGINAL review string
+- Each segment: {{"start": int, "length": int, "label": "label_name"}}
+- Segments MUST NOT overlap
+- Only segment text that clearly relates to a label
+- If a sentence has multiple issues, create separate segments for each
+- Keep segments concise while capturing the complete thought
+- Return AT MOST {max_segments} segments
+- If nothing fits any label, return empty segments list
 
 Labeling rules:
-- Use ONLY these label strings (no new labels, no typos).
-- Choose the MOST specific label that fits the text.
-- Do NOT force a label when nothing fits; it is valid to return {{"segments": []}}.
-- If multiple labels could apply, choose the ONE that best reflects the main focus of that text span.
+- Use ONLY the exact label strings provided (no variations, no typos)
+- Choose the MOST specific label that fits the text
+- Do NOT force labels - empty segments list is valid
+- If multiple labels could apply, choose the ONE that best reflects the main focus
 
 OUTPUT FORMAT (JSON ONLY)
 -------------------------
@@ -89,9 +92,10 @@ class PromptBuilder:
             lines.append("")  # blank line between labels
         return "\n".join(lines).strip()
 
-    def build_segmentation_prompt(self, review: str, max_segments: int = 3) -> str:
+    def build_classification_messages(self, review: str, max_segments: int = 3) -> str:
+        """Build prompt for classification with labeled segments."""
         labels_block = self._build_labels_block()
-        return SEGMENTATION_PROMPT_TEMPLATE.format(
+        return CLASSIFICATION_PROMPT_TEMPLATE.format(
             review=review,
             labels_block=labels_block,
             max_segments=max_segments,
