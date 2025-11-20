@@ -3,10 +3,8 @@ import pandas as pd
 from pathlib import Path
 from typing import Optional, List, Tuple
 import logging
-from models.enums.enums import (
-    SentimentLabel,
-    StatusNumericalVal,
-)
+
+from models.labels import ALL_LABELS
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +27,10 @@ class DbService:
         self._create_tables()
         self._check_if_first_run()
         self._initialize_default_data()
+
+    # -------------------------------------------------------------------------
+    # INIT HELPERS
+    # -------------------------------------------------------------------------
 
     def _check_if_first_run(self) -> bool:
         """Check if database is being initialized for the first time."""
@@ -66,8 +68,12 @@ class DbService:
         self._create_processed_data_table()
         self._create_statistics_table()
         self._create_user_table()
-        self._create_tickets_table()  # Jira Ticket Table  
+        self._create_tickets_table()  # Jira Ticket Table
         logger.info("All tables created/verified successfully")
+
+    # -------------------------------------------------------------------------
+    # TICKETS TABLE (Jira clone)
+    # -------------------------------------------------------------------------
 
     def _create_tickets_table(self):
         """
@@ -123,22 +129,42 @@ class DbService:
             ),
         )
         self.connection.commit()
-        return self.cursor.lastrowid
+        ticket_id = self.cursor.lastrowid
+        logger.info(
+            f"Inserted ticket id={ticket_id} for processed_data_id={processed_data_id}"
+        )
+        return ticket_id
 
-    def get_tickets_for_processed_id(self, processed_data_id: int):
+    def get_tickets_for_processed_id(self, processed_data_id: int) -> pd.DataFrame:
         query = "SELECT * FROM tickets WHERE processed_data_id = ?"
         return pd.read_sql_query(query, self.connection, params=[processed_data_id])
 
-    def get_open_tickets(self, limit: Optional[int] = None):
+    def get_open_tickets(self, limit: Optional[int] = None) -> pd.DataFrame:
         query = "SELECT * FROM tickets WHERE status = 'OPEN' ORDER BY created_at DESC"
         if limit:
             query += f" LIMIT {limit}"
         return pd.read_sql_query(query, self.connection)
 
+    # -------------------------------------------------------------------------
+    # PROCESSED DATA TABLE
+    # -------------------------------------------------------------------------
+
     def _create_processed_data_table(self):
         """
         Create table for labeled/processed flight data.
-        Adjust columns based on your actual data structure.
+
+        Columns:
+          - review: raw text
+          - labels: comma-separated fine-grained labels
+                    e.g. 'baggage_lost,inflight_experience_food_beverage'
+          - coarse columns (kept for backward compatibility, but not used
+            in queries anymore):
+              flight_delay_cancellation,
+              checkin_boarding_process,
+              baggage_issues,
+              inflight_experience,
+              pricing_fees,
+              online_booking
         """
         create_table_query = """
         CREATE TABLE IF NOT EXISTS processed_data (
@@ -162,6 +188,10 @@ class DbService:
         except sqlite3.Error as e:
             logger.error(f"Error creating processed_data table: {e}")
             raise
+
+    # -------------------------------------------------------------------------
+    # STATISTICS TABLE
+    # -------------------------------------------------------------------------
 
     def _create_statistics_table(self):
         """
@@ -188,6 +218,11 @@ class DbService:
         """
         self.cursor.execute(create_table_query)
         self.connection.commit()
+        logger.info("Table 'statistics' created/verified")
+
+    # -------------------------------------------------------------------------
+    # USER TABLE
+    # -------------------------------------------------------------------------
 
     def _create_user_table(self):
         """Create table for user data with authentication."""
@@ -268,6 +303,10 @@ class DbService:
             logger.error(f"Error updating last login: {e}")
             raise
 
+    # -------------------------------------------------------------------------
+    # CSV INGEST / PUSH
+    # -------------------------------------------------------------------------
+
     def _ingest_preprocessed_csv(
         self,
         path: str = "data/raw/labeled_data.csv",
@@ -333,7 +372,7 @@ class DbService:
 
     def push_statistics_data(self, df: pd.DataFrame) -> int:
         """
-        Push a DataFrame to the statistics_data table.
+        Push a DataFrame to the statistics table.
 
         Args:
             df: DataFrame containing statistics data
@@ -342,25 +381,26 @@ class DbService:
             Number of rows inserted
         """
         try:
-            initial_count = self._get_row_count("statistics_data")
-            df.to_sql(
-                "statistics_data", self.connection, if_exists="append", index=False
-            )
+            initial_count = self._get_row_count("statistics")
+            df.to_sql("statistics", self.connection, if_exists="append", index=False)
             self.connection.commit()
-            final_count = self._get_row_count("statistics_data")
+            final_count = self._get_row_count("statistics")
             rows_inserted = final_count - initial_count
-            logger.info(f"Pushed {rows_inserted} rows to statistics_data table")
+            logger.info(f"Pushed {rows_inserted} rows to statistics table")
             return rows_inserted
         except Exception as e:
             logger.error(f"Error pushing statistics data: {e}")
             self.connection.rollback()
             raise
 
+    # -------------------------------------------------------------------------
+    # QUERY HELPERS – STRING-BASED API
+    # -------------------------------------------------------------------------
+
     def get_processed_data(
         self,
         limit: Optional[int] = None,
-        label_type: Optional[SentimentLabel] = None,
-        label_status: Optional[StatusNumericalVal] = None,  # false enum
+        label_type: Optional[str] = None,
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
     ) -> pd.DataFrame:
@@ -369,8 +409,9 @@ class DbService:
 
         Args:
             limit: Maximum number of rows to return
-            label_type: Returns filtered reviews for a label type
-            label_status: Returns positive or negative reviews
+            label_type:
+                If provided, we treat it as a fine-grained label and filter
+                'labels' text column with LIKE '%label_type%'.
             date_from: Filter by start date (YYYY-MM-DD)
             date_to: Filter by end date (YYYY-MM-DD)
 
@@ -379,15 +420,11 @@ class DbService:
         """
         try:
             query = "SELECT * FROM processed_data WHERE 1=1"
-            params = []
-            # fdc cbp bi ife pc ob
+            params: List = []
+
             if label_type:
-                if not label_status:
-                    query += f" AND {label_type.value} != ?"
-                    params.append(0)
-                else:
-                    query += f" AND {label_type.value} == ?"
-                    params.append(label_status.value)
+                query += " AND labels LIKE ?"
+                params.append(f"%{label_type}%")
 
             if date_from:
                 query += " AND date >= ?"
@@ -396,8 +433,6 @@ class DbService:
             if date_to:
                 query += " AND date <= ?"
                 params.append(date_to)
-
-            # query += " ORDER BY date DESC"
 
             if limit:
                 query += f" LIMIT {limit}"
@@ -411,64 +446,87 @@ class DbService:
 
     def get_statistics_data(
         self,
-        metric_name: Optional[str] = None,
-        pos_source: Optional[str] = None,
+        category: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> pd.DataFrame:
         """
-        Retrieve statistics data from the database.
+        Retrieve statistics data from the statistics table.
 
         Args:
-            metric_name: Filter by metric name
-            pos_source: Filter by POS source
+            category: Filter by category (e.g. 'inflight_experience')
+            date_from: Filter by start date (YYYY-MM-DD)
+            date_to: Filter by end date (YYYY-MM-DD)
             limit: Maximum number of rows to return
 
         Returns:
             DataFrame containing the requested statistics
         """
         try:
-            query = "SELECT * FROM statistics_data WHERE 1=1"
-            params = []
+            query = "SELECT * FROM statistics WHERE 1=1"
+            params: List = []
 
-            if metric_name:
-                query += " AND metric_name = ?"
-                params.append(metric_name)
+            if category:
+                query += " AND category = ?"
+                params.append(category)
 
-            if pos_source:
-                query += " AND pos_source = ?"
-                params.append(pos_source)
+            if date_from:
+                query += " AND date >= ?"
+                params.append(date_from)
 
-            query += " ORDER BY calculation_date DESC"
+            if date_to:
+                query += " AND date <= ?"
+                params.append(date_to)
+
+            query += " ORDER BY date DESC"
 
             if limit:
                 query += f" LIMIT {limit}"
 
             df = pd.read_sql_query(query, self.connection, params=params)
-            logger.info(f"Retrieved {len(df)} rows from statistics_data table")
+            logger.info(f"Retrieved {len(df)} rows from statistics table")
             return df
         except Exception as e:
             logger.error(f"Error retrieving statistics data: {e}")
             raise
 
-    def get_sentiment_distribution(self) -> pd.DataFrame:
-        """Get distribution of sentiment labels."""
+    def get_label_distribution(self) -> pd.DataFrame:
+        """
+        Compute distribution of fine-grained labels based on the 'labels' text column.
+
+        Returns a DataFrame with columns:
+          - label
+          - count
+          - total_reviews  (same for all rows)
+        """
         try:
-            query = """
-            SELECT 
-                SUM(CASE WHEN flight_delay_cancellation != 0 THEN 1 ELSE 0 END) as fdc_count,
-                SUM(CASE WHEN checkin_boarding_process != 0 THEN 1 ELSE 0 END) as cbp_count,
-                SUM(CASE WHEN baggage_issues != 0 THEN 1 ELSE 0 END) as bi_count,
-                SUM(CASE WHEN inflight_experience != 0 THEN 1 ELSE 0 END) as ife_count,
-                SUM(CASE WHEN pricing_fees != 0 THEN 1 ELSE 0 END) as pf_count,
-                SUM(CASE WHEN online_booking != 0 THEN 1 ELSE 0 END) as ob_count,
-                COUNT(*) as total_reviews
-            FROM processed_data
-            """
-            df = pd.read_sql_query(query, self.connection)
-            return df
+            # total number of reviews
+            total_query = "SELECT COUNT(*) as total_reviews FROM processed_data"
+            total_df = pd.read_sql_query(total_query, self.connection)
+            total_reviews = int(total_df["total_reviews"].iloc[0]) if not total_df.empty else 0
+
+            rows = []
+            for label in ALL_LABELS:
+                query = "SELECT COUNT(*) as cnt FROM processed_data WHERE labels LIKE ?"
+                df = pd.read_sql_query(query, self.connection, params=[f"%{label}%"])
+                cnt = int(df["cnt"].iloc[0]) if not df.empty else 0
+                rows.append(
+                    {
+                        "label": label,
+                        "count": cnt,
+                        "total_reviews": total_reviews,
+                    }
+                )
+
+            return pd.DataFrame(rows)
         except Exception as e:
-            logger.error(f"Error getting sentiment distribution: {e}")
+            logger.error(f"Error getting label distribution: {e}")
             raise
+
+    # -------------------------------------------------------------------------
+    # USER DATA HELPER
+    # -------------------------------------------------------------------------
 
     def get_user_data(self, username: Optional[str] = None) -> pd.DataFrame:
         """
@@ -493,6 +551,10 @@ class DbService:
         except Exception as e:
             logger.error(f"Error retrieving user data: {e}")
             raise
+
+    # -------------------------------------------------------------------------
+    # GENERIC HELPERS
+    # -------------------------------------------------------------------------
 
     def _get_row_count(self, table_name: str) -> int:
         """Get the number of rows in a table."""
@@ -534,7 +596,7 @@ class DbService:
             confirm = input(
                 f"Are you sure you want to clear table '{table_name}'? (yes/no): "
             )
-            if confirm.lower() == "yes" or confirm.lower() == "y":
+            if confirm.lower() in ("yes", "y"):
                 self.cursor.execute(f"DELETE FROM {table_name}")
                 self.connection.commit()
                 logger.info(f"Table '{table_name}' cleared successfully")
@@ -563,6 +625,10 @@ class DbService:
             logger.error(f"Error getting table info: {e}")
             raise
 
+    # -------------------------------------------------------------------------
+    # CONTEXT MANAGER
+    # -------------------------------------------------------------------------
+
     def close(self):
         """Close the database connection."""
         if self.connection:
@@ -588,9 +654,8 @@ if __name__ == "__main__":
 
     df = db.get_processed_data(limit=10)
     print(df.to_string())
-    db.close()
 
-    # Or use as context manager:
-    # with DbConnector() as db:
-    #     data = db.get_processed_data(limit=5)
-    #     print(data)
+    print("\nLabel distribution:")
+    print(db.get_label_distribution().to_string())
+
+    db.close()

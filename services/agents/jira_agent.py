@@ -1,4 +1,3 @@
-# services/agents/jira_agent.py
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List
@@ -6,19 +5,23 @@ from typing import Dict, Any, Optional, List
 import pandas as pd
 
 from packages.tickets.client import AbstractTicketClient, TicketPayload
+from models.labels import ALL_LABELS
 
 
-# TODO: POLAT: add correct Label - department routing
+# Label -> department routing (keys are exactly the fine labels)
 LABEL_TO_DEPARTMENT = {
-    "checkin_process": "GroundOps",
-    "boarding_process": "GroundOps",
-    "baggage_lost": "Baggage",
-    "baggage_damaged": "Baggage",
     "inflight_experience_food_beverage": "Catering",
     "inflight_experience_seats_comfort": "Catering",
     "inflight_experience_entertainment": "Catering",
     "inflight_experience_cabin_service": "Catering",
     "inflight_experience_cleanliness": "Catering",
+
+    "checkin_process": "GroundOps",
+    "boarding_process": "GroundOps",
+
+    "baggage_lost": "Baggage",
+    "baggage_damaged": "Baggage",
+
     "booking_and_ticketing": "CustomerSupport",
     "customer_support": "CustomerSupport",
     "pricing_and_loyalty": "CustomerSupport",
@@ -54,12 +57,16 @@ class JiraTicketAgent:
     # ---------- internal helpers ----------
 
     def _pick_primary_label(self, labels: str) -> Optional[str]:
+        """
+        labels: comma-separated fine-grained labels string from processed_data.labels
+        e.g. "baggage_lost,inflight_experience_food_beverage"
+        """
         if not labels:
             return None
-        for lbl in labels.split(","):
-            l = lbl.strip()
-            if l in LABEL_TO_DEPARTMENT:
-                return l
+        for raw in labels.split(","):
+            lbl = raw.strip()
+            if lbl in LABEL_TO_DEPARTMENT:
+                return lbl
         return None
 
     def _build_summary(self, row: pd.Series, primary_label: str) -> str:
