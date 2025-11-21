@@ -1,0 +1,10 @@
+{
+  "department_recipients": {
+    "GroundOps": ["groundops@airline.com"],
+    "Baggage": ["baggage@airline.com"],
+    "Catering": ["catering@airline.com"],
+    "CustomerSupport": ["cs@airline.com"]
+  },
+  "email_subject_template": "[TKFlightSense] Daily Feedback Report – {department}",
+  "default_days_lookback": 1
+}

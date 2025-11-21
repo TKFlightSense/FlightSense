@@ -1,31 +1,13 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List
+from pathlib import Path
+import json
 
 import pandas as pd
 
 from packages.tickets.client import AbstractTicketClient, TicketPayload
 from models.labels import ALL_LABELS
-
-
-# Label -> department routing (keys are exactly the fine labels)
-LABEL_TO_DEPARTMENT = {
-    "inflight_experience_food_beverage": "Catering",
-    "inflight_experience_seats_comfort": "Catering",
-    "inflight_experience_entertainment": "Catering",
-    "inflight_experience_cabin_service": "Catering",
-    "inflight_experience_cleanliness": "Catering",
-
-    "checkin_process": "GroundOps",
-    "boarding_process": "GroundOps",
-
-    "baggage_lost": "Baggage",
-    "baggage_damaged": "Baggage",
-
-    "booking_and_ticketing": "CustomerSupport",
-    "customer_support": "CustomerSupport",
-    "pricing_and_loyalty": "CustomerSupport",
-}
 
 
 @dataclass
@@ -34,11 +16,21 @@ class DepartmentConfig:
     issue_type: str
 
 
+def _load_department_routing_config() -> Dict[str, Any]:
+    """Load department routing configuration from JSON file."""
+    config_path = Path("models/artifacts/department_routing.json")
+    if not config_path.exists():
+        raise FileNotFoundError(f"Department routing config not found: {config_path}")
+    with config_path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# Load configurations from JSON file
+_ROUTING_CONFIG = _load_department_routing_config()
+LABEL_TO_DEPARTMENT = _ROUTING_CONFIG["label_to_department"]
 DEPARTMENT_CONFIG = {
-    "GroundOps": DepartmentConfig(project_key="GOPS", issue_type="Incident"),
-    "Baggage": DepartmentConfig(project_key="BAG", issue_type="Incident"),
-    "Catering": DepartmentConfig(project_key="CAT", issue_type="Task"),
-    "CustomerSupport": DepartmentConfig(project_key="CS", issue_type="Task"),
+    dept: DepartmentConfig(**config)
+    for dept, config in _ROUTING_CONFIG["department_config"].items()
 }
 
 

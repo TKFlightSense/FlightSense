@@ -2,7 +2,9 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import date, timedelta
+from pathlib import Path
 import os
+import json
 import smtplib
 from email.message import EmailMessage
 
@@ -13,12 +15,31 @@ from packages.stats.statistics_service import StatisticsService  # if you have o
 # from packages.llm.summarizer import Summarizer  # you can add this later
 
 
-DEPARTMENT_RECIPIENTS = {
-    "GroundOps": ["groundops@airline.com"],
-    "Baggage": ["baggage@airline.com"],
-    "Catering": ["catering@airline.com"],
-    "CustomerSupport": ["cs@airline.com"],
-}
+def _load_email_config() -> Dict[str, Any]:
+    """Load email configuration from JSON file."""
+    config_path = Path("models/artifacts/email_config.json")
+    if not config_path.exists():
+        raise FileNotFoundError(f"Email config not found: {config_path}")
+    with config_path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _load_department_routing_config() -> Dict[str, Any]:
+    """Load department routing configuration from JSON file."""
+    config_path = Path("models/artifacts/department_routing.json")
+    if not config_path.exists():
+        raise FileNotFoundError(f"Department routing config not found: {config_path}")
+    with config_path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# Load configurations from JSON files
+_EMAIL_CONFIG = _load_email_config()
+_ROUTING_CONFIG = _load_department_routing_config()
+
+DEPARTMENT_RECIPIENTS = _EMAIL_CONFIG["department_recipients"]
+EMAIL_SUBJECT_TEMPLATE = _EMAIL_CONFIG["email_subject_template"]
+DEFAULT_DAYS_LOOKBACK = _EMAIL_CONFIG["default_days_lookback"]
 
 
 @dataclass
@@ -105,28 +126,17 @@ class EmailSummaryAgent:
             server.send_message(msg)
 
     def send_daily_reports(self):
-        # For each department, define which labels belong to it:
-        department_labels = {
-            "GroundOps": ["checkin_process", "boarding_process"],
-            "Baggage": ["baggage_lost", "baggage_damaged"],
-            "Catering": [
-                "inflight_experience_food_beverage",
-                "inflight_experience_seats_comfort",
-                "inflight_experience_entertainment",
-                "inflight_experience_cabin_service",
-                "inflight_experience_cleanliness",
-            ],
-            "CustomerSupport": ["booking_and_ticketing", "customer_support", "pricing_and_loyalty"],
-        }
+        # Load department labels from configuration
+        department_labels = _ROUTING_CONFIG["department_labels"]
 
         for dept, labels in department_labels.items():
-            df = self._fetch_department_feedback(labels, days=1)
+            df = self._fetch_department_feedback(labels, days=DEFAULT_DAYS_LOOKBACK)
             body = self._build_email_body(dept, df)
             recipients = DEPARTMENT_RECIPIENTS.get(dept, [])
             if not recipients:
                 continue
             self._send_email(
                 to_addrs=recipients,
-                subject=f"[TKFlightSense] Daily Feedback Report – {dept}",
+                subject=EMAIL_SUBJECT_TEMPLATE.format(department=dept),
                 body=body,
             )

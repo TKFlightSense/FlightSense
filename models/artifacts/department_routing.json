@@ -1,0 +1,46 @@
+{
+  "label_to_department": {
+    "inflight_experience_food_beverage": "Catering",
+    "inflight_experience_seats_comfort": "Catering",
+    "inflight_experience_entertainment": "Catering",
+    "inflight_experience_cabin_service": "Catering",
+    "inflight_experience_cleanliness": "Catering",
+    "checkin_process": "GroundOps",
+    "boarding_process": "GroundOps",
+    "baggage_lost": "Baggage",
+    "baggage_damaged": "Baggage",
+    "booking_and_ticketing": "CustomerSupport",
+    "customer_support": "CustomerSupport",
+    "pricing_and_loyalty": "CustomerSupport"
+  },
+  "department_config": {
+    "GroundOps": {
+      "project_key": "GOPS",
+      "issue_type": "Incident"
+    },
+    "Baggage": {
+      "project_key": "BAG",
+      "issue_type": "Incident"
+    },
+    "Catering": {
+      "project_key": "CAT",
+      "issue_type": "Task"
+    },
+    "CustomerSupport": {
+      "project_key": "CS",
+      "issue_type": "Task"
+    }
+  },
+  "department_labels": {
+    "GroundOps": ["checkin_process", "boarding_process"],
+    "Baggage": ["baggage_lost", "baggage_damaged"],
+    "Catering": [
+      "inflight_experience_food_beverage",
+      "inflight_experience_seats_comfort",
+      "inflight_experience_entertainment",
+      "inflight_experience_cabin_service",
+      "inflight_experience_cleanliness"
+    ],
+    "CustomerSupport": ["booking_and_ticketing", "customer_support", "pricing_and_loyalty"]
+  }
+}
