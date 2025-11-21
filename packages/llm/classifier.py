@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 import json
@@ -27,49 +26,12 @@ def _load_llm_config() -> Dict[str, Any]:
 _LLM_CONFIG = _load_llm_config()
 
 
-MAIN_CATEGORY_COLUMNS = [
-    "flight_delay_cancellation",
-    "checkin_boarding_process",
-    "baggage_issues",
-    "inflight_experience",
-    "pricing_fees",
-    "online_booking",
-]
-
-
-@dataclass
-class ClassificationResult:
-    """
-    Typed representation of the LLM response.
-    """
-
-    categories: Dict[str, int]
-    sentiment: str
-    subcategories: Dict[str, List[str]]
-    summary: str
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ClassificationResult":
-        # Basic validation + defaults
-        categories = data.get("categories", {})
-        sentiment = data.get("sentiment", "neutral")
-        subcategories = data.get("subcategories", {})
-        summary = data.get("summary", "")
-        return cls(
-            categories=categories,
-            sentiment=sentiment,
-            subcategories=subcategories,
-            summary=summary,
-        )
-
-
 class FeedbackClassifier:
     """
-    High-level service:
-    - builds prompts,
-    - calls LLM,
-    - parses JSON,
-    - returns DataFrame matching processed_data schema.
+    High-level service for classifying airline passenger feedback.
+    - Builds prompts with fine-grained labels from label_map.json
+    - Calls LLM to segment and label feedback
+    - Returns DataFrame ready for database insertion
     """
 
     def __init__(self, llm_client: Optional[LLMClient] = None, prompt_builder: Optional[PromptBuilder] = None):
@@ -82,8 +44,14 @@ class FeedbackClassifier:
 
     def label_review(self, review: str, max_segments: Optional[int] = None) -> Dict[str, Any]:
         """
-        Label a single review and return segments with labels.
-        Returns: {"segments": [{"start": int, "length": int, "label": str}, ...]}
+        Label a single review and return segments with fine-grained labels.
+        
+        Args:
+            review: Customer feedback text
+            max_segments: Maximum number of segments to extract (default from config)
+            
+        Returns:
+            {"segments": [{"start": int, "length": int, "label": str}, ...]}
         """
         if self.llm_client is None:
             logger.error("LLM client not initialized")
@@ -102,46 +70,6 @@ class FeedbackClassifier:
             logger.error("LLM returned invalid JSON. Raw response: %s", raw)
             return {"segments": []}
 
-    def _call_llm(self, feedback: str) -> ClassificationResult:
-        """
-        Internal method for batch classification.
-        Calls label_review and extracts labels from segments.
-        """
-        segments_result = self.label_review(feedback, max_segments=5)
-        segments = segments_result.get("segments", [])
-        
-        # Extract unique labels from segments
-        labels = list(set(seg["label"] for seg in segments))
-        
-        # Map fine-grained labels to coarse categories
-        # Initialize all categories to 0
-        categories = {col: 0 for col in MAIN_CATEGORY_COLUMNS}
-        
-        # Simple mapping logic
-        for label in labels:
-            if "delay" in label or "cancellation" in label:
-                categories["flight_delay_cancellation"] = -1
-            elif "checkin" in label or "boarding" in label:
-                categories["checkin_boarding_process"] = -1
-            elif "baggage" in label:
-                categories["baggage_issues"] = -1
-            elif "inflight_experience" in label:
-                categories["inflight_experience"] = -1
-            elif "pricing" in label or "loyalty" in label:
-                categories["pricing_fees"] = -1
-            elif "booking" in label or "ticketing" in label:
-                categories["online_booking"] = -1
-        
-        # Determine overall sentiment based on presence of negative labels
-        sentiment = "negative" if any(v == -1 for v in categories.values()) else "neutral"
-        
-        return ClassificationResult(
-            categories=categories,
-            sentiment=sentiment,
-            subcategories={},
-            summary="",
-        )
-
     def classify_batch(
         self,
         feedbacks: List[str],
@@ -151,36 +79,24 @@ class FeedbackClassifier:
         Classify a batch of feedback strings and return a DataFrame ready to insert
         into the processed_data table.
 
-        processed_data schema (from your DbService):
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            review TEXT,
-            labels TEXT,
-            flight_delay_cancellation INTEGER,
-            checkin_boarding_process INTEGER,
-            baggage_issues INTEGER,
-            inflight_experience INTEGER,
-            pricing_fees INTEGER,
-            online_booking INTEGER,
-            date DATE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        Args:
+            feedbacks: List of customer feedback text
+            dates: Optional list of dates corresponding to each feedback
+            
+        Returns:
+            DataFrame with columns: review, labels, date
         """
         rows: List[Dict[str, Any]] = []
         today = date.today()
 
         for idx, text in enumerate(feedbacks):
-            # Get segments with fine-grained labels
+            # Get segments with fine-grained labels (single LLM call)
             segments_result = self.label_review(text, max_segments=5)
             segments = segments_result.get("segments", [])
             
             # Extract unique fine-grained labels from segments
             fine_labels = list(set(seg["label"] for seg in segments))
             labels_str = ",".join(fine_labels)
-            
-            # Get coarse categories for the category columns
-            result = self._call_llm(text)
-            cat_values: Dict[str, int] = {
-                col: int(result.categories.get(col, 0)) for col in MAIN_CATEGORY_COLUMNS
-            }
 
             row_date = dates[idx] if dates and idx < len(dates) else today
 
@@ -188,10 +104,6 @@ class FeedbackClassifier:
                 "review": text,
                 "labels": labels_str,
                 "date": row_date.isoformat(),
-                # main category columns:
-                **cat_values,
-                # (optional) you can persist sentiment/subcategories in extra columns
-                # or in a separate table later if you want.
             }
             rows.append(row)
 

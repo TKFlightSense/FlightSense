@@ -9,7 +9,7 @@ FlightSense is an enterprise-grade system that automatically analyzes airline pa
 ## Key Features
 
 - 🤖 **AI-Powered Classification** - LLM-based segmentation and labeling of passenger feedback
-- 🎫 **Automated Ticketing** - Routes feedback to departments (GroundOps, Baggage, Catering, Support)
+- 🎫 **Automated Ticketing** - Routes feedback to departments via Jira (TGS, Baggage, Catering, Cabin)
 - 🔐 **Role-Based Access Control** - JWT authentication with department-specific permissions
 - 📊 **Analytics Dashboard** - Sentiment analysis, trend tracking, and subtopic distribution
 - 📧 **Automated Reports** - Daily email summaries to department teams
@@ -145,10 +145,10 @@ FlightSense/
 ### Department Routing
 
 Automatic ticket creation and routing:
-- **GroundOps**: Check-in, boarding issues
-- **Baggage**: Lost/damaged baggage
-- **Catering**: Inflight service issues
-- **CustomerSupport**: Booking, pricing, general support
+- **TGS**: Check-in, boarding issues
+- **YerIsletmeBsk-BagajMusteriCozumveOperasyonelGelistirmeMudurlugu**: Lost/damaged baggage
+- **IkramveUcakIciUrunlerBsk**: Inflight food and entertainment
+- **KabinHizmetleriBsk**: Cabin cleanliness and services
 
 ### Role-Based Access
 

@@ -154,29 +154,17 @@ class DbService:
         Create table for labeled/processed flight data.
 
         Columns:
-          - review: raw text
+          - review: raw customer feedback text
           - labels: comma-separated fine-grained labels
                     e.g. 'baggage_lost,inflight_experience_food_beverage'
-          - coarse columns (kept for backward compatibility, but not used
-            in queries anymore):
-              flight_delay_cancellation,
-              checkin_boarding_process,
-              baggage_issues,
-              inflight_experience,
-              pricing_fees,
-              online_booking
+          - date: date of the feedback
+          - created_at: timestamp when record was created
         """
         create_table_query = """
         CREATE TABLE IF NOT EXISTS processed_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             review TEXT,
             labels TEXT,
-            flight_delay_cancellation INTEGER,
-            checkin_boarding_process INTEGER,
-            baggage_issues INTEGER,
-            inflight_experience INTEGER,
-            pricing_fees INTEGER,
-            online_booking INTEGER,
             date DATE, 
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )

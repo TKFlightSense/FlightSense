@@ -1,18 +1,18 @@
 {
-  "GroundOps": {
-    "project_key": "GOPS",
-    "issue_type": "Incident"
-  },
-  "Catering": {
-    "project_key": "CAT",
+  "IkramveUcakIciUrunlerBsk": {
+    "project_key": "IKRAM",
     "issue_type": "Task"
   },
-  "Baggage": {
-    "project_key": "BAG",
+  "YerIsletmeBsk-BagajMusteriCozumveOperasyonelGelistirmeMudurlugu": {
+    "project_key": "BAGAJ",
     "issue_type": "Incident"
   },
-  "CustomerSupport": {
-    "project_key": "CS",
+  "KabinHizmetleriBsk": {
+    "project_key": "KABIN",
     "issue_type": "Task"
+  },
+  "TGS": {
+    "project_key": "TGS",
+    "issue_type": "Incident"
   }
 }
