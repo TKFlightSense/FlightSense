@@ -8,12 +8,12 @@ FlightSense is an enterprise-grade system that automatically analyzes airline pa
 
 ## Key Features
 
-- 🤖 **AI-Powered Classification** - LLM-based segmentation and labeling of passenger feedback
-- 🎫 **Automated Ticketing** - Routes feedback to departments via Jira (TGS, Baggage, Catering, Cabin)
-- 🔐 **Role-Based Access Control** - JWT authentication with department-specific permissions
-- 📊 **Analytics Dashboard** - Sentiment analysis, trend tracking, and subtopic distribution
-- 📧 **Automated Reports** - Daily email summaries to department teams
-- 🔄 **Multi-Provider LLM** - Supports OpenAI and vLLM (local inference)
+- **AI-Powered Classification** - LLM-based segmentation and labeling of passenger feedback
+- **Automated Ticketing** - Routes feedback to departments via Jira (TGS, Baggage, Catering, Cabin)
+- **Role-Based Access Control** - JWT authentication with department-specific permissions
+- **Analytics Dashboard** - Sentiment analysis, trend tracking, and subtopic distribution
+- **Automated Reports** - Daily email summaries to department teams
+- **Multi-Provider LLM** - Supports OpenAI and vLLM (local inference)
 
 ## Quick Start
 
