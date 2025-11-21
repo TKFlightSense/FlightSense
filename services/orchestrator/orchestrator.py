@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Dict, Union, Optional
+import os
 import logging
 
 from services.db_service.db_service import DbService
@@ -9,7 +10,7 @@ from services.auth_service import AuthService
 from services.data_service import DataService
 from services.reporting_service import ReportingService
 from packages.llm.classifier import FeedbackClassifier
-from packages.tickets.client import MockTicketClient
+from packages.tickets.client import MockTicketClient, RealJiraTicketClient
 from services.agents.jira_agent import JiraTicketAgent
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,20 @@ class FlightSenseOrchestrator:
         self.data = DataService(self.db, self.access)
 
         classifier = FeedbackClassifier()
-        ticket_client = MockTicketClient(self.db)
+        
+        # Choose between mock and real Jira based on environment
+        use_real_jira = os.getenv("USE_REAL_JIRA", "false").lower() == "true"
+        if use_real_jira:
+            try:
+                ticket_client = RealJiraTicketClient(self.db)
+                logger.info("Using REAL Jira client")
+            except Exception as e:
+                logger.warning(f"Failed to initialize real Jira, falling back to mock: {e}")
+                ticket_client = MockTicketClient(self.db)
+        else:
+            ticket_client = MockTicketClient(self.db)
+            logger.info("Using MOCK Jira client")
+        
         jira_agent = JiraTicketAgent(ticket_client=ticket_client)
         self.reporting = ReportingService(
             self.db, self.access, classifier, jira_agent

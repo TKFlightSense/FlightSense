@@ -12,12 +12,12 @@ class JiraClient:
     """
 
     def __init__(self) -> None:
-        self.base_url = os.getenv("JIRA_BASE_URL")  # e.g. "https://your-domain.atlassian.net"
-        self.email = os.getenv("JIRA_EMAIL")
-        self.api_token = os.getenv("JIRA_API_TOKEN")
+        self.base_url = os.getenv("JIRA_URL")  # e.g. "https://your-domain.atlassian.net"
+        self.email = os.getenv("JIRA_USER")
+        self.api_token = os.getenv("JIRA_TOKEN")
 
         if not self.base_url or not self.email or not self.api_token:
-            raise RuntimeError("JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN must be set.")
+            raise RuntimeError("JIRA_URL, JIRA_USER, and JIRA_TOKEN must be set in environment.")
 
         token_bytes = f"{self.email}:{self.api_token}".encode("utf-8")
         self.auth_header = base64.b64encode(token_bytes).decode("utf-8")
