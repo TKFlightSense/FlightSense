@@ -1,0 +1,74 @@
+{
+  "valid_roles": [
+    "admin",
+    "manager",
+    "viewer",
+    "flight_delay",
+    "checkin_boarding",
+    "baggage",
+    "inflight_experience",
+    "pricing_fees",
+    "online_booking",
+    "customer_support"
+  ],
+  "full_access_roles": [
+    "admin",
+    "manager"
+  ],
+  "role_to_pages": {
+    "admin": [
+      "dashboard",
+      "flight_delay",
+      "checkin_boarding",
+      "baggage",
+      "inflight_experience",
+      "pricing_fees",
+      "online_booking",
+      "customer_support"
+    ],
+    "manager": [
+      "dashboard",
+      "flight_delay",
+      "checkin_boarding",
+      "baggage",
+      "inflight_experience",
+      "pricing_fees",
+      "online_booking",
+      "customer_support"
+    ],
+    "viewer": ["dashboard"],
+    "flight_delay": ["flight_delay"],
+    "checkin_boarding": ["checkin_boarding"],
+    "baggage": ["baggage"],
+    "inflight_experience": ["inflight_experience"],
+    "pricing_fees": ["pricing_fees"],
+    "online_booking": ["online_booking"],
+    "customer_support": ["customer_support"]
+  },
+  "role_to_labels": {
+    "baggage": [
+      "baggage_lost",
+      "baggage_damaged"
+    ],
+    "inflight_experience": [
+      "inflight_experience_food_beverage",
+      "inflight_experience_seats_comfort",
+      "inflight_experience_entertainment",
+      "inflight_experience_cabin_service",
+      "inflight_experience_cleanliness"
+    ],
+    "pricing_fees": [
+      "pricing_and_loyalty"
+    ],
+    "online_booking": [
+      "booking_and_ticketing"
+    ],
+    "customer_support": [
+      "customer_support"
+    ],
+    "checkin_boarding": [
+      "checkin_process",
+      "boarding_process"
+    ]
+  }
+}

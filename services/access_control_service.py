@@ -1,8 +1,24 @@
 from __future__ import annotations
-from typing import List, Dict
+from typing import List, Dict, Any
+from pathlib import Path
+import json
 
-from models.roles import VALID_ROLES
 from models.labels import ALL_LABELS
+
+
+def _load_access_control_config() -> Dict[str, Any]:
+    """Load access control configuration from JSON file."""
+    config_path = Path("models/artifacts/access_control_config.json")
+    if not config_path.exists():
+        raise FileNotFoundError(f"Access control config not found: {config_path}")
+    with config_path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# Load configuration from JSON file
+_ACCESS_CONFIG = _load_access_control_config()
+VALID_ROLES = _ACCESS_CONFIG["valid_roles"]
+FULL_ACCESS_ROLES = _ACCESS_CONFIG["full_access_roles"]
 
 
 class AccessControlService:
@@ -13,90 +29,23 @@ class AccessControlService:
 
     Roles and labels are plain strings.
     Labels correspond to the fine-grained labels from models.labels.ALL_LABELS.
+    All configurations are loaded from models/artifacts/access_control_config.json.
     """
 
     def __init__(self) -> None:
-        # Role - pages user can access in the dashboard
-        self.role_to_pages: Dict[str, List[str]] = {
-            "admin": [
-                "dashboard",
-                "flight_delay",
-                "checkin_boarding",
-                "baggage",
-                "inflight_experience",
-                "pricing_fees",
-                "online_booking",
-                "customer_support",
-            ],
-            "manager": [
-                "dashboard",
-                "flight_delay",
-                "checkin_boarding",
-                "baggage",
-                "inflight_experience",
-                "pricing_fees",
-                "online_booking",
-                "customer_support",
-            ],
-            "viewer": ["dashboard"],
-
-            # subject-specific roles
-            "flight_delay": ["flight_delay"],              # coarse only for now
-            "checkin_boarding": ["checkin_boarding"],
-            "baggage": ["baggage"],
-            "inflight_experience": ["inflight_experience"],
-            "pricing_fees": ["pricing_fees"],
-            "online_booking": ["online_booking"],
-            "customer_support": ["customer_support"],
-        }
-
-        # Role -> allowed fine-grained labels
-        # (all labels are from models.labels.ALL_LABELS)
-        self.role_to_labels: Dict[str, List[str]] = {
-            # baggage team sees baggage labels
-            "baggage": [
-                "baggage_lost",
-                "baggage_damaged",
-            ],
-
-            # inflight team sees only inflight experience sublabels
-            "inflight_experience": [
-                "inflight_experience_food_beverage",
-                "inflight_experience_seats_comfort",
-                "inflight_experience_entertainment",
-                "inflight_experience_cabin_service",
-                "inflight_experience_cleanliness",
-            ],
-
-            # pricing / loyalty
-            "pricing_fees": [
-                "pricing_and_loyalty",
-            ],
-
-            # online booking
-            "online_booking": [
-                "booking_and_ticketing",
-            ],
-
-            # generic customer support
-            "customer_support": [
-                "customer_support",
-            ],
-
-            # Ground ops style roles – if you later split, you can route these too
-            "checkin_boarding": [
-                "checkin_process",
-                "boarding_process",
-            ],
-        }
+        # Load configurations from the global config
+        self.role_to_pages: Dict[str, List[str]] = _ACCESS_CONFIG["role_to_pages"]
+        self.role_to_labels: Dict[str, List[str]] = _ACCESS_CONFIG["role_to_labels"]
+        self.valid_roles: List[str] = VALID_ROLES
+        self.full_access_roles: List[str] = FULL_ACCESS_ROLES
 
     # ---------- roles ----------
 
     def is_valid_role(self, role: str) -> bool:
-        return role in VALID_ROLES
+        return role in self.valid_roles
 
     def is_full_access_role(self, role: str) -> bool:
-        return role in ("admin", "manager")
+        return role in self.full_access_roles
 
     # ---------- pages ----------
 
