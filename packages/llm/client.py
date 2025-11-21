@@ -1,6 +1,8 @@
 from __future__ import annotations
-from typing import List, Dict, Optional, Literal
+from typing import List, Dict, Optional, Literal, Any
+from pathlib import Path
 import os
+import json
 import logging
 
 try:
@@ -20,6 +22,19 @@ logger = logging.getLogger(__name__)
 LLMProvider = Literal["openai", "vllm"]
 
 
+def _load_llm_config() -> Dict[str, Any]:
+    """Load LLM configuration from JSON file."""
+    config_path = Path("models/artifacts/llm_config.json")
+    if not config_path.exists():
+        raise FileNotFoundError(f"LLM config not found: {config_path}")
+    with config_path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# Load configuration from JSON file
+_LLM_CONFIG = _load_llm_config()
+
+
 class LLMClient:
     """
     Unified LLM client supporting both OpenAI and vLLM backends.
@@ -37,12 +52,13 @@ class LLMClient:
         model: Optional[str] = None,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        temperature: float = 0.0,
-        max_tokens: int = 2048,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
     ):
-        self.provider = provider or os.getenv("LLM_PROVIDER", "openai")
-        self.temperature = temperature
-        self.max_tokens = max_tokens
+        self.provider = provider or os.getenv("LLM_PROVIDER") or _LLM_CONFIG["provider"]
+        self.temperature = temperature if temperature is not None else _LLM_CONFIG["temperature"]
+        self.max_tokens = max_tokens if max_tokens is not None else _LLM_CONFIG["max_tokens"]
+        self.system_prompt = _LLM_CONFIG["system_prompt"]
         
         if self.provider == "openai":
             self._init_openai(model, api_key, base_url)
@@ -58,7 +74,7 @@ class LLMClient:
                 "OpenAI library not installed. Install with: pip install openai"
             )
         
-        self.model = model or os.getenv("LLM_MODEL", "gpt-4o-mini")
+        self.model = model or os.getenv("LLM_MODEL") or _LLM_CONFIG["models"]["openai"]
         
         # Get API key from parameter or environment
         api_key = api_key or os.getenv("OPENAI_API_KEY")
@@ -87,7 +103,7 @@ class LLMClient:
                 "vLLM library not installed. Install with: pip install vllm"
             )
         
-        self.model = model or os.getenv("LLM_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
+        self.model = model or os.getenv("LLM_MODEL") or _LLM_CONFIG["models"]["vllm"]
         
         logger.info(f"Initializing vLLM with model: {self.model}")
         self.client = LLM(model=self.model)
@@ -121,11 +137,7 @@ class LLMClient:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a precise data labeling assistant for airline passenger feedback. "
-                        "Follow instructions carefully and return only valid JSON."
-                    },
+                    {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": prompt},
                 ],
                 temperature=self.temperature,
@@ -141,8 +153,7 @@ class LLMClient:
         try:
             # Format prompt for chat models
             formatted_prompt = (
-                "<|system|>\nYou are a precise data labeling assistant for airline passenger feedback. "
-                "Follow instructions carefully and return only valid JSON.\n"
+                f"<|system|>\n{self.system_prompt}\n"
                 f"<|user|>\n{prompt}\n<|assistant|>\n"
             )
             

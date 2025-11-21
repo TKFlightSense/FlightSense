@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 import json
 import logging
 
@@ -11,6 +12,19 @@ from packages.llm.client import LLMClient
 from packages.llm.prompts import PromptBuilder
 
 logger = logging.getLogger(__name__)
+
+
+def _load_llm_config() -> Dict[str, Any]:
+    """Load LLM configuration from JSON file."""
+    config_path = Path("models/artifacts/llm_config.json")
+    if not config_path.exists():
+        raise FileNotFoundError(f"LLM config not found: {config_path}")
+    with config_path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# Load configuration from JSON file
+_LLM_CONFIG = _load_llm_config()
 
 
 MAIN_CATEGORY_COLUMNS = [
@@ -66,7 +80,7 @@ class FeedbackClassifier:
             self.llm_client = None
         self.prompt_builder = prompt_builder or PromptBuilder()
 
-    def label_review(self, review: str, max_segments: int = 3) -> Dict[str, Any]:
+    def label_review(self, review: str, max_segments: Optional[int] = None) -> Dict[str, Any]:
         """
         Label a single review and return segments with labels.
         Returns: {"segments": [{"start": int, "length": int, "label": str}, ...]}
@@ -74,6 +88,9 @@ class FeedbackClassifier:
         if self.llm_client is None:
             logger.error("LLM client not initialized")
             return {"segments": []}
+        
+        if max_segments is None:
+            max_segments = _LLM_CONFIG["max_segments"]
         
         prompt = self.prompt_builder.build_classification_messages(review, max_segments)
         raw = self.llm_client.complete(prompt).strip()

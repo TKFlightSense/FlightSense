@@ -1,10 +1,10 @@
 {
   "department_recipients": {
-    "GroundOps": ["groundops@airline.com"],
-    "Baggage": ["baggage@airline.com"],
-    "Catering": ["catering@airline.com"],
-    "CustomerSupport": ["cs@airline.com"]
+    "IkramveUcakIciUrunlerBsk": ["ikramucakiciurunlerbsk@thy.com"],
+    "YerIsletmeBsk-BagajMusteriCozumveOperasyonelGelistirmeMudurlugu": ["yerisletme@thy.com"],
+    "KabinHizmetleriBsk": ["kabinhizbsk@thy.com"],
+    "TGS": ["tgs@thy.com"]
   },
-  "email_subject_template": "[TKFlightSense] Daily Feedback Report – {department}",
+  "email_subject_template": "[TKFlightSense] Feedback Report – {department}",
   "default_days_lookback": 1
 }

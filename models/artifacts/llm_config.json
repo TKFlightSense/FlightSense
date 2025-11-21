@@ -1,0 +1,11 @@
+{
+  "provider": "openai",
+  "models": {
+    "openai": "gpt-4o-mini",
+    "vllm": "meta-llama/Llama-3.1-8B-Instruct"
+  },
+  "temperature": 0.0,
+  "max_tokens": 2048,
+  "max_segments": 3,
+  "system_prompt": "You are a precise data labeling assistant for airline passenger feedback. Follow instructions carefully and return only valid JSON."
+}
