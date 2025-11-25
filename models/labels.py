@@ -31,6 +31,7 @@ SENTIMENT_LABELS = [
     "boarding_process",
     "booking_and_ticketing",
     "customer_support",
+    "pricing_and_loyalty",
 ]
 
 PRIORITY_LABELS = [

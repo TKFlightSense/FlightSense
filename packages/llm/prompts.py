@@ -16,7 +16,7 @@ ALLOWED LABELS (exact strings + explanations + priority explanations)
 ---------------------------------------------------------------------
 {labels_block}
 
-SENTIMENT LABELS (positive or negative)
+SENTIMENT LABELS (positive or neutral or negative)
 ---------------------------------------
 {sentiment_labels_block}
 
@@ -28,7 +28,7 @@ For each segment:
 1. Identify CONTIGUOUS text spans that clearly express one of the topics
 2. Assign EXACTLY ONE label from the list ABOVE to each segment
 3. Assign priority to each segment according to priority explanations of the label in the above list
-4. Do POSITIVE/NEGATIVE analysis for the segment IF AND ONLY IF the label of the segment is IN the SENTIMENT LABELS 
+4. Do POSITIVE/NEUTRAL/NEGATIVE analysis for the segment
 5. Provide character-level position (start index and length)
 
 Segmentation rules:

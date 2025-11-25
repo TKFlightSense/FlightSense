@@ -50,6 +50,8 @@ class JiraClient:
         issue_type: str,
         summary: str,
         description: str,
+        priority: str = "Medium",
+
         extra_fields: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         url = f"{self.base_url}/rest/api/3/issue"
@@ -59,6 +61,7 @@ class JiraClient:
             "summary": summary,
             "issuetype": {"name": issue_type},
             "description": self.plain_to_adf(description),
+            "priority": {"name": priority},
         }
 
         if extra_fields:
