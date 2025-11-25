@@ -1,10 +1,10 @@
 {
   "IkramveUcakIciUrunlerBsk": {
-    "project_key": "IKRAM",
+    "project_key": "IUIUB",
     "issue_type": "Task"
   },
-  "YerIsletmeBsk-BagajMusteriCozumveOperasyonelGelistirmeMudurlugu": {
-    "project_key": "BAGAJ",
+  "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu": {
+    "project_key": "BMCOGM",
     "issue_type": "Incident"
   },
   "KabinHizmetleriBsk": {

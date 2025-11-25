@@ -7,19 +7,19 @@
     "inflight_experience_cleanliness": "KabinHizmetleriBsk",
     "checkin_process": "TGS",
     "boarding_process": "TGS",
-    "baggage_lost": "YerIsletmeBsk-BagajMusteriCozumveOperasyonelGelistirmeMudurlugu",
-    "baggage_damaged": "YerIsletmeBsk-BagajMusteriCozumveOperasyonelGelistirmeMudurlugu",
+    "baggage_lost": "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu",
+    "baggage_damaged": "YerIsletmeBsk-BagajMusteriCozumveOperasyonGelistirmeMudurlugu",
     "booking_and_ticketing": "PLACEHOLDER_NOT_ASSIGNED",
     "customer_support": "PLACEHOLDER_NOT_ASSIGNED",
     "pricing_and_loyalty": "PLACEHOLDER_NOT_ASSIGNED"
   },
   "department_config": {
     "IkramveUcakIciUrunlerBsk": {
-      "project_key": "IKRAM",
+      "project_key": "IUIUB",
       "issue_type": "Task"
     },
-    "YerIsletmeBsk-BagajMusteriCozumveOperasyonelGelistirmeMudurlugu": {
-      "project_key": "BAGAJ",
+    "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu": {
+      "project_key": "BMCOGM",
       "issue_type": "Incident"
     },
     "KabinHizmetleriBsk": {
@@ -36,7 +36,7 @@
       "inflight_experience_food_beverage",
       "inflight_experience_entertainment"
     ],
-    "YerIsletmeBsk-BagajMusteriCozumveOperasyonelGelistirmeMudurlugu": [
+    "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu": [
       "baggage_lost",
       "baggage_damaged"
     ],
