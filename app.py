@@ -1,0 +1,360 @@
+"""
+FlightSense Application Entry Point
+
+This is the main application file that initializes the FastAPI server
+and orchestrates all FlightSense services.
+"""
+from __future__ import annotations
+import os
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
+
+# Import database services
+from services.db_service.db_service import DbService
+from services.db_service.mysql_db_service import MySQLDbService
+
+# Import orchestrator
+from services.orchestrator.orchestrator import FlightSenseOrchestrator
+from services.orchestrator.filter import DataFilter
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# -------------------------------------------------------------------------
+# CONFIGURATION
+# -------------------------------------------------------------------------
+
+# Database selection
+USE_MYSQL = os.getenv("USE_MYSQL", "false").lower() == "true"
+JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
+
+# Global orchestrator instance
+orchestrator: Optional[FlightSenseOrchestrator] = None
+
+
+# -------------------------------------------------------------------------
+# LIFESPAN MANAGEMENT
+# -------------------------------------------------------------------------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager - handles startup and shutdown."""
+    global orchestrator
+    
+    # Startup
+    logger.info("Starting FlightSense application...")
+    
+    try:
+        # Initialize database service
+        if USE_MYSQL:
+            logger.info("Using MySQL database")
+            db_service = MySQLDbService()
+        else:
+            logger.info("Using SQLite database")
+            db_service = DbService()
+        
+        # Initialize orchestrator with all services
+        orchestrator = FlightSenseOrchestrator(db_service, JWT_SECRET)
+        
+        logger.info("FlightSense initialized successfully")
+        logger.info(f"   - Database: {'MySQL' if USE_MYSQL else 'SQLite'}")
+        logger.info(f"   - Jira: {'Real' if os.getenv('USE_REAL_JIRA') == 'true' else 'Mock'}")
+        logger.info(f"   - LLM Provider: {os.getenv('LLM_PROVIDER', 'openai')}")
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize FlightSense: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down FlightSense...")
+    if USE_MYSQL and hasattr(db_service, 'close'):
+        db_service.close()
+
+
+# -------------------------------------------------------------------------
+# FASTAPI APPLICATION
+# -------------------------------------------------------------------------
+
+app = FastAPI(
+    title="FlightSense API",
+    description="AI-Powered Airline Customer Feedback Analysis & Ticketing System",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# -------------------------------------------------------------------------
+# DEPENDENCY INJECTION
+# -------------------------------------------------------------------------
+
+def get_orchestrator() -> FlightSenseOrchestrator:
+    """Dependency to get the global orchestrator instance."""
+    if orchestrator is None:
+        raise HTTPException(status_code=500, detail="System not initialized")
+    return orchestrator
+
+
+def get_token_from_header(authorization: Optional[str] = Header(None)) -> str:
+    """Extract JWT token from Authorization header."""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization format")
+    
+    return authorization[7:]  # Remove "Bearer " prefix
+
+
+# -------------------------------------------------------------------------
+# REQUEST/RESPONSE MODELS
+# -------------------------------------------------------------------------
+
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: str = "viewer"
+    department: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LabelReviewRequest(BaseModel):
+    review: str
+    max_segments: Optional[int] = None
+
+
+class ClassifyBatchRequest(BaseModel):
+    feedbacks: List[str]
+    dates: Optional[List[str]] = None
+
+
+class FilterRequest(BaseModel):
+    limit: Optional[int] = 100
+    label_type: Optional[str] = None
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+    only_without_ticket: bool = False
+
+
+# -------------------------------------------------------------------------
+# HEALTH CHECK
+# -------------------------------------------------------------------------
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "service": "FlightSense API",
+        "database": "MySQL" if USE_MYSQL else "SQLite",
+        "jira": "Real" if os.getenv("USE_REAL_JIRA") == "true" else "Mock",
+    }
+
+
+@app.get("/api/version")
+async def get_version():
+    """Get API version information."""
+    return {
+        "version": "1.0.0",
+        "service": "FlightSense API",
+    }
+
+
+# -------------------------------------------------------------------------
+# AUTHENTICATION ENDPOINTS
+# -------------------------------------------------------------------------
+
+@app.post("/api/auth/register")
+async def register(
+    request: RegisterRequest,
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    """Register a new user."""
+    result = orch.register_user(
+        username=request.username,
+        email=request.email,
+        password=request.password,
+        role=request.role,
+        department=request.department,
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+    
+    return result
+
+
+@app.post("/api/auth/login")
+async def login(
+    request: LoginRequest,
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    """Login and get JWT token."""
+    result = orch.login(request.username, request.password)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=401, detail=result.get("error"))
+    
+    return result
+
+
+# -------------------------------------------------------------------------
+# DATA ENDPOINTS
+# -------------------------------------------------------------------------
+
+@app.post("/api/data/feedback")
+async def get_feedback(
+    request: FilterRequest,
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    """Get filtered feedback data."""
+    result = orch.get_processed_data_filtered(token, request.dict())
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=403, detail=result.get("error"))
+    
+    return result
+
+
+@app.get("/api/data/dashboard")
+async def get_dashboard(
+    page: str = "dashboard",
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    """Get dashboard summary."""
+    result = orch.get_dashboard_summary(token, page)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=403, detail=result.get("error"))
+    
+    return result
+
+
+@app.get("/api/data/analytics/{label}")
+async def get_analytics(
+    label: str,
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    """Get analytics for a specific label."""
+    result = orch.get_category_analytics(token, label)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=403, detail=result.get("error"))
+    
+    return result
+
+
+# -------------------------------------------------------------------------
+# REPORTING ENDPOINTS
+# -------------------------------------------------------------------------
+
+@app.post("/api/reporting/label")
+async def label_review(
+    request: LabelReviewRequest,
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    """Label a single review with fine-grained segments."""
+    try:
+        result = orch.label_single_review(request.review)
+        return {"success": True, "result": result}
+    except Exception as e:
+        logger.error(f"Error labeling review: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/data/push")
+async def push_feedback(
+    request: ClassifyBatchRequest,
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    """Classify and store a batch of feedback."""
+    try:
+        from packages.llm.classifier import FeedbackClassifier
+        from datetime import date
+        
+        classifier = FeedbackClassifier()
+        
+        # Parse dates if provided
+        dates = None
+        if request.dates:
+            dates = [date.fromisoformat(d) for d in request.dates]
+        
+        # Classify
+        df = classifier.classify_batch(request.feedbacks, dates)
+        
+        # Store in database
+        result = orch.push_processed_data(token, df)
+        
+        if not result.get("success"):
+            raise HTTPException(status_code=403, detail=result.get("error"))
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error processing feedback: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/reporting/create-tickets")
+async def create_tickets(
+    request: FilterRequest,
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    """Create Jira tickets for filtered feedback."""
+    result = orch.create_tickets_for_filtered(token, request.dict())
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=403, detail=result.get("error"))
+    
+    return result
+
+
+# -------------------------------------------------------------------------
+# MAIN ENTRY POINT
+# -------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    host = os.getenv("API_HOST", "0.0.0.0")
+    port = int(os.getenv("API_PORT", "8000"))
+    reload = os.getenv("ENV", "development") == "development"
+    
+    logger.info(f"Starting FlightSense API on {host}:{port}")
+    
+    uvicorn.run(
+        "app:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info",
+    )

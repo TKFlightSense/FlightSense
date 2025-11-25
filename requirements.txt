@@ -1,15 +1,27 @@
-fastapi>=0.110
-uvicorn[standard]>=0.27
-pydantic>=2.6
-httpx>=0.26
+# Core Framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.6.0
+python-dotenv>=1.0.0
+
+# HTTP & Networking
+httpx>=0.26.0
 requests>=2.31.0
-jinja2>=3.1
-numpy>=1.26
 
-pandas~=2.3.3
-PyJWT~=2.10.1
-bcrypt~=5.0.0
+# Data Processing
+pandas>=2.0.0
+numpy>=1.26.0
 
-# --- LLM Integration ---
+# Authentication & Security
+PyJWT>=2.8.0
+bcrypt>=4.1.0
+
+# Database
+mysql-connector-python>=8.0.0
+
+# LLM Integration
 openai>=1.0.0
 vllm>=0.6.0  # Optional: for local model deployment
+
+# Templating (for emails, reports)
+jinja2>=3.1.0
