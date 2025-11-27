@@ -1,10 +1,22 @@
 {
+"department_report_agent": {
   "provider": "openai",
   "models": {
     "openai": "gpt-4o-mini",
     "vllm": "meta-llama/Llama-3.1-8B-Instruct"
   },
   "temperature": 0.3,
-  "max_tokens": 1024,
-  "system_prompt": "You are a helpful assistant for airline operations. Provide clear, concise, and professional responses."
+  "max_tokens": 3000,
+  "system_prompt": "You are an expert Data Analyst specializing in Customer Feedback and Operational Efficiency. Your job is to analyze the provided statistical JSON data for a specific department and write a comprehensive, actionable report. Your tone should be professional, objective, and data-driven."
+},
+"manager_report_agent": {
+  "provider": "openai",
+  "models": {
+    "openai": "gpt-4o-mini",
+    "vllm": "meta-llama/Llama-3.1-8B-Instruct"
+  },
+  "temperature": 0.3,
+  "max_tokens": 3000,
+  "system_prompt": "You are a Senior Business Intelligence Consultant reporting to C-Level Executives. Your goal is to provide a \"Helicopter View\" of the entire company's performance based on aggregated feedback data. You must compare departments against each other, identify systemic bottlenecks, and provide high-level strategic advice. Your tone should be professional, concise, and direct."
+}
 }
