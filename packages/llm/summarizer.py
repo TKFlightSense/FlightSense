@@ -254,7 +254,54 @@ Write a "Department Performance Report" in Markdown format. The report must incl
 {json_data}
 """
 
+# ==========================================
+# MANAGER (GLOBAL) REPORT PROMPTS
+# ==========================================
 
+MANAGER_REPORT_SYSTEM_PROMPT = """
+You are a Senior Business Intelligence Consultant reporting to C-Level Executives.
+Your goal is to provide a "Helicopter View" of the entire company's performance based on aggregated feedback data.
+You must compare departments against each other, identify systemic bottlenecks, and provide high-level strategic advice.
+Your tone should be professional, concise, and direct.
+"""
+
+MANAGER_REPORT_USER_PROMPT = """
+I will provide you with a JSON object containing global statistical data for the entire company.
+The data covers the period from **{date_from}** to **{date_to}**.
+
+### The Data Structure explains:
+1. **Global Distribution**: Overall company health (Sentiment, Priority) and Department workload distribution.
+2. **Sources (Cross-Department Analysis)**:
+   - `sources_of_sentiments`: Which department is contributing most to the Negative feedback?
+   - `sources_of_priorities`: Which department is generating the most High Priority incidents?
+
+### Your Task:
+Write a "Executive Operational Report" in Markdown format. The report must include the following sections:
+
+1.  **Global Health Check**:
+    - Summarize the overall sentiment and priority scores for the company.
+    - Is the general trend positive or worrying?
+
+2.  **Departmental Workload & Performance**:
+    - Which departments are handling the most volume?
+    - Briefly mention which department is performing best (highest positive sentiment source).
+
+3.  **Critical Bottlenecks (The "Red Zone")**:
+    - **Who is driving Negativity?** Analyze `sources_of_sentiments` (specifically negative). Identify the department contributing most to negative customer experience.
+    - **Who is driving Urgency?** Analyze `sources_of_priorities` (specifically high). Identify the department generating the most emergency tasks.
+    *Use bold text to highlight these departments.*
+
+4.  **Strategic Action Items**:
+    - Provide 3 bullet points on where the management should focus their resources immediately to improve the metrics.
+
+### Constraints:
+- Be concise. Executives do not have time for fluff.
+- Use **bold text** for key insights and department names.
+
+### Data:
+```json
+{json_data}
+"""
 
 class StatsSummarizer:
   """
@@ -291,6 +338,31 @@ class StatsSummarizer:
         model="gpt-4o", # or your preferred model
         messages=[
             {"role": "system", "content": DEPARTMENT_REPORT_SYSTEM_PROMPT},
+            {"role": "user", "content": formatted_prompt}
+        ],
+        temperature=0.3 # Keep it low for factual reporting
+      )
+    
+      return response.choices[0].message.content.strip()
+  
+  def generate_manager_report(self, department_name: str, date_from: str, date_to: str):
+      if self.llm_client is None:
+            logger.error("LLM client not initialized")
+            return {"summary": []}
+        
+      stats_json = get_manager_general_stats(date_from=date_from, date_to=date_to)
+      data_str = json.dumps(stats_json, indent=2, ensure_ascii=False)
+    
+      formatted_prompt = MANAGER_REPORT_USER_PROMPT.format(
+          date_from=date_from,
+          date_to=date_to,
+          json_data=data_str
+      )
+      
+      response = openai_client.chat.completions.create( #add llm client config
+        model="gpt-4o", # or your preferred model
+        messages=[
+            {"role": "system", "content": MANAGER_REPORT_SYSTEM_PROMPT},
             {"role": "user", "content": formatted_prompt}
         ],
         temperature=0.3 # Keep it low for factual reporting
