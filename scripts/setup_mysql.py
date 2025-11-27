@@ -213,13 +213,25 @@ def create_tables(host, port, db_name, db_user, db_password):
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS statistics (
                 id INT AUTO_INCREMENT PRIMARY KEY,
+                
+                -- Kırılımlar (Dimensions)
+                department VARCHAR(100),
                 label VARCHAR(100),
+                sentiment VARCHAR(50),  -- positive, negative, neutral
+                priority VARCHAR(50),   -- high, medium, low
+                
+                -- Temel Veri (Metric)
                 count INT DEFAULT 0,
-                percentage DECIMAL(5,2),
-                date DATE,
+                
+                -- Zaman Aralığı
+                begin_date DATE,
+                end_date DATE,
+                
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_label (label),
-                INDEX idx_date (date)
+                
+                -- Hızlı raporlama için birleşik indeksler
+                INDEX idx_dept_date (department, begin_date, end_date),
+                INDEX idx_reporting (department, sentiment, priority)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
         print("[OK] Created table 'statistics'")
