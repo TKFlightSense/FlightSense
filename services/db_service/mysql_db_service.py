@@ -175,17 +175,26 @@ class MySQLDbService:
 
     def _create_statistics_table(self):
         """Create statistics table in MySQL."""
+        # NOTE: The requested columns use datetime ranges and counts per label/priority.
+        # Assumption: column names with hyphens are converted to snake_case
+        # (starting_datetime, ending_datetime) because hyphens are invalid in
+        # unquoted SQL identifiers and are error-prone. If you prefer different
+        # names, adjust accordingly.
         create_table_query = """
         CREATE TABLE IF NOT EXISTS statistics (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            date DATE NOT NULL,
-            category VARCHAR(100) NOT NULL,
-            positive INT DEFAULT 0,
-            negative INT DEFAULT 0,
-            subcategory_counts TEXT,
-            UNIQUE KEY unique_date_category (date, category),
-            INDEX idx_date (date),
-            INDEX idx_category (category)
+            label_type VARCHAR(255) NOT NULL,
+            starting_datetime DATETIME NOT NULL,
+            ending_datetime DATETIME NOT NULL,
+            positive_count INT DEFAULT 0,
+            negative_count INT DEFAULT 0,
+            neutral_count INT DEFAULT 0,
+            low_priority INT DEFAULT 0,
+            medium_priority INT DEFAULT 0,
+            high_priority INT DEFAULT 0,
+            INDEX idx_label_type (label_type),
+            INDEX idx_starting_datetime (starting_datetime),
+            INDEX idx_ending_datetime (ending_datetime)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
         conn = self._get_connection()
@@ -472,7 +481,8 @@ class MySQLDbService:
 
     def get_statistics_data(self, limit: int = 10) -> pd.DataFrame:
         """Get recent statistics."""
-        query = f"SELECT * FROM statistics ORDER BY date DESC LIMIT {limit}"
+        # Order by starting_datetime (new schema) rather than old 'date' column
+        query = f"SELECT * FROM statistics ORDER BY starting_datetime DESC LIMIT {limit}"
         conn = self._get_connection()
         try:
             conn.database = self.database
