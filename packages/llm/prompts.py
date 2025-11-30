@@ -16,10 +16,6 @@ ALLOWED LABELS (exact strings + explanations + priority explanations)
 ---------------------------------------------------------------------
 {labels_block}
 
-SENTIMENT LABELS (positive or neutral or negative)
----------------------------------------
-{sentiment_labels_block}
-
 TASK
 ----
 Analyze the review and provide segmentation with classification.
@@ -54,9 +50,7 @@ Priority assignment rules:
 - If a situation falls between categories, default to the LOWER priority (e.g., if unclear between LOW and MEDIUM, choose LOW).
 
 Sentiment analysis rules:
-- CHECK if the segment's label is in the provided SENTIMENT LABELS list.
-- IF label is NOT in the list: Set sentiment to "NONE".
-- IF label IS in the list: Analyze the tone and assign "POSITIVE", "NEGATIVE", or "NEUTRAL".
+- Analyze the tone and assign "POSITIVE", "NEGATIVE", or "NEUTRAL".
     - Use "NEUTRAL" for purely factual descriptions (e.g., "Dinner was served at 6pm") or ambivalent statements.
     - Use "NEGATIVE" for complaints, sarcasm, or dissatisfaction.
     - Use "POSITIVE" for praise, gratitude, or satisfaction.
@@ -67,7 +61,7 @@ Return ONLY valid JSON with this exact structure:
 
 {{
   "segments": [
-    {{"start": int, "length": int, "label": "<one_of_the_allowed_labels>", "priority": "<LOW, MEDIUM, OR HIGH>", "sentiment": "<POSITIVE, NEGATIVE, NEUTRAL, or NONE>"}},
+    {{"start": int, "length": int, "label": "<one_of_the_allowed_labels>", "priority": "<LOW, MEDIUM, OR HIGH>", "sentiment": "<POSITIVE, NEGATIVE, NEUTRAL>"}},
     ...
   ]
 }}
@@ -76,7 +70,7 @@ Do NOT include explanations, comments, or any extra fields.
 Return ONLY the JSON object.
 
 Example of a valid output (for a different review):
-{{"segments": [{{"start": 0, "length": 42, "label": "baggage_lost", "priority": "HIGH", "sentiment": "NONE"}}]}}
+{{"segments": [{{"start": 0, "length": 42, "label": "baggage_lost", "priority": "HIGH", "sentiment": "NEGATIVE"}}]}}
 """.strip()
 
 DEPARTMENT_REPORT_USER_PROMPT = """
@@ -193,11 +187,9 @@ class PromptBuilder:
     def build_classification_messages(self, review: str, max_segments: int = 3) -> str:
         """Build prompt for classification with labeled segments."""
         labels_block = self._build_labels_block()
-        sentiment_labels_block = self._build_sentiment_labels_block()
         return CLASSIFICATION_PROMPT_TEMPLATE.format(
             review=review,
             labels_block=labels_block,
-            sentiment_labels_block=sentiment_labels_block,
             max_segments=max_segments,
         )
     
