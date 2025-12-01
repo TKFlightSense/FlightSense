@@ -30,10 +30,17 @@ def _load_llm_config() -> Dict[str, Any]:
     with config_path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
+def _load_llm_agents_config() -> Dict[str, Any]:
+    """Load LLM Agents configuration from JSON file."""
+    config_path = Path("models/artifacts/llm_config_agents.json")
+    if not config_path.exists():
+        raise FileNotFoundError(f"LLM Agent config not found: {config_path}")
+    with config_path.open("r", encoding="utf-8") as f:
+        return json.load(f)
 
 # Load configuration from JSON file
 _LLM_CONFIG = _load_llm_config()
-
+_LLM_AGENTS_CONFIG = _load_llm_agents_config()
 
 class LLMClient:
     """
@@ -54,11 +61,25 @@ class LLMClient:
         base_url: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        agent_type: Optional[str] = None,
     ):
         self.provider = provider or os.getenv("LLM_PROVIDER") or _LLM_CONFIG["provider"]
         self.temperature = temperature if temperature is not None else _LLM_CONFIG["temperature"]
-        self.max_tokens = max_tokens if max_tokens is not None else _LLM_CONFIG["max_tokens"]
-        self.system_prompt = _LLM_CONFIG["system_prompt"]
+        
+        if(agent_type is not None):
+            if(agent_type == "DEPARTMENT_REPORT_GENERATOR"):
+                self.system_prompt = _LLM_AGENTS_CONFIG["department_report_agent"]["system_prompt"]
+                self.max_tokens = _LLM_AGENTS_CONFIG["department_report_agent"]["max_tokens"]
+            elif(agent_type == "MANAGER_REPORT_GENERATOR"):
+                self.system_prompt = _LLM_AGENTS_CONFIG["manager_report_agent"]["system_prompt"]
+                self.max_tokens = _LLM_AGENTS_CONFIG["manager_report_agent"]["max_tokens"]
+            else:
+                self.system_prompt = _LLM_CONFIG["system_prompt"]
+                self.max_tokens = max_tokens if max_tokens is not None else _LLM_CONFIG["max_tokens"]
+        else:
+            self.system_prompt = _LLM_CONFIG["system_prompt"]
+            self.max_tokens = max_tokens if max_tokens is not None else _LLM_CONFIG["max_tokens"]
+
         
         if self.provider == "openai":
             self._init_openai(model, api_key, base_url)

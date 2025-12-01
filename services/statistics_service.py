@@ -1,17 +1,12 @@
 from __future__ import annotations
 
-import json
 import logging
-from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Dict
+from datetime import datetime, timedelta
 
-import pandas as pd
-
-from services.db_service.db_service import DbService
-from models.labels import ALL_LABELS,PRIORITY_LABELS,SENTIMENT_LABELS
+from services.db_service.mysql_db_service import MySQLDbService
 
 logger = logging.getLogger(__name__)
-
 
 class StatisticsService:
     """
@@ -24,394 +19,9 @@ class StatisticsService:
         processed_data.sentiment  in  ('positive', 'negative')
     """
 
-    def __init__(
-        self,
-        db_service: DbService,
-        routing_path: str = "models/artifacts/department_routing.json",
-    ):
+    def __init__(self, db_service: MySQLDbService):
         self.db = db_service
-        self.label_to_department, self.department_labels = self._load_routing(
-            routing_path
-        )
 
-    def get_department_distribution(self, date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict [str, Any]:
-        """
-        Manager view: how many reviews mapped to each department,
-        plus weekly history.
-        """
-        base_df = self._load_processed_df(date_from, date_to)
-        exploded = self._explode_labels(base_df)
-
-        if exploded.empty:
-            return {
-                "total_reviews": 0,
-                "department_counts": {},
-                "department_percentages": {},
-            }
-
-        dept_counts_series = exploded.groupby("department")["id"].nunique()
-        department_counts = dept_counts_series.to_dict()
-        total_reviews = exploded["id"].nunique()
-
-        department_percentages = (
-            {
-                dept: (cnt / total_reviews) * 100.0
-                for dept, cnt in department_counts.items()
-            }
-            if total_reviews > 0
-            else {dept: 0.0 for dept in department_counts}
-        )
-        return {
-            "total_reviews": total_reviews,
-            "department_counts": department_counts,
-            "department_percentages": department_percentages,
-        }
-
-    def get_within_department_distribution(self, department_name: str, date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict [str, Any]:
-        """
-        Ratio of labels WITHIN a given department.
-        """
-        base_df = self._load_processed_df(date_from, date_to)
-        exploded = self._explode_labels(base_df)
-
-        if exploded.empty:
-            return {
-                "department": department_name,
-                "total_reviews": 0,
-                "label_counts": {},
-                "label_percentages": {},
-            }
-
-        dept_df = exploded[exploded["department"] == department_name]
-
-        if dept_df.empty:
-            return {
-                "department": department_name,
-                "total_reviews": 0,
-                "label_counts": {},
-                "label_percentages": {},
-            }
-        total_reviews = dept_df["id"].nunique()
-
-        label_counts_series = dept_df.groupby("label")["id"].nunique()
-        label_counts = label_counts_series.to_dict()
-        label_percentages = (
-            {
-                label: (cnt / total_reviews) * 100.0
-                for label, cnt in label_counts.items()
-            }
-            if total_reviews > 0
-            else {label: 0.0 for label in label_counts}
-        )
-
-        return {
-            "department": department_name,
-            "total_reviews": total_reviews,
-            "label_counts": label_counts,
-            "label_percentages": label_percentages,
-        }
-
-    def get_distribution_of_priority(self, date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict [str, Any]:
-        """
-        Manager view: high/medium/low distribution across ALL departments,
-        restricted to reviews that touch PRIORITY_LABELS.
-        """
-        return self._priority_distribution(department_name = None, date_from=date_from, date_to=date_to)
-
-    def get_distribution_of_priority_within_department(self, department_name: str, date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Priority distribution within a single department.
-        """
-        return self._priority_distribution(department_name=department_name, date_from=date_from, date_to=date_to)
-
-    def get_distribution_of_pos_neg(self,  date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Manager view: positive/negative distribution across ALL departments,
-        restricted to reviews that touch SENTIMENT_LABELS.
-        """
-        return self._sentiment_distribution(department_name=None, date_from=date_from, date_to=date_to)
-
-    def get_distribution_of_pos_neg_within_department(self, department_name: str,  date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Positive/negative distribution within a single department.
-        """
-        return self._sentiment_distribution(department_name=department_name, date_from=date_from, date_to=date_to)
-
-    def get_label_distribution(self,  date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Overall: how many reviews per label.
-        """
-        base_df = self._load_processed_df(date_from, date_to)
-        exploded = self._explode_labels(base_df)
-
-        if exploded.empty:
-            return {
-                "total_reviews": 0,
-                "label_counts": {},
-                "label_percentages": {},
-            }
-
-        total_reviews = exploded["id"].nunique()
-        label_counts_series = exploded.groupby("label")["id"].nunique()
-        label_counts = label_counts_series.to_dict()
-
-        label_percentages = (
-            {
-                label: (cnt / total_reviews) * 100.0
-                for label, cnt in label_counts.items()
-            }
-            if total_reviews > 0
-            else {label: 0.0 for label in label_counts}
-        )
-
-        return {
-            "total_reviews": total_reviews,
-            "label_counts": label_counts,
-            "label_percentages": label_percentages,
-        }
-
-    def _priority_distribution(self, department_name: Optional[str], date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Shared logic for priority distribution.
-        department_name=None  -> overall (manager)
-        department_name=...   -> specific department
-        """
-        scope = "overall" if department_name is None else "department"
-
-        base_df = self._load_processed_df(date_from, date_to)
-        if base_df.empty:
-            return {
-                "scope": scope,
-                "department": department_name,
-                "total_reviews": 0,
-                "priority_counts": {},
-                "priority_percentages": {},
-            }
-
-        exploded = self._explode_labels(base_df, restrict_labels=PRIORITY_LABELS)
-        if exploded.empty:
-            return {
-                "scope": scope,
-                "department": department_name,
-                "total_reviews": 0,
-                "priority_counts": {},
-                "priority_percentages": {},
-            }
-
-        if department_name is not None:
-            exploded = exploded[exploded["department"] == department_name]
-
-        if exploded.empty:
-            return {
-                "scope": scope,
-                "department": department_name,
-                "total_reviews": 0,
-                "priority_counts": {},
-                "priority_percentages": {},
-            }
-
-        review_ids = exploded["id"].unique()
-        df = base_df[base_df["id"].isin(review_ids)].copy()
-
-        if df.empty:
-            return {
-                "scope": scope,
-                "department": department_name,
-                "total_reviews": 0,
-                "priority_counts": {},
-                "priority_percentages": {},
-            }
-
-        df["priority"] = df["priority"].fillna("unknown")
-        valid = df[df["priority"].isin(["high", "medium", "low"])]
-
-        if valid.empty:
-            return {
-                "scope": scope,
-                "department": department_name,
-                "total_reviews": 0,
-                "priority_counts": {},
-                "priority_percentages": {},
-            }
-
-        priority_counts = valid["priority"].value_counts().to_dict()
-        total_reviews = len(valid)
-        priority_percentages = self._to_percentage(priority_counts)
-
-        return {
-            "scope": scope,
-            "department": department_name,
-            "total_reviews": total_reviews,
-            "priority_counts": priority_counts,
-            "priority_percentages": priority_percentages,
-        }
-
-    def _sentiment_distribution(self, department_name: Optional[str], date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Shared logic for sentiment distribution.
-        department_name=None  -> overall (manager)
-        department_name=...   -> specific department
-        """
-        scope = "overall" if department_name is None else "department"
-
-        base_df = self._load_processed_df(date_from, date_to)
-        if base_df.empty:
-            return {
-                "scope": scope,
-                "department": department_name,
-                "total_reviews": 0,
-                "sentiment_counts": {},
-                "sentiment_percentages": {},
-            }
-
-        exploded = self._explode_labels(base_df, restrict_labels=SENTIMENT_LABELS)
-        if exploded.empty:
-            return {
-                "scope": scope,
-                "department": department_name,
-                "total_reviews": 0,
-                "sentiment_counts": {},
-                "sentiment_percentages": {},
-            }
-
-        if department_name is not None:
-            exploded = exploded[exploded["department"] == department_name]
-
-        if exploded.empty:
-            return {
-                "scope": scope,
-                "department": department_name,
-                "total_reviews": 0,
-                "sentiment_counts": {},
-                "sentiment_percentages": {},
-            }
-
-        review_ids = exploded["id"].unique()
-        df = base_df[base_df["id"].isin(review_ids)].copy()
-
-        if df.empty:
-            return {
-                "scope": scope,
-                "department": department_name,
-                "total_reviews": 0,
-                "sentiment_counts": {},
-                "sentiment_percentages": {},
-            }
-
-        df["sentiment"] = df["sentiment"].fillna("unknown")
-        valid = df[df["sentiment"].isin(["positive", "negative"])]
-
-        if valid.empty:
-            return {
-                "scope": scope,
-                "department": department_name,
-                "total_reviews": 0,
-                "sentiment_counts": {},
-                "sentiment_percentages": {},
-            }
-
-        sentiment_counts = valid["sentiment"].value_counts().to_dict()
-        total_reviews = len(valid)
-        sentiment_percentages = self._to_percentage(sentiment_counts)
-
-        return {
-            "scope": scope,
-            "department": department_name,
-            "total_reviews": total_reviews,
-            "sentiment_counts": sentiment_counts,
-            "sentiment_percentages": sentiment_percentages,
-        }
-
-    # =============== HELPERS =============== #
-    def _load_routing(
-        self, routing_path: str
-    ) -> tuple[Dict[str, str], Dict[str, list[str]]]:
-        """
-        Load label → department routing configuration from JSON.
-        {
-          "label_to_department": { "label": "DepartmentName", ... },
-          "department_labels": { "DepartmentName": ["label1", "label2", ...], ... }
-        }
-        """
-        path = Path(routing_path)
-        if not path.exists():
-            logger.warning(
-                f"Department routing config not found at {path}. "
-                f"Using empty mappings."
-            )
-            return {}, {}
-
-        with path.open("r", encoding="utf-8") as f:
-            cfg = json.load(f)
-
-        label_to_department = cfg.get("label_to_department", {})
-        department_labels = cfg.get("department_labels", {})
-
-        return label_to_department, department_labels
-
-    def _load_processed_df(
-        self,
-        date_from: Optional[str] = None,
-        date_to: Optional[str] = None,
-    ) -> pd.DataFrame:
-        """
-        Load processed_data with optional date filtering and normalize
-        missing columns (priority, sentiment).
-        """
-        df = self.db.get_processed_data(
-            limit=None,
-            label_type=None,
-            date_from=date_from,
-            date_to=date_to,
-        )
-
-        if df.empty:
-            return df
-
-        # Normalize expected columns if missing
-        for col in ["priority", "sentiment"]:
-            if col not in df.columns:
-                df[col] = None
-
-        return df
-
-    def _explode_labels(
-        self,
-        df: pd.DataFrame,
-        restrict_labels: Optional[set[str]] = None,
-    ) -> pd.DataFrame:
-        """
-        Turn each review row into multiple rows: one per (review, label).
-        Adds:
-          - label: fine-grained label string
-          - department: mapped from label_to_department, or 'UNKNOWN'
-        If restrict_labels is provided, keep only rows whose label is in that set.
-        """
-        if df.empty:
-            return df
-
-        df = df.copy()
-        df["labels"] = df["labels"].fillna("")
-        df = df[df["labels"] != ""]
-
-        # split comma-separated labels into list
-        df["label"] = df["labels"].str.split(",")
-        # explode list into separate rows
-        df = df.explode("label")
-        df["label"] = df["label"].str.strip()
-
-        # Keep only canonical labels
-        df = df[df["label"].isin(ALL_LABELS)]
-
-        if restrict_labels is not None:
-            df = df[df["label"].isin(restrict_labels)]
-
-        # Map label -> department
-        df["department"] = df["label"].map(self.label_to_department).fillna(
-            "UNKNOWN"
-        )
-
-        return df
 
     @staticmethod
     def _to_percentage(counts: Dict[str, int]) -> Dict[str, float]:
@@ -420,12 +30,176 @@ class StatisticsService:
             return {k: 0.0 for k in counts}
         return {k: (v / total) * 100.0 for k, v in counts.items()}
 
-    # trend functions?
-    #
-    # @staticmethod
-    # def _week_key(series: pd.Series) -> pd.Series:
-    #     """
-    #     Group dates weekly using ISO calendar week: YYYY-Www
-    #     Example: 2025-11-20 -> "2025-W47"
-    #     """
-    #     return pd.to_datetime(series).dt.strftime("%G-W%V")
+    def get_label_sentiment_distribution(self, label: str, date_from: datetime, date_to: datetime):
+        positive_counts = self.db.get_label_positive_counts(label, date_from, date_to)
+        negative_counts = self.db.get_label_negative_counts(label, date_from, date_to)
+        neutral_counts = self.db.get_label_neutral_counts(label, date_from, date_to)
+
+        sentiment_counts_dict = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
+        sentiment_percentage_dict = self._to_percentage(sentiment_counts_dict)
+        return {
+            "counts": sentiment_counts_dict,
+            "percentage": sentiment_percentage_dict
+        }
+    
+    def get_label_priority_distribution(self, label: str, date_from: datetime, date_to: datetime):
+        high_counts = self.db.get_label_high_counts(label, date_from, date_to)
+        low_counts = self.db.get_label_low_counts(label, date_from, date_to)
+        medium_counts = self.db.get_label_medium_counts(label, date_from, date_to)
+
+        priority_counts_dict = {"high": high_counts, "medium": medium_counts, "low": low_counts}
+        priority_percentage_dict = self._to_percentage(priority_counts_dict)
+        return {
+            "counts": priority_counts_dict,
+            "percentage": priority_percentage_dict
+        }
+    
+    def get_department_sentiment_distribution(self, department_name: str, date_from: datetime, date_to: datetime):
+        positive_counts = self.db.get_department_positive_counts(department_name, date_from, date_to)
+        negative_counts = self.db.get_department_negative_counts(department_name, date_from, date_to)
+        neutral_counts = self.db.get_department_neutral_counts(department_name, date_from, date_to)
+
+        sentiment_counts_dict = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
+        sentiment_percentage_dict = self._to_percentage(sentiment_counts_dict)
+        return {
+            "counts": sentiment_counts_dict,
+            "percentage": sentiment_percentage_dict
+        }
+    
+    def get_department_priority_distribution(self, department_name: str, date_from: datetime, date_to: datetime):
+        high_counts = self.db.get_department_high_counts(department_name, date_from, date_to)
+        medium_counts = self.db.get_department_medium_counts(department_name, date_from, date_to)
+        low_counts = self.db.get_department_low_counts(department_name, date_from, date_to)
+
+        priority_counts_dict = {"high": high_counts, "medium": medium_counts, "low": low_counts}
+        priority_percentage_dict = self._to_percentage(priority_counts_dict)
+        return {
+            "counts": priority_counts_dict,
+            "percentage": priority_percentage_dict
+        }
+    
+    def get_department_total_review_count(self, department_name: str, date_from: datetime, date_to: datetime):
+        return self.db.get_department_total_count(department_name, date_from, date_to)
+    
+    def get_department_weekly_stats(self, department_name: str, date_from: datetime):
+        """
+        date_from: 2025-12-01 00:00:00
+        date_to: 2025-12-08 00:00:00 #anlaması kolay olsun diye
+        """
+        weekly_stats_dict = {}
+        for i in range(7):
+            key = f"day_{i+1}"
+            internal_date_from = date_from + timedelta(days=i)
+            internal_date_to = date_from + timedelta(days=i+1)
+            positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
+            negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
+            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+
+        return weekly_stats_dict
+
+    def get_department_monthly_stats(self, department_name: str, date_from: datetime):
+        """
+        date_from: 2025-11-01 00:00:00
+        date_to: 2025-12-01 00:00:00
+        """
+        monthly_stats_dict = {}
+        for i in range(4):
+            key = f"week_{i+1}"
+            internal_date_from = date_from + timedelta(days=i)
+            internal_date_to = date_from + timedelta(days=i+1)
+            positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
+            negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
+            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+
+        return monthly_stats_dict
+
+    def get_department_yearly_stats(self, department_name: str, date_from: datetime):
+        """
+        date_from: 2024-12-01 00:00:00
+        date_to: 2025-12-01 00:00:00
+        """
+        yearly_stats_dict = {}
+        for i in range(12):
+            key = f"month_{i+1}"
+            internal_date_from = date_from + timedelta(days=i)
+            internal_date_to = date_from + timedelta(days=i+1)
+            positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
+            negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
+            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+
+        return yearly_stats_dict
+
+    def get_manager_sentiment_distribution(self, date_from: datetime, date_to: datetime):
+        positive_counts = self.db.get_manager_positive_counts(date_from, date_to)
+        negative_counts = self.db.get_manager_negative_counts(date_from, date_to)
+        neutral_counts = self.db.get_manager_neutral_counts(date_from, date_to)
+
+        sentiment_counts_dict = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
+        sentiment_percentage_dict = self._to_percentage(sentiment_counts_dict)
+        return {
+            "counts": sentiment_counts_dict,
+            "percentage": sentiment_percentage_dict
+        }
+
+    def get_manager_priority_distribution(self, date_from: datetime, date_to: datetime):
+        high_counts = self.db.get_manager_high_counts(date_from, date_to)
+        medium_counts = self.db.get_manager_medium_counts(date_from, date_to)
+        low_counts = self.db.get_manager_low_counts(date_from, date_to)
+
+        priority_counts_dict = {"high": high_counts, "medium": medium_counts, "low": low_counts}
+        priority_percentage_dict = self._to_percentage(priority_counts_dict)
+        return {
+            "counts": priority_counts_dict,
+            "percentage": priority_percentage_dict
+        }
+
+    def get_manager_total_review_count(self, date_from: datetime, date_to: datetime):
+        return self.db.get_manager_total_count(date_from, date_to)
+
+    def get_manager_weekly_stats(self, date_from: datetime):
+        """
+        date_from: 2025-12-01 00:00:00
+        date_to: 2025-12-08 00:00:00 #anlaması kolay olsun diye
+        """
+        weekly_stats_dict = {}
+        for i in range(7):
+            key = f"day_{i + 1}"
+            internal_date_from = date_from + timedelta(days=i)
+            internal_date_to = date_from + timedelta(days=i + 1)
+            positive_counts = self.db.get_manager_positive_counts(internal_date_from, internal_date_to)
+            negative_counts = self.db.get_manager_negative_counts(internal_date_from, internal_date_to)
+            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+
+        return weekly_stats_dict
+
+    def get_manager_monthly_stats(self,date_from: datetime):
+        """
+        date_from: 2025-11-01 00:00:00
+        date_to: 2025-12-01 00:00:00
+        """
+        monthly_stats_dict = {}
+        for i in range(4):
+            key = f"week_{i + 1}"
+            internal_date_from = date_from + timedelta(days=i)
+            internal_date_to = date_from + timedelta(days=i + 1)
+            positive_counts = self.db.get_manager_positive_counts(internal_date_from, internal_date_to)
+            negative_counts = self.db.get_manager_negative_counts(internal_date_from, internal_date_to)
+            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+
+        return monthly_stats_dict
+
+    def get_manager_yearly_stats(self, date_from: datetime):
+        """
+        date_from: 2024-12-01 00:00:00
+        date_to: 2025-12-01 00:00:00
+        """
+        yearly_stats_dict = {}
+        for i in range(12):
+            key = f"month_{i + 1}"
+            internal_date_from = date_from + timedelta(days=i)
+            internal_date_to = date_from + timedelta(days=i + 1)
+            positive_counts = self.db.get_manager_positive_counts(internal_date_from, internal_date_to)
+            negative_counts = self.db.get_manager_negative_counts(internal_date_from, internal_date_to)
+            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+
+        return yearly_stats_dict

@@ -11,7 +11,7 @@ from email.message import EmailMessage
 import pandas as pd
 
 from services.db_service.db_service import DbService
-from packages.stats.statistics_service import StatisticsService  # if you have one
+from services.statistics_service import StatisticsService  # if you have one
 # from packages.llm.summarizer import Summarizer  # you can add this later
 
 
