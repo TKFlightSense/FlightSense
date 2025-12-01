@@ -1,17 +1,10 @@
-import { useState } from "react";
+// src/pages/DepartmentDashboard.tsx
+
+import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { departments, type DepartmentId } from "../departmentConfig";
-import {
-  MOCK_DEPARTMENT_STATS_BY_RANGE,
-  type TimeRangeKey,
-} from "../mock/mockDepartmentStats";
-import FeedbackTrendChart from "../components/charts/FeedbackTrendChart";
-import DistributionPie, {
-  type PieItem,
-} from "../components/charts/DistributionPie";
 import { useTheme } from "../hooks/useTheme";
-
+import { DEPARTMENT_LABEL_TO_CODE } from "../departmentConfig";
 import {
   PAGE_WRAPPER,
   PAGE_BACKGROUND_OVERLAY,
@@ -20,17 +13,35 @@ import {
   KPI_TITLE,
 } from "../styles/dashboardTokens";
 
+import FeedbackTrendChart from "../components/charts/FeedbackTrendChart";
+import DistributionPie, {
+  type PieItem,
+} from "../components/charts/DistributionPie";
+
+import {
+  fetchDepartmentStatistics,
+  type Period,
+} from "../services/api";
+import {
+  mapDepartmentStatsApiToUi,
+  type DepartmentStatsUi,
+} from "../utils/departmentStatsMapper";
+
 const THY_RED = "#b7312c";
 
 export default function DepartmentDashboard() {
-  const { departmentId } = useParams<{ departmentId: string }>();
-  const { user, logout } = useAuth();
+  const { departmentName } = useParams<{ departmentName: string }>();
+  const { user, logout, token } = useAuth() as any;
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
-  const [timeRange, setTimeRange] = useState<TimeRangeKey>("monthly");
+  const [timeRange, setTimeRange] = useState<Period>("monthly");
+  const [stats, setStats] = useState<DepartmentStatsUi | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!departmentId) {
+  // departmentName yoksa
+  if (!departmentName) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className={`${CARD} px-6 py-4 max-w-md`}>
@@ -48,31 +59,72 @@ export default function DepartmentDashboard() {
     );
   }
 
-  const deptId = departmentId as DepartmentId;
-  const department = departments.find((d) => d.id === deptId);
+  useEffect(() => {
+    if (!token || !departmentName) return;
 
-  if (!department) {
+    setLoading(true);
+    setError(null);
+
+    // departmentName route paramı URL encoded gelebilir; decode edelim
+    const label = decodeURIComponent(departmentName);
+    const code = DEPARTMENT_LABEL_TO_CODE[label] ?? label;
+
+    fetchDepartmentStatistics(token, code, timeRange)
+      .then((res) => {
+        if (!res.success) {
+          throw new Error("API returned success = false");
+        }
+        const ui = mapDepartmentStatsApiToUi(res.result.data, label, timeRange);
+        setStats(ui);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(err.message || "Failed to load department data");
+      })
+      .finally(() => setLoading(false));
+  }, [token, departmentName, timeRange]);
+
+  function handleLogout() {
+    logout();
+    navigate("/");
+  }
+
+  if (loading || !stats) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className={`${CARD} px-6 py-4 max-w-md`}>
-          <p className="text-sm text-slate-900 dark:text-slate-50 mb-1">
-            Unknown department:
+          <p className="text-sm text-slate-900 dark:text-slate-50">
+            Loading department dashboard...
           </p>
-          <p className="text-xs font-mono text-slate-600 dark:text-slate-300 mb-3">
-            {departmentId}
-          </p>
-          <Link
-            to="/"
-            className="text-xs text-blue-600 dark:text-blue-300 underline"
-          >
-            Back to login
-          </Link>
+          {error && (
+            <p className="mt-2 text-xs text-red-500">
+              {error}
+            </p>
+          )}
         </div>
       </div>
     );
   }
 
-  const stats = MOCK_DEPARTMENT_STATS_BY_RANGE[deptId][timeRange];
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className={`${CARD} px-6 py-4 max-w-md`}>
+          <p className="text-sm text-red-500 mb-2">Error</p>
+          <p className="text-xs text-slate-900 dark:text-slate-50 mb-3">
+            {error}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-xs px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 transition
+                       dark:border-slate-600 dark:text-slate-50 dark:bg-slate-900/70 dark:hover:bg-slate-800"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const positivePercent = Math.round(
     (stats.positive / Math.max(stats.totalReviews, 1)) * 100
@@ -99,11 +151,6 @@ export default function DepartmentDashboard() {
     };
   });
 
-  function handleLogout() {
-    logout();
-    navigate("/");
-  }
-
   return (
     <div className={PAGE_WRAPPER}>
       <div className={PAGE_BACKGROUND_OVERLAY} />
@@ -116,7 +163,7 @@ export default function DepartmentDashboard() {
               FlightSense
             </p>
             <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-              <span style={{ color: THY_RED }}>{department.name}</span>
+              <span style={{ color: THY_RED }}>{stats.departmentName}</span>
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-slate-300">
               Period · {stats.periodLabel}
@@ -132,9 +179,9 @@ export default function DepartmentDashboard() {
                     ({user.role})
                   </span>
                 </p>
-                {user.departmentId && (
+                {user.department && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Assigned dept: {user.departmentId}
+                    Assigned dept: {user.department}
                   </p>
                 )}
               </div>
@@ -165,7 +212,7 @@ export default function DepartmentDashboard() {
             <div className="flex flex-wrap gap-3 items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                  Feedback trend for {department.name}
+                  Feedback trend for {stats.departmentName}
                 </p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-300">
                   Positive vs negative reviews over time · {stats.periodLabel}
@@ -343,8 +390,7 @@ export default function DepartmentDashboard() {
               Top issues in this department
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-300 mb-3">
-              Selected high-priority issues and their sentiment split in the
-              current period.
+              Selected issues and their sentiment split in the current period.
             </p>
 
             <ul className="space-y-2 text-xs">
@@ -382,32 +428,14 @@ export default function DepartmentDashboard() {
                           {neg}% −
                         </span>
                       </p>
-                      <p
-                        className={
-                          "text-[11px] " +
-                          (issue.trend === "up"
-                            ? "text-rose-600 dark:text-rose-400"
-                            : issue.trend === "down"
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-slate-500 dark:text-slate-400")
-                        }
-                      >
-                        {issue.trend === "up"
-                          ? "↑ increasing"
-                          : issue.trend === "down"
-                          ? "↓ decreasing"
-                          : "→ stable"}
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        → stable
                       </p>
                     </div>
                   </li>
                 );
               })}
             </ul>
-
-            <p className="mt-4 text-[11px] text-slate-500 dark:text-slate-400">
-              Later this section can open filtered review lists or ticket views
-              for this department.
-            </p>
           </section>
         </main>
       </div>

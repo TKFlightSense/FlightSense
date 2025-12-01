@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { fetchManagerStatistics, type Period } from "../services/api";
+import {
+  mapManagerStatsApiToUi,
+  type ManagerStatsUi,
+} from "../utils/managerStatsMapper";
 import {
   MOCK_MANAGER_STATS_BY_RANGE,
   type TimeRangeKey,
@@ -22,11 +27,62 @@ import {
 const THY_RED = "#b7312c";
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth() as any;
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
-  const [timeRange, setTimeRange] = useState<TimeRangeKey>("monthly");
+  const [timeRange, setTimeRange] = useState<Period>("monthly");
+  const [stats, setStats] = useState<ManagerStatsUi | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // If you don’t have a backend token (mock login), just use mock data
+    if (!token) {
+      const mockKey = timeRange as TimeRangeKey;
+      setStats(MOCK_MANAGER_STATS_BY_RANGE[mockKey]);
+      setError("Using mock data (no API token available).");
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetchManagerStatistics(token, timeRange)
+      .then((res) => {
+        if (cancelled) return;
+
+        if (!res.success) {
+          throw new Error("API returned success = false");
+        }
+
+        const uiStats = mapManagerStatsApiToUi(res.data, timeRange);
+        setStats(uiStats);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error(err);
+
+        // Fallback to mock data if API fails
+        const mockKey = timeRange as TimeRangeKey;
+        setStats(MOCK_MANAGER_STATS_BY_RANGE[mockKey]);
+        setError(
+          err?.message
+            ? `API failed, showing mock data. (${err.message})`
+            : "API failed, showing mock data."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, token, timeRange]);
 
   if (!user) {
     return (
@@ -44,7 +100,23 @@ export default function Dashboard() {
     );
   }
 
-  const stats = MOCK_MANAGER_STATS_BY_RANGE[timeRange];
+  // While we don’t have any stats yet
+  if (!stats) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-950 text-slate-50">
+        <div className={`${CARD} px-6 py-4`}>
+          <p className="text-sm">
+            {loading ? "Loading manager dashboard..." : "No data yet."}
+          </p>
+          {error && (
+            <p className="mt-2 text-xs text-red-300">
+              {error}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const totalPriority =
     stats.highPriority + stats.mediumPriority + stats.lowPriority || 1;
@@ -79,6 +151,7 @@ export default function Dashboard() {
 
   function handleDepartmentSliceClick(item: PieItem) {
     if (item.id) {
+      // item.id should be compatible with your <Route path="/department/:departmentId" />
       window.open(`/department/${item.id}`, "_blank", "noopener,noreferrer");
     }
   }
@@ -100,6 +173,11 @@ export default function Dashboard() {
             <p className="text-[11px] text-slate-500 dark:text-slate-300">
               Period · {stats.periodLabel}
             </p>
+            {error && (
+              <p className="mt-1 text-[11px] text-amber-500 dark:text-amber-300">
+                {error}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -134,7 +212,7 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Main content */}
+        {/* Main content – your original JSX unchanged */}
         <main className="px-6 md:px-8 py-6 max-w-6xl mx-auto w-full space-y-6">
           {/* Trend card */}
           <section className="space-y-3">

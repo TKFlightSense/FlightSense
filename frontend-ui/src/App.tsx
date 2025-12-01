@@ -23,7 +23,7 @@ function App() {
 
         {/* Department dashboards (viewer + manager/admin can see) */}
         <Route
-          path="/department/:departmentId"
+          path="/department/:departmentName"
           element={
             <ProtectedRoute
               allowedRoles={["department_viewer", "manager", "admin"]}
