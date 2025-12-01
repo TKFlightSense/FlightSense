@@ -4,8 +4,10 @@ import logging
 from typing import Dict
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from typing import Optional
+from models.enums.enums import LabelToDepartment
 
-from services.db_service.mysql_db_service import MySQLDbService
+from services.db_service.my_db_service import Database
 
 from models.enums.enums import Departments
 
@@ -22,21 +24,23 @@ class StatisticsService:
         processed_data.sentiment  in  ('positive', 'negative')
     """
 
-    def __init__(self, db_service: MySQLDbService, departments: Departments):
-        self.db = db_service
-        self.departments = departments
+    def __init__(self, db_service: Optional[Database] = None):
+        self.db = db_service if db_service is not None else Database(password="")
+        self.departments = Departments
+        self.label_to_department = LabelToDepartment
 
     @staticmethod
     def _to_percentage(counts: Dict[str, int]) -> Dict[str, float]:
         total = sum(counts.values())
         if total == 0:
             return {k: 0.0 for k in counts}
-        return {k: (v / total) * 100.0 for k, v in counts.items()}
+        return {k: round((v / total) * 100.0) for k, v in counts.items()}
 
     def get_label_sentiment_distribution(self, label: str, date_from: datetime, date_to: datetime):
-        positive_counts = self.db.get_label_positive_counts(label, date_from, date_to)
-        negative_counts = self.db.get_label_negative_counts(label, date_from, date_to)
-        neutral_counts = self.db.get_label_neutral_counts(label, date_from, date_to)
+        department_name = self.label_to_department[label].value
+        positive_counts = self.db.get_label_positive_counts(label, department_name, date_from, date_to)
+        negative_counts = self.db.get_label_negative_counts(label, department_name, date_from, date_to)
+        neutral_counts = self.db.get_label_neutral_counts(label, department_name, date_from, date_to)
 
         sentiment_counts_dict = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
         sentiment_percentage_dict = self._to_percentage(sentiment_counts_dict)
@@ -46,9 +50,10 @@ class StatisticsService:
         }
     
     def get_label_priority_distribution(self, label: str, date_from: datetime, date_to: datetime):
-        high_counts = self.db.get_label_high_counts(label, date_from, date_to)
-        low_counts = self.db.get_label_low_counts(label, date_from, date_to)
-        medium_counts = self.db.get_label_medium_counts(label, date_from, date_to)
+        department_name = self.label_to_department[label].value
+        high_counts = self.db.get_label_high_counts(label, department_name, date_from, date_to)
+        low_counts = self.db.get_label_low_counts(label, department_name, date_from, date_to)
+        medium_counts = self.db.get_label_medium_counts(label, department_name, date_from, date_to)
 
         priority_counts_dict = {"high": high_counts, "medium": medium_counts, "low": low_counts}
         priority_percentage_dict = self._to_percentage(priority_counts_dict)
