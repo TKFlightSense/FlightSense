@@ -41,3 +41,12 @@ class StatusNumericalVal(int, Enum):
     NEGATIVE = -1
     NEUTRAL = 0
     POSITIVE = 1
+
+class Departments(str, Enum):
+    """
+    Full department names
+    """
+    IUIUB = "İkram ve Uçak İçi Ürünler Bşk."
+    BMCOGM = "Yer İşletme Bşk - Bagaj"
+    KABIN = "Kabin Hizmetleri Bşk."
+    TGS = "TGS - Yer Hizmetleri"

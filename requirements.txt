@@ -25,3 +25,6 @@ vllm>=0.6.0  # Optional: for local model deployment
 
 # Templating (for emails, reports)
 jinja2>=3.1.0
+
+#utils
+python-dateutil
