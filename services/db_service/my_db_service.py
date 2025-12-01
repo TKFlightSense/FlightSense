@@ -424,6 +424,18 @@ class Database:
         result = self.execute(query, (date_from, date_to), fetch=True)
         return result[0][0] if result and result[0][0] is not None else 0
 
+    def get_label_total_count(self, department_name, label, date_from, date_to):
+        table = self.get_table_name(department_name)
+
+        query = f"""
+            SELECT SUM(positive_count + negative_count + neutral_count)
+            FROM {table}
+            WHERE label = %s AND date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (label, date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+
     def close(self):
         if self.connection:
             self.connection.close()

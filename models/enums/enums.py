@@ -69,3 +69,31 @@ class LabelToDepartment(str, Enum):
     booking_and_ticketing = "RVCBM"
     customer_support = "CMYM"
     pricing_and_loyalty = "RVCBM"
+
+
+class DepartmentToLabels(Enum):
+    IUIUB = [
+        "inflight_experience_food_beverage",
+        "inflight_experience_entertainment",
+    ]
+    KHB = [
+        "inflight_experience_seats_comfort",
+        "inflight_experience_cabin_service",
+        "inflight_experience_cleanliness",
+    ]
+    TGS = [
+        "checkin_process",
+        "boarding_process",
+    ]
+    BMCOGM = [
+        "baggage_lost",
+        "baggage_damaged",
+    ]
+    RVCBM = [
+        "booking_and_ticketing",
+        "pricing_and_loyalty",
+    ]
+    CMYM = [
+        "customer_support",
+    ]
+

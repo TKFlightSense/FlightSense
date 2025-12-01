@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -159,7 +160,16 @@ class FilterRequest(BaseModel):
     date_to: Optional[str] = None
     only_without_ticket: bool = False
 
+class DepartmentStatisticsRequest(BaseModel):
+    department_name: str
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+    period: str
 
+class ManagerStatisticsRequest(BaseModel):
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+    period: str
 # -------------------------------------------------------------------------
 # HEALTH CHECK
 # -------------------------------------------------------------------------
@@ -336,6 +346,36 @@ async def create_tickets(
         raise HTTPException(status_code=403, detail=result.get("error"))
     
     return result
+
+# -------------------------------------------------------------------------
+# STATISTICS ENDPOINTS
+# -------------------------------------------------------------------------
+
+@app.post("/api/statistics/department")
+async def get_department_statistics(
+    request: DepartmentStatisticsRequest,
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    try:
+        result = orch.get_department_stats(token, request.department_name, request.period, request.date_from, request.date_to)
+        return {"success": True, "result": result}
+    except Exception as e:
+        logger.error(f"Error while accessing department stats: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/statistics/manager")
+async def get_manager_statistics(
+    request: ManagerStatisticsRequest,
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    try:
+        result = orch.get_manager_stats(token, request.period, request.date_from, request.date_to)
+        return {"success": True, "result": result}
+    except Exception as e:
+        logger.error(f"Error while accessing manager stats: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # -------------------------------------------------------------------------

@@ -5,11 +5,10 @@ from typing import Dict
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from typing import Optional
-from models.enums.enums import LabelToDepartment
+from models.enums.enums import LabelToDepartment, DepartmentToLabels, Departments
 
 from services.db_service.my_db_service import Database
 
-from models.enums.enums import Departments
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +87,13 @@ class StatisticsService:
     
     def get_department_total_review_count(self, department_name: str, date_from: datetime, date_to: datetime):
         return self.db.get_department_total_count(department_name, date_from, date_to)
-    
+
+    def get_department_label_distribution (self, department_name:str,date_from: datetime, date_to: datetime):
+        label_distribution = {}
+        for label in DepartmentToLabels[department_name].value:
+            label_distribution[label] = self.get_label_sentiment_distribution(label, date_from, date_to)
+        return label_distribution
+
     def get_department_weekly_stats(self, department_name: str, date_from: datetime):
         """
         date_from: 2025-12-01 00:00:00

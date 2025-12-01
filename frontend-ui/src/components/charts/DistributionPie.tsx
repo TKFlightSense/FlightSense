@@ -7,11 +7,12 @@ import {
   Legend,
 } from "recharts";
 import type { ReactNode } from "react";
+import type { Theme } from "../../hooks/useTheme";
 
 export type PieItem = {
   name: string;
   value: number;
-  id?: string; // optional – used for navigation (e.g. department id)
+  id?: string;
 };
 
 type Props = {
@@ -19,16 +20,26 @@ type Props = {
   subtitle?: string;
   data: PieItem[];
   onSliceClick?: (item: PieItem) => void;
-  rightContent?: ReactNode; // stuff you want to show to the right of the chart
+  rightContent?: ReactNode;
+  mode?: Theme;
 };
 
-const COLORS = [
+const COLORS_DARK = [
+  "#38bdf8",
+  "#22c55e",
+  "#b7312c", // THY red
+  "#f97316",
+  "#a855f7",
+  "#facc15",
+];
+
+const COLORS_LIGHT = [
   "#2563eb",
   "#0ea5e9",
-  "#10b981",
+  "#22c55e",
+  "#b7312c", // THY red
   "#f97316",
-  "#e11d48",
-  "#a855f7",
+  "#7c3aed",
 ];
 
 export default function DistributionPie({
@@ -37,19 +48,30 @@ export default function DistributionPie({
   data,
   onSliceClick,
   rightContent,
+  mode = "dark",
 }: Props) {
+  const isDark = mode === "dark";
+  const colors = isDark ? COLORS_DARK : COLORS_LIGHT;
+
+  const titleColor = isDark ? "text-slate-50" : "text-slate-900";
+  const subtitleColor = isDark ? "text-slate-300" : "text-slate-500";
+  const legendColor = isDark ? "#e5e7eb" : "#374151";
+  const chartBg = isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200";
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
+    <div className="space-y-3">
       {title && (
-        <p className="text-sm font-semibold text-slate-900 mb-1">{title}</p>
+        <p className={`text-sm font-semibold ${titleColor}`}>{title}</p>
       )}
       {subtitle && (
-        <p className="text-[11px] text-slate-500 mb-3">{subtitle}</p>
+        <p className={`text-[11px] ${subtitleColor}`}>{subtitle}</p>
       )}
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row items-stretch gap-4">
         {/* Chart */}
-        <div className="h-52 flex-1 min-w-[220px]">
+        <div
+          className={`h-52 flex-1 min-w-[220px] rounded-2xl border px-3 py-2 ${chartBg}`}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -57,12 +79,11 @@ export default function DistributionPie({
                 dataKey="value"
                 nameKey="name"
                 outerRadius="80%"
-                innerRadius="50%"
               >
                 {data.map((entry, index) => (
                   <Cell
                     key={`slice-${entry.name}-${index}`}
-                    fill={COLORS[index % COLORS.length]}
+                    fill={colors[index % colors.length]}
                     style={{
                       cursor: onSliceClick ? "pointer" : "default",
                     }}
@@ -70,20 +91,36 @@ export default function DistributionPie({
                   />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: isDark ? "#0f172a" : "#ffffff",
+                  borderRadius: 12,
+                  border: `1px solid ${isDark ? "#475569" : "#e5e7eb"}`,
+                  fontSize: 11,
+                  color: isDark ? "#f1f5f9" : "#0f172a",
+                }}
+                labelStyle={{
+                  color: isDark ? "#f8fafc" : "#0f172a",
+                }}
+                itemStyle={{
+                  color: isDark ? "#f1f5f9" : "#0f172a",
+                }}
+              />
               <Legend
                 layout="vertical"
                 align="right"
                 verticalAlign="middle"
-                wrapperStyle={{ fontSize: 11 }}
+                wrapperStyle={{ fontSize: 11, color: legendColor }}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Right-side panel for numbers (optional) */}
+        {/* Right-side panel */}
         {rightContent && (
-          <div className="w-48 text-xs text-slate-700">{rightContent}</div>
+          <div className="w-full md:w-52 text-xs space-y-2">
+            {rightContent}
+          </div>
         )}
       </div>
     </div>
