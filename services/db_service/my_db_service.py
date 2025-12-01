@@ -184,10 +184,12 @@ import mysql.connector
 from mysql.connector import Error
 
 DEPARTMENT_TABLES = {
-    "KABIN": "kabin_hizmetleri",
+    "KHB": "kabin_hizmetleri",
     "IUIUB": "ikram_ucak_ici",
     "BMCOGM": "yer_isletme_bagaj",
-    "TGS": "tgs"
+    "TGS": "tgs",
+    "RVCBM": "rez_biletleme",
+    "CMYM": "cagri_merkezi"
 }
 
 class Database:
@@ -248,6 +250,57 @@ class Database:
         finally:
             cursor.close()
 
+    def create_rez_table(self):
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS rez_biletleme (
+            ID INT AUTO_INCREMENT PRIMARY KEY,
+            label VARCHAR(255) NOT NULL,
+            date_from DATETIME,
+            date_to DATETIME,
+            positive_count INT DEFAULT 0,
+            negative_count INT DEFAULT 0,
+            neutral_count INT DEFAULT 0,
+            low_count INT DEFAULT 0,
+            medium_count INT DEFAULT 0,
+            high_count INT DEFAULT 0,
+            
+            -- İndeks Tanımları (Table Level)
+            INDEX idx_label (label),
+            INDEX idx_analysis_range (label, date_from, date_to)
+        );
+        """
+        
+        try:
+            self.execute(create_table_query)
+            print("Tablo 'rez_biletleme' (indekslerle birlikte) başarıyla oluşturuldu.")
+        except Error as err:
+            print(f"Tablo oluşturma hatası: '{err}'")
+
+    def create_cagri_merkezi_table(self):
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS cagri_merkezi (
+            ID INT AUTO_INCREMENT PRIMARY KEY,
+            label VARCHAR(255) NOT NULL,
+            date_from DATETIME,
+            date_to DATETIME,
+            positive_count INT DEFAULT 0,
+            negative_count INT DEFAULT 0,
+            neutral_count INT DEFAULT 0,
+            low_count INT DEFAULT 0,
+            medium_count INT DEFAULT 0,
+            high_count INT DEFAULT 0,
+            
+            -- İndeks Tanımları (Table Level)
+            INDEX idx_label (label),
+            INDEX idx_analysis_range (label, date_from, date_to)
+        );
+        """
+        
+        try:
+            self.execute(create_table_query)
+            print("Tablo 'cagri_merkezi' (indekslerle birlikte) başarıyla oluşturuldu.")
+        except Error as err:
+            print(f"Tablo oluşturma hatası: '{err}'")
 
     def get_table_name(self, department_name: str) -> str:
         return DEPARTMENT_TABLES.get(department_name)
