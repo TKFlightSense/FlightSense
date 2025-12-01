@@ -429,7 +429,6 @@ class MySQLDbService:
             raise
         finally:
             conn.close()
-            conn.close()
 
     # -------------------------------------------------------------------------
     # TICKET OPERATIONS
