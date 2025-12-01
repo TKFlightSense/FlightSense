@@ -102,7 +102,7 @@ class MySQLDbService:
 
     def _create_tables(self):
         """Create all necessary tables if they don't exist."""
-        self._create_processed_data_table()
+        self._create_reviews_table()
         self._create_review_details_table()
         self._create_statistics_table()
         self._create_user_table()
@@ -113,7 +113,7 @@ class MySQLDbService:
     # TABLE CREATION
     # -------------------------------------------------------------------------
 
-    def _create_processed_data_table(self):
+    def _create_reviews_table(self):
         """Create processed_data table in MySQL."""
         create_table_query = """
         CREATE TABLE IF NOT EXISTS reviews (

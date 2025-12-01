@@ -173,38 +173,55 @@ def create_tables(host, port, db_name, db_user, db_password):
         
         cursor = connection.cursor()
         
-        # Create processed_data table
+        # Create reviews table (formerly processed_data)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS processed_data (
+            CREATE TABLE IF NOT EXISTS reviews (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                review TEXT NOT NULL,
-                labels JSON,
+                review TEXT,
                 date DATE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                flight_number VARCHAR(50),
+                pnr VARCHAR(50),
                 INDEX idx_date (date),
-                INDEX idx_created_at (created_at)
+                INDEX idx_flight_number (flight_number),
+                INDEX idx_pnr (pnr)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
-        print("[OK] Created table 'processed_data'")
+        print("[OK] Created table 'reviews'")
+
+        # Create processed_reviews table (segments)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS processed_reviews (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                review_id INT NOT NULL,
+                label VARCHAR(255) NOT NULL,
+                `index` VARCHAR(50) DEFAULT NULL,
+                sentiment VARCHAR(50) DEFAULT 'NONE',
+                priority VARCHAR(50) DEFAULT 'unknown',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_review_id (review_id),
+                INDEX idx_label (label),
+                FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        print("[OK] Created table 'processed_reviews'")
         
         # Create tickets table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS tickets (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                ticket_id VARCHAR(50) UNIQUE NOT NULL,
-                feedback_id INT NOT NULL,
-                label VARCHAR(100),
-                department VARCHAR(100),
-                project_key VARCHAR(20),
-                status VARCHAR(50) DEFAULT 'Open',
+                processed_data_id INT,
+                primary_label VARCHAR(100),
+                department VARCHAR(255),
+                summary VARCHAR(500) NOT NULL,
+                description TEXT NOT NULL,
+                external_key VARCHAR(50),
+                source VARCHAR(20) DEFAULT 'mock',
+                status VARCHAR(20) DEFAULT 'OPEN',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_ticket_id (ticket_id),
-                INDEX idx_feedback_id (feedback_id),
-                INDEX idx_department (department),
+                INDEX idx_processed_data_id (processed_data_id),
                 INDEX idx_status (status),
-                INDEX idx_created_at (created_at),
-                FOREIGN KEY (feedback_id) REFERENCES processed_data(id) ON DELETE CASCADE
+                INDEX idx_external_key (external_key),
+                FOREIGN KEY (processed_data_id) REFERENCES reviews(id) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
         print("[OK] Created table 'tickets'")
@@ -213,13 +230,18 @@ def create_tables(host, port, db_name, db_user, db_password):
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS statistics (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                label VARCHAR(100),
-                count INT DEFAULT 0,
-                percentage DECIMAL(5,2),
-                date DATE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_label (label),
-                INDEX idx_date (date)
+                label_type VARCHAR(255) NOT NULL,
+                starting_datetime DATETIME NOT NULL,
+                ending_datetime DATETIME NOT NULL,
+                positive_count INT DEFAULT 0,
+                negative_count INT DEFAULT 0,
+                neutral_count INT DEFAULT 0,
+                low_priority INT DEFAULT 0,
+                medium_priority INT DEFAULT 0,
+                high_priority INT DEFAULT 0,
+                INDEX idx_label_type (label_type),
+                INDEX idx_starting_datetime (starting_datetime),
+                INDEX idx_ending_datetime (ending_datetime)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
         print("[OK] Created table 'statistics'")
@@ -228,12 +250,14 @@ def create_tables(host, port, db_name, db_user, db_password):
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS user_data (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(255) UNIQUE NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
+                username VARCHAR(100) UNIQUE NOT NULL,
+                email VARCHAR(255) UNIQUE,
                 password_hash VARCHAR(255) NOT NULL,
-                role VARCHAR(50) NOT NULL,
+                role VARCHAR(50) DEFAULT 'viewer',
+                department VARCHAR(255),
+                is_active TINYINT(1) DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_login TIMESTAMP NULL DEFAULT NULL,
+                last_login TIMESTAMP NULL,
                 INDEX idx_username (username),
                 INDEX idx_email (email),
                 INDEX idx_role (role)
