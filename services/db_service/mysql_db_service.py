@@ -401,20 +401,24 @@ class MySQLDbService:
         date_to: Optional[str] = None,
     ) -> pd.DataFrame:
         """Retrieve processed data with optional filters."""
-        # New schema no longer has 'labels'; keep label_type param for
-        # backwards compatibility but ignore it. Support date range and limit.
-        query = "SELECT * FROM reviews WHERE 1=1"
+        # Join with processed_reviews to get labels
+        query = """
+        SELECT r.*, GROUP_CONCAT(pr.label) as labels
+        FROM reviews r
+        LEFT JOIN processed_reviews pr ON r.id = pr.review_id
+        WHERE 1=1
+        """
         params: List[Any] = []
 
         if date_from:
-            query += " AND date >= %s"
+            query += " AND r.date >= %s"
             params.append(date_from)
 
         if date_to:
-            query += " AND date <= %s"
+            query += " AND r.date <= %s"
             params.append(date_to)
 
-        query += " ORDER BY date DESC"
+        query += " GROUP BY r.id ORDER BY r.date DESC"
 
         if limit:
             query += " LIMIT %s"
@@ -424,6 +428,14 @@ class MySQLDbService:
         try:
             conn.database = self.database
             df = pd.read_sql_query(query, conn, params=params if params else None)
+            
+            # If label_type was requested, filter the DataFrame (since we didn't filter in SQL)
+            if label_type and not df.empty:
+                # Filter rows where 'labels' column contains the label_type
+                # labels is comma-separated
+                mask = df['labels'].fillna('').apply(lambda x: label_type in x.split(','))
+                df = df[mask]
+                
             return df
         except Error as e:
             logger.error(f"Error retrieving reviews: {e}")
