@@ -35,8 +35,8 @@ export type TimeRangeKey = "weekly" | "monthly" | "yearly";
  * MONTHLY BASELINE – same totals as before, just extended with issue-level pos/neg.
  */
 export const MONTHLY_DEPARTMENT_STATS: Record<DepartmentId, DepartmentStats> = {
-  IkramveUcakIciUrunlerBsk: {
-    departmentId: "IkramveUcakIciUrunlerBsk",
+  IUIUB: {
+    departmentId: "IUIUB",
     name: "İkram ve Uçak İçi Ürünler Başkanlığı",
     periodLabel: "Last 30 days",
     totalReviews: 310,
@@ -70,9 +70,8 @@ export const MONTHLY_DEPARTMENT_STATS: Record<DepartmentId, DepartmentStats> = {
       { label: "W4", positive: 50, negative: 17 },
     ],
   },
-  "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu": {
-    departmentId:
-      "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu",
+  BMCOGM: {
+    departmentId: "BMCOGM",
     name: "Yer İşletme Bşk - Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Md.",
     periodLabel: "Last 30 days",
     totalReviews: 280,
@@ -106,8 +105,8 @@ export const MONTHLY_DEPARTMENT_STATS: Record<DepartmentId, DepartmentStats> = {
       { label: "W4", positive: 20, negative: 23 },
     ],
   },
-  KabinHizmetleriBsk: {
-    departmentId: "KabinHizmetleriBsk",
+  KABIN: {
+    departmentId: "KABIN",
     name: "Kabin Hizmetleri Başkanlığı",
     periodLabel: "Last 30 days",
     totalReviews: 230,
@@ -177,9 +176,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
   DepartmentId,
   Record<TimeRangeKey, DepartmentStats>
 > = {
-  IkramveUcakIciUrunlerBsk: {
+  IUIUB: {
     weekly: {
-      departmentId: "IkramveUcakIciUrunlerBsk",
+      departmentId: "IUIUB",
       name: "İkram ve Uçak İçi Ürünler Başkanlığı",
       periodLabel: "Last 7 days",
       totalReviews: 75,
@@ -216,9 +215,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         { label: "D7", positive: 8, negative: 2 },
       ],
     },
-    monthly: MONTHLY_DEPARTMENT_STATS.IkramveUcakIciUrunlerBsk,
+    monthly: MONTHLY_DEPARTMENT_STATS.IUIUB,
     yearly: {
-      departmentId: "IkramveUcakIciUrunlerBsk",
+      departmentId: "IUIUB",
       name: "İkram ve Uçak İçi Ürünler Başkanlığı",
       periodLabel: "Last 12 months",
       totalReviews: 3700,
@@ -262,10 +261,10 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
     },
   },
 
-  "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu": {
+  BMCOGM: {
     weekly: {
       departmentId:
-        "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu",
+        "BMCOGM",
       name: "Yer İşletme Bşk - Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Md.",
       periodLabel: "Last 7 days",
       totalReviews: 65,
@@ -304,11 +303,11 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
     },
     monthly:
       MONTHLY_DEPARTMENT_STATS[
-        "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu"
+        "BMCOGM"
       ],
     yearly: {
       departmentId:
-        "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu",
+        "BMCOGM",
       name: "Yer İşletme Bşk - Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Md.",
       periodLabel: "Last 12 months",
       totalReviews: 3300,
@@ -352,9 +351,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
     },
   },
 
-  KabinHizmetleriBsk: {
+  KABIN: {
     weekly: {
-      departmentId: "KabinHizmetleriBsk",
+      departmentId: "KABIN",
       name: "Kabin Hizmetleri Başkanlığı",
       periodLabel: "Last 7 days",
       totalReviews: 50,
@@ -383,9 +382,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         { label: "D7", positive: 4, negative: 1 },
       ],
     },
-    monthly: MONTHLY_DEPARTMENT_STATS.KabinHizmetleriBsk,
+    monthly: MONTHLY_DEPARTMENT_STATS.KABIN,
     yearly: {
-      departmentId: "KabinHizmetleriBsk",
+      departmentId: "KABIN",
       name: "Kabin Hizmetleri Başkanlığı",
       periodLabel: "Last 12 months",
       totalReviews: 2600,
@@ -503,6 +502,88 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         { label: "M11", positive: 280, negative: 110 },
         { label: "M12", positive: 275, negative: 105 },
       ],
+    },
+  },
+  RVCBM: {
+    weekly: {
+      departmentId: "RVCBM",
+      name: "Rezervasyon ve Biletleme Çzm. Mdr.",
+      periodLabel: "Last 7 days",
+      totalReviews: 0,
+      positive: 0,
+      negative: 0,
+      highPriority: 0,
+      mediumPriority: 0,
+      lowPriority: 0,
+      topIssues: [],
+      trend: [],
+    },
+    monthly: {
+      departmentId: "RVCBM",
+      name: "Rezervasyon ve Biletleme Çzm. Mdr.",
+      periodLabel: "Last 30 days",
+      totalReviews: 0,
+      positive: 0,
+      negative: 0,
+      highPriority: 0,
+      mediumPriority: 0,
+      lowPriority: 0,
+      topIssues: [],
+      trend: [],
+    },
+    yearly: {
+      departmentId: "RVCBM",
+      name: "Rezervasyon ve Biletleme Çzm. Mdr.",
+      periodLabel: "Last 12 months",
+      totalReviews: 0,
+      positive: 0,
+      negative: 0,
+      highPriority: 0,
+      mediumPriority: 0,
+      lowPriority: 0,
+      topIssues: [],
+      trend: [],
+    },
+  },
+  CMYM: {
+    weekly: {
+      departmentId: "CMYM",
+      name: "Çağrı Merkezi Yönetimi Mdr.",
+      periodLabel: "Last 7 days",
+      totalReviews: 0,
+      positive: 0,
+      negative: 0,
+      highPriority: 0,
+      mediumPriority: 0,
+      lowPriority: 0,
+      topIssues: [],
+      trend: [],
+    },
+    monthly: {
+      departmentId: "CMYM",
+      name: "Çağrı Merkezi Yönetimi Mdr.",
+      periodLabel: "Last 30 days",
+      totalReviews: 0,
+      positive: 0,
+      negative: 0,
+      highPriority: 0,
+      mediumPriority: 0,
+      lowPriority: 0,
+      topIssues: [],
+      trend: [],
+    },
+    yearly: {
+      departmentId: "CMYM",
+      name: "Çağrı Merkezi Yönetimi Mdr.",
+      periodLabel: "Last 12 months",
+      totalReviews: 0,
+      positive: 0,
+      negative: 0,
+      highPriority: 0,
+      mediumPriority: 0,
+      lowPriority: 0,
+      topIssues: [],
+      trend: [],
     },
   },
 };
