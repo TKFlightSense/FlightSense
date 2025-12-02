@@ -339,6 +339,33 @@ async def create_tickets(
 
 
 # -------------------------------------------------------------------------
+# LISTENER ENDPOINTS
+# -------------------------------------------------------------------------
+
+@app.post("/api/listener/run")
+async def run_listener(
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator)
+):
+    """Trigger the review listener to process new reviews."""
+    # Verify token
+    user_info = orch.verify_token(token)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    # Trigger processing
+    result = orch.process_new_reviews()
+    
+    if not result.get("success"):
+        # If it failed because listener is not available (e.g. SQLite), return 400 or 503
+        if result.get("error") == "ReviewListener not available":
+             raise HTTPException(status_code=503, detail="ReviewListener not available (requires MySQL)")
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+
+# -------------------------------------------------------------------------
 # MAIN ENTRY POINT
 # -------------------------------------------------------------------------
 

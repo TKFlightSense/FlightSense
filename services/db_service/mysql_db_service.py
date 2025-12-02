@@ -21,11 +21,11 @@ class MySQLDbService:
 
     def __init__(
         self,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        database: Optional[str] = None,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
+        host: Optional[str] = "localhost",
+        port: Optional[int] = 3306,
+        database: Optional[str] = "flightsense",
+        user: Optional[str] = "flightsense",
+        password: Optional[str] = "rootroot",
         pool_size: int = 5,
     ):
         """
@@ -42,7 +42,7 @@ class MySQLDbService:
         self.host = host or os.getenv("MYSQL_HOST", "localhost")
         self.port = port or int(os.getenv("MYSQL_PORT", "3306"))
         self.database = database or os.getenv("MYSQL_DATABASE", "flightsense")
-        self.user = user or os.getenv("MYSQL_USER", "root")
+        self.user = user or os.getenv("MYSQL_USER", "flightsense")
         self.password = password or os.getenv("MYSQL_PASSWORD", "")
 
         self.pool = None
@@ -65,6 +65,7 @@ class MySQLDbService:
                 port=self.port,
                 user=self.user,
                 password=self.password,
+                database=self.database,
                 autocommit=False,
             )
             logger.info(f"Created MySQL connection pool (size={pool_size})")
@@ -102,7 +103,8 @@ class MySQLDbService:
 
     def _create_tables(self):
         """Create all necessary tables if they don't exist."""
-        self._create_processed_data_table()
+        self._create_reviews_table()
+        self._create_review_details_table()
         self._create_statistics_table()
         self._create_user_table()
         self._create_tickets_table()
@@ -112,17 +114,18 @@ class MySQLDbService:
     # TABLE CREATION
     # -------------------------------------------------------------------------
 
-    def _create_processed_data_table(self):
+    def _create_reviews_table(self):
         """Create processed_data table in MySQL."""
         create_table_query = """
-        CREATE TABLE IF NOT EXISTS processed_data (
+        CREATE TABLE IF NOT EXISTS reviews (
             id INT AUTO_INCREMENT PRIMARY KEY,
             review TEXT,
-            labels VARCHAR(500),
             date DATE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_labels (labels(255)),
-            INDEX idx_date (date)
+            flight_number VARCHAR(50),
+            pnr VARCHAR(50),
+            INDEX idx_date (date),
+            INDEX idx_flight_number (flight_number),
+            INDEX idx_pnr (pnr)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
         conn = self._get_connection()
@@ -132,9 +135,9 @@ class MySQLDbService:
             cursor.execute(create_table_query)
             conn.commit()
             cursor.close()
-            logger.info("Table 'processed_data' created/verified")
+            logger.info("Table 'reviews' created/verified")
         except Error as e:
-            logger.error(f"Error creating processed_data table: {e}")
+            logger.error(f"Error creating reviews table: {e}")
             raise
         finally:
             conn.close()
@@ -156,7 +159,7 @@ class MySQLDbService:
             INDEX idx_processed_data_id (processed_data_id),
             INDEX idx_status (status),
             INDEX idx_external_key (external_key),
-            FOREIGN KEY (processed_data_id) REFERENCES processed_data(id) ON DELETE SET NULL
+            FOREIGN KEY (processed_data_id) REFERENCES reviews(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
         conn = self._get_connection()
@@ -175,11 +178,6 @@ class MySQLDbService:
 
     def _create_statistics_table(self):
         """Create statistics table in MySQL."""
-        # NOTE: The requested columns use datetime ranges and counts per label/priority.
-        # Assumption: column names with hyphens are converted to snake_case
-        # (starting_datetime, ending_datetime) because hyphens are invalid in
-        # unquoted SQL identifiers and are error-prone. If you prefer different
-        # names, adjust accordingly.
         create_table_query = """
         CREATE TABLE IF NOT EXISTS statistics (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -189,9 +187,9 @@ class MySQLDbService:
             positive_count INT DEFAULT 0,
             negative_count INT DEFAULT 0,
             neutral_count INT DEFAULT 0,
-            low_priority INT DEFAULT 0,
-            medium_priority INT DEFAULT 0,
-            high_priority INT DEFAULT 0,
+            `low_priority` INT DEFAULT 0,
+            `medium_priority` INT DEFAULT 0,
+            `high_priority` INT DEFAULT 0,
             INDEX idx_label_type (label_type),
             INDEX idx_starting_datetime (starting_datetime),
             INDEX idx_ending_datetime (ending_datetime)
@@ -243,6 +241,120 @@ class MySQLDbService:
         finally:
             conn.close()
 
+    def _create_review_details_table(self):
+        """Create review_details table to store per-segment labels for reviews.
+
+        Columns (requested order / semantics):
+          - id: primary key
+          - review_id: references processed_data.id
+          - label: canonical label string
+          - `index`: text in format "start:end" (e.g. "130:150")
+          - sentiment: POSITIVE / NEGATIVE / NEUTRAL / NONE
+          - priority: HIGH / MEDIUM / LOW / unknown
+          - created_at: timestamp
+        """
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS processed_reviews (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            review_id INT NOT NULL,
+            label VARCHAR(255) NOT NULL,
+            `index` VARCHAR(50) DEFAULT NULL,
+            sentiment VARCHAR(50) DEFAULT 'NONE',
+            priority VARCHAR(50) DEFAULT 'unknown',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_review_id (review_id),
+            INDEX idx_label (label),
+            FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'processed_reviews' created/verified")
+        except Error as e:
+            logger.error(f"Error creating review_details table: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def insert_processed_data_row(
+        self,
+        review: str,
+        date: Optional[str] = None,
+        flight_number: Optional[str] = None,
+        pnr: Optional[str] = None,
+    ) -> int:
+        """Insert a single processed_data row and return the inserted id.
+
+        This is useful when callers need the auto-incremented `id` to reference
+        from related tables (e.g., `review_details`).
+        """
+        query = """
+        INSERT INTO reviews (review, date, flight_number, pnr)
+        VALUES (%s, %s, %s, %s)
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(query, (review, date, flight_number, pnr))
+            conn.commit()
+            inserted_id = cursor.lastrowid
+            cursor.close()
+            logger.info(f"Inserted reviews id={inserted_id}")
+            return inserted_id
+        except Error as e:
+            logger.error(f"Error inserting processed_data row: {e}")
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def insert_review_details_bulk(self, rows: List[Dict[str, Any]]) -> int:
+        """Bulk insert review_details rows.
+
+        `rows` should be a list of dicts with keys: review_id, label, index, sentiment, priority
+        Returns number of rows inserted.
+        """
+        if not rows:
+            return 0
+
+        query = """
+        INSERT INTO processed_reviews (review_id, label, `index`, sentiment, priority)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        data = []
+        for r in rows:
+            data.append((
+                r.get("review_id"),
+                r.get("label"),
+                r.get("index"),
+                r.get("sentiment", "NONE"),
+                r.get("priority", "unknown"),
+            ))
+
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.executemany(query, data)
+            conn.commit()
+            inserted = cursor.rowcount
+            cursor.close()
+            logger.info(f"Inserted {inserted} rows into processed_reviews")
+            return inserted
+        except Error as e:
+            logger.error(f"Error inserting review_details rows: {e}")
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
     # -------------------------------------------------------------------------
     # PROCESSED DATA OPERATIONS
     # -------------------------------------------------------------------------
@@ -255,23 +367,24 @@ class MySQLDbService:
             cursor = conn.cursor()
 
             query = """
-            INSERT INTO processed_data (review, labels, date)
-            VALUES (%s, %s, %s)
+            INSERT INTO reviews (review, date, flight_number, pnr)
+            VALUES (%s, %s, %s, %s)
             """
 
             data = []
             for _, row in df.iterrows():
                 data.append((
                     row.get("review"),
-                    row.get("labels"),
                     row.get("date"),
+                    row.get("flight_number"),
+                    row.get("pnr"),
                 ))
 
             cursor.executemany(query, data)
             conn.commit()
             rows_inserted = cursor.rowcount
             cursor.close()
-            logger.info(f"Inserted {rows_inserted} rows into processed_data")
+            logger.info(f"Inserted {rows_inserted} rows into reviews")
             return rows_inserted
         except Error as e:
             logger.error(f"Error pushing data: {e}")
@@ -288,22 +401,24 @@ class MySQLDbService:
         date_to: Optional[str] = None,
     ) -> pd.DataFrame:
         """Retrieve processed data with optional filters."""
-        query = "SELECT * FROM processed_data WHERE 1=1"
-        params = []
-
-        if label_type:
-            query += " AND labels LIKE %s"
-            params.append(f"%{label_type}%")
+        # Join with processed_reviews to get labels
+        query = """
+        SELECT r.*, GROUP_CONCAT(pr.label) as labels
+        FROM reviews r
+        LEFT JOIN processed_reviews pr ON r.id = pr.review_id
+        WHERE 1=1
+        """
+        params: List[Any] = []
 
         if date_from:
-            query += " AND date >= %s"
+            query += " AND r.date >= %s"
             params.append(date_from)
 
         if date_to:
-            query += " AND date <= %s"
+            query += " AND r.date <= %s"
             params.append(date_to)
 
-        query += " ORDER BY created_at DESC"
+        query += " GROUP BY r.id ORDER BY r.date DESC"
 
         if limit:
             query += " LIMIT %s"
@@ -313,9 +428,17 @@ class MySQLDbService:
         try:
             conn.database = self.database
             df = pd.read_sql_query(query, conn, params=params if params else None)
+            
+            # If label_type was requested, filter the DataFrame (since we didn't filter in SQL)
+            if label_type and not df.empty:
+                # Filter rows where 'labels' column contains the label_type
+                # labels is comma-separated
+                mask = df['labels'].fillna('').apply(lambda x: label_type in x.split(','))
+                df = df[mask]
+                
             return df
         except Error as e:
-            logger.error(f"Error retrieving processed data: {e}")
+            logger.error(f"Error retrieving reviews: {e}")
             raise
         finally:
             conn.close()
@@ -464,20 +587,9 @@ class MySQLDbService:
     # -------------------------------------------------------------------------
 
     def get_sentiment_distribution(self) -> pd.DataFrame:
-        """Get sentiment distribution (placeholder for MySQL)."""
-        query = """
-        SELECT 
-            COUNT(*) as total,
-            SUM(CASE WHEN labels LIKE '%baggage%' THEN 1 ELSE 0 END) as negative,
-            SUM(CASE WHEN labels NOT LIKE '%baggage%' THEN 1 ELSE 0 END) as neutral
-        FROM processed_data
-        """
-        conn = self._get_connection()
-        try:
-            conn.database = self.database
-            return pd.read_sql_query(query, conn)
-        finally:
-            conn.close()
+        # TODO: Implement sentiment distribution retrieval
+        logger.warning("get_sentiment_distribution is not implemented: processed_data has no 'labels' column")
+        return pd.DataFrame()
 
     def get_statistics_data(self, limit: int = 10) -> pd.DataFrame:
         """Get recent statistics."""
@@ -521,7 +633,7 @@ if __name__ == "__main__":
     try:
         db = MySQLDbService()
         print("✅ MySQL database initialized successfully")
-        print(f"📊 Processed data rows: {db._get_row_count('processed_data')}")
+        print(f"📊 Processed data rows: {db._get_row_count('reviews')}")
         print(f"🎫 Tickets: {db._get_row_count('tickets')}")
         print(f"👥 Users: {db._get_row_count('user_data')}")
     except Exception as e:

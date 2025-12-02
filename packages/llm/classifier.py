@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import List, Dict, Any, Optional
-from datetime import date
 from pathlib import Path
 import json
 import logging
@@ -29,9 +28,11 @@ _LLM_CONFIG = _load_llm_config()
 class FeedbackClassifier:
     """
     High-level service for classifying airline passenger feedback.
-    - Builds prompts with fine-grained labels from label_map.json
-    - Calls LLM to segment and label feedback
-    - Returns DataFrame ready for database insertion
+        - Builds prompts with fine-grained labels from label_map.json
+        - Calls LLM to segment and label feedback
+        - Provides helpers to convert LLM segment output into a tabular form
+            (`segments_to_table`) which the orchestrator will call when new rows
+            appear in the `reviews` table.
     """
 
     def __init__(self, llm_client: Optional[LLMClient] = None, prompt_builder: Optional[PromptBuilder] = None):
@@ -70,42 +71,38 @@ class FeedbackClassifier:
             logger.error("LLM returned invalid JSON. Raw response: %s", raw)
             return {"segments": []}
 
-    def classify_batch(
-        self,
-        feedbacks: List[str],
-        dates: Optional[List[date]] = None,
-    ) -> pd.DataFrame:
-        """
-        Classify a batch of feedback strings and return a DataFrame ready to insert
-        into the processed_data table.
 
-        Args:
-            feedbacks: List of customer feedback text
-            dates: Optional list of dates corresponding to each feedback
-            
-        Returns:
-            DataFrame with columns: review, labels, date
+
+    def segments_to_table(self, review_id: int, segments: List[Dict[str, Any]]) -> pd.DataFrame:
+        """Convert LLM segments for a single review into a DataFrame table.
+
+        Output columns (in this order): review_id, label, index, sentiment, priority
+
+        - index is formatted as "start:end" where end = start + length
+        - sentiment and priority default to 'NONE' / 'unknown' if missing
         """
         rows: List[Dict[str, Any]] = []
-        today = date.today()
+        for seg in segments:
+            start = seg.get("start")
+            length = seg.get("length")
+            if isinstance(start, int) and isinstance(length, int):
+                index_str = f"{start}:{start + length}"
+            else:
+                # If start/length missing or non-int, fall back to empty string
+                index_str = ""
 
-        for idx, text in enumerate(feedbacks):
-            # Get segments with fine-grained labels (single LLM call)
-            segments_result = self.label_review(text, max_segments=5)
-            segments = segments_result.get("segments", [])
-            
-            # Extract unique fine-grained labels from segments
-            fine_labels = list(set(seg["label"] for seg in segments))
-            labels_str = ",".join(fine_labels)
-
-            row_date = dates[idx] if dates and idx < len(dates) else today
-
-            row: Dict[str, Any] = {
-                "review": text,
-                "labels": labels_str,
-                "date": row_date.isoformat(),
-            }
-            rows.append(row)
+            rows.append({
+                "review_id": review_id,
+                "label": seg.get("label"),
+                "index": index_str,
+                "sentiment": seg.get("sentiment", "NONE"),
+                "priority": seg.get("priority", "unknown"),
+            })
 
         df = pd.DataFrame(rows)
-        return df
+        # Ensure column order: id then label, per your request
+        cols = ["review_id", "label", "index", "sentiment", "priority"]
+        for c in cols:
+            if c not in df.columns:
+                df[c] = None
+        return df[cols]
