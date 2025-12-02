@@ -24,11 +24,11 @@ class MySQLDbService:
 
     def __init__(
         self,
-        host: Optional[str] = "localhost",
-        port: Optional[int] = 3306,
-        database: Optional[str] = "flightsense",
-        user: Optional[str] = "flightsense",
-        password: Optional[str] = "rootroot",
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        database: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
         pool_size: int = 5,
     ):
         """

@@ -10,7 +10,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-flightsense}
       MYSQL_USER: ${MYSQL_USER:-flightsense}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-flightsense123}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-rootroot}
     ports:
       - "${MYSQL_PORT:-3306}:3306"
     volumes:

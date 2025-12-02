@@ -178,7 +178,8 @@ class ManagerStatisticsRequest(BaseModel):
 
 # -------------------------------------------------------------------------
 # HEALTH CHECK
-# -------------------------------------------------------------------------@app.get("/health")
+# -------------------------------------------------------------------------
+@app.get("/health")
 async def health_check():
     """Health check endpoint."""
     return {

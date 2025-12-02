@@ -2,7 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict
 import json
-from FlightSense.models.labels import SENTIMENT_LABELS
+from models.labels import SENTIMENT_LABELS
 
 CLASSIFICATION_PROMPT_TEMPLATE = """
 You are a precise data labeling assistant for AIRLINE PASSENGER FEEDBACK.
