@@ -49,8 +49,10 @@ class MySQLDbService:
         self.password = password or os.getenv("MYSQL_PASSWORD", "")
 
         self.pool = None
+        # Database is created by Docker container (MYSQL_DATABASE env var)
+        # We don't need to create it manually, and the user might not have permissions.
+        # self._create_database_if_not_exists()
         self._create_connection_pool(pool_size)
-        self._create_database_if_not_exists()
         self._create_tables()
         logger.info(f"MySQL DbService initialized: {self.host}:{self.port}/{self.database}")
 
@@ -802,32 +804,33 @@ class MySQLDbService:
         return value
 
     def execute(self, query, params=None, fetch=False):
-        if self.connection is None:
-            self.connect()
-
-        cursor = self.connection.cursor()
-
+        conn = self._get_connection()
+        cursor = None
         try:
+            conn.database = self.database
+            cursor = conn.cursor()
             cursor.execute(query, params)
 
             if fetch:
                 rows = cursor.fetchall()
-                # Decimal → int dönüşümü uygulayalım
+                # Decimal → int conversion
                 cleaned = []
                 for row in rows:
                     cleaned.append(tuple(self._convert_decimal(v) for v in row))
-                self.connection.commit()
+                conn.commit()
                 return cleaned
 
-            self.connection.commit()
+            conn.commit()
             return None
 
         except Error as err:
-            print(f"Sorgu hatası: {err}")
+            logger.error(f"Query error: {err}")
             return None
 
         finally:
-            cursor.close()
+            if cursor:
+                cursor.close()
+            conn.close()
 
     def get_department_table_name(self, department_name: str) -> str:
         return DepartmentTables[department_name].value
