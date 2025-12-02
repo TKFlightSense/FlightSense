@@ -77,6 +77,21 @@ services:
       retries: 3
       start_period: 40s
 
+  # Frontend UI
+  frontend:
+    build:
+      context: ./frontend-ui
+      dockerfile: Dockerfile
+    container_name: flightsense-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - flightsense-network
+
 volumes:
   mysql_data:
     driver: local
