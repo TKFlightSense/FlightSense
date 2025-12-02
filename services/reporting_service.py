@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Dict, Union
 import logging
 
-from services.db_service.db_service import DbService
+from services.db_service.mysql_db_service import MySQLDbService 
 from services.orchestrator.filter import DataFilter
 from services.access_control_service import AccessControlService
 from packages.llm.classifier import FeedbackClassifier
@@ -20,7 +20,7 @@ class ReportingService:
 
     def __init__(
         self,
-        db_service: DbService,
+        db_service: MySQLDbService,
         access_control: AccessControlService,
         classifier: FeedbackClassifier,
         jira_agent: JiraTicketAgent,

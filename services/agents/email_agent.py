@@ -10,7 +10,7 @@ from email.message import EmailMessage
 
 import pandas as pd
 
-from services.db_service.db_service import DbService
+from services.db_service.mysql_db_service import MySQLDbService
 # from packages.stats.statistics_service import StatisticsService  # if you have one
 # from packages.llm.summarizer import Summarizer  # you can add this later
 
@@ -52,8 +52,8 @@ class EmailConfig:
 
 
 class EmailSummaryAgent:
-    def __init__(self, db: Optional[DbService] = None, email_config: Optional[EmailConfig] = None):
-        self.db = db or DbService()
+    def __init__(self, db: Optional[MySQLDbService] = None, email_config: Optional[EmailConfig] = None):
+        self.db = db or MySQLDbService()
         self.email_config = email_config or EmailConfig(
             smtp_host=os.getenv("SMTP_HOST", ""),
             smtp_port=int(os.getenv("SMTP_PORT", "587")),
