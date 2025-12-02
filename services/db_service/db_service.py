@@ -1,7 +1,7 @@
 import sqlite3
 import pandas as pd
 from pathlib import Path
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Callable, Dict
 import logging
 
 from models.labels import ALL_LABELS
@@ -23,6 +23,8 @@ class DbService:
         self._ensure_directory_exists()
         self.connection = None
         self.cursor = None
+        # insert listeners: table_name -> list of callables receiving a DataFrame
+        self._insert_listeners: Dict[str, List[Callable[[pd.DataFrame], None]]] = {}
         self._connect_to_db()
         self._create_tables()
         self._check_if_first_run()
@@ -66,10 +68,21 @@ class DbService:
     def _create_tables(self):
         """Create all necessary tables if they don't exist."""
         self._create_processed_data_table()
+        self._create_processed_reviews_table()
         self._create_statistics_table()
         self._create_user_table()
         self._create_tickets_table()  # Jira Ticket Table
         logger.info("All tables created/verified successfully")
+
+    def register_insert_listener(self, table_name: str, callback: Callable[[pd.DataFrame], None]):
+        """Register a callback to be invoked when rows are inserted into table_name.
+
+        The callback receives a pandas DataFrame containing the newly-inserted rows.
+        """
+        if table_name not in self._insert_listeners:
+            self._insert_listeners[table_name] = []
+        self._insert_listeners[table_name].append(callback)
+        logger.info(f"Registered insert listener for table: {table_name}")
 
     # -------------------------------------------------------------------------
     # TICKETS TABLE (Jira clone)
@@ -175,6 +188,72 @@ class DbService:
             logger.info("Table 'processed_data' created/verified")
         except sqlite3.Error as e:
             logger.error(f"Error creating processed_data table: {e}")
+            raise
+
+    def _create_processed_reviews_table(self):
+        """
+        Create table to store per-segment labels for processed_data rows.
+        Columns:
+          - id: primary key
+          - review_id: FK to processed_data.id
+          - label: fine-grained label
+          - index: text like 'start:end'
+          - sentiment: POSITIVE/NEGATIVE/NEUTRAL/NONE
+          - priority: HIGH/MEDIUM/LOW/unknown
+          - created_at: timestamp
+        """
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS processed_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            review_id INTEGER NOT NULL,
+            label TEXT NOT NULL,
+            `index` TEXT,
+            sentiment TEXT DEFAULT 'NONE',
+            priority TEXT DEFAULT 'unknown',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+        try:
+            self.cursor.execute(create_table_query)
+            # create simple indexes
+            try:
+                self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_pr_review_id ON processed_reviews(review_id)")
+                self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_pr_label ON processed_reviews(label)")
+            except Exception:
+                # Some SQLite versions may not support IF NOT EXISTS on CREATE INDEX
+                pass
+            self.connection.commit()
+            logger.info("Table 'processed_reviews' created/verified")
+        except sqlite3.Error as e:
+            logger.error(f"Error creating processed_reviews table: {e}")
+            raise
+
+    def insert_processed_reviews_bulk(self, rows: List[Dict]) -> int:
+        """Bulk insert processed_reviews rows. Returns number inserted."""
+        if not rows:
+            return 0
+        query = """
+        INSERT INTO processed_reviews (review_id, label, `index`, sentiment, priority)
+        VALUES (?, ?, ?, ?, ?)
+        """
+        data = []
+        for r in rows:
+            data.append((
+                r.get("review_id"),
+                r.get("label"),
+                r.get("index"),
+                r.get("sentiment", "NONE"),
+                r.get("priority", "unknown"),
+            ))
+        try:
+            self.cursor.executemany(query, data)
+            self.connection.commit()
+            inserted = self.cursor.rowcount if hasattr(self.cursor, "rowcount") else len(rows)
+            logger.info(f"Inserted {inserted} rows into processed_reviews")
+            return inserted
+        except Exception as e:
+            logger.error(f"Error inserting processed_reviews rows: {e}")
+            self.connection.rollback()
             raise
 
     # -------------------------------------------------------------------------
@@ -352,6 +431,30 @@ class DbService:
             final_count = self._get_row_count("processed_data")
             rows_inserted = final_count - initial_count
             logger.info(f"Pushed {rows_inserted} rows to processed_data table")
+
+            # If listeners are registered for 'processed_data', fetch the newly
+            # inserted rows and notify them.
+            if rows_inserted > 0:
+                try:
+                    query = f"SELECT * FROM processed_data ORDER BY id DESC LIMIT {rows_inserted}"
+                    new_df = pd.read_sql_query(query, self.connection)
+                    # restore original insertion order
+                    new_df = new_df.iloc[::-1].reset_index(drop=True)
+                    # notify specific listeners
+                    for cb in self._insert_listeners.get("processed_data", []):
+                        try:
+                            cb(new_df)
+                        except Exception as e:
+                            logger.error(f"Error in insert listener callback: {e}")
+                    # notify wildcard listeners
+                    for cb in self._insert_listeners.get("*", []):
+                        try:
+                            cb("processed_data", new_df)
+                        except Exception as e:
+                            logger.error(f"Error in wildcard insert listener callback: {e}")
+                except Exception as e:
+                    logger.error(f"Error fetching newly inserted processed_data rows: {e}")
+
             return rows_inserted
         except Exception as e:
             logger.error(f"Error pushing processed data: {e}")

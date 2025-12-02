@@ -16,6 +16,10 @@ ALLOWED LABELS (exact strings + explanations + priority explanations)
 ---------------------------------------------------------------------
 {labels_block}
 
+SENTIMENT LABELS (positive or neutral or negative)
+---------------------------------------
+{sentiment_labels_block}
+
 TASK
 ----
 Analyze the review and provide segmentation with classification.
@@ -50,7 +54,9 @@ Priority assignment rules:
 - If a situation falls between categories, default to the LOWER priority (e.g., if unclear between LOW and MEDIUM, choose LOW).
 
 Sentiment analysis rules:
-- Analyze the tone and assign "POSITIVE", "NEGATIVE", or "NEUTRAL".
+- CHECK if the segment's label is in the provided SENTIMENT LABELS list.
+- IF label is NOT in the list: Set sentiment to "NONE".
+- IF label IS in the list: Analyze the tone and assign "POSITIVE", "NEGATIVE", or "NEUTRAL".
     - Use "NEUTRAL" for purely factual descriptions (e.g., "Dinner was served at 6pm") or ambivalent statements.
     - Use "NEGATIVE" for complaints, sarcasm, or dissatisfaction.
     - Use "POSITIVE" for praise, gratitude, or satisfaction.
@@ -61,7 +67,7 @@ Return ONLY valid JSON with this exact structure:
 
 {{
   "segments": [
-    {{"start": int, "length": int, "label": "<one_of_the_allowed_labels>", "priority": "<LOW, MEDIUM, OR HIGH>", "sentiment": "<POSITIVE, NEGATIVE, NEUTRAL>"}},
+    {{"start": int, "length": int, "label": "<one_of_the_allowed_labels>", "priority": "<LOW, MEDIUM, OR HIGH>", "sentiment": "<POSITIVE, NEGATIVE, NEUTRAL, or NONE>"}},
     ...
   ]
 }}
@@ -70,80 +76,9 @@ Do NOT include explanations, comments, or any extra fields.
 Return ONLY the JSON object.
 
 Example of a valid output (for a different review):
-{{"segments": [{{"start": 0, "length": 42, "label": "baggage_lost", "priority": "HIGH", "sentiment": "NEGATIVE"}}]}}
+{{"segments": [{{"start": 0, "length": 42, "label": "baggage_lost", "priority": "HIGH", "sentiment": "NONE"}}]}}
 """.strip()
 
-DEPARTMENT_REPORT_USER_PROMPT = """
-I will provide you with a JSON object containing statistical data for the department: **{department_name}**.
-The data covers the period from **{date_from}** to **{date_to}**.
-
-### The Data Structure explains:
-1. **General Distribution**: Overall distribution of labels (topics), sentiments, and priority levels.
-2. **Breakdowns**:
-   - `sentiment_within_labels`: For a specific topic (e.g., 'food'), what is the sentiment?
-   - `priority_within_labels`: For a specific topic, how urgent are the issues?
-3. **Sources (Root Cause Analysis)**:
-   - `sources_of_sentiments`: If sentiment is Negative, which label is the main culprit?
-   - `sources_of_priorities`: If priority is High, which label is causing it?
-
-### Your Task:
-Write a "Department Performance Report" in Markdown format. The report must include:
-
-1.  **Executive Summary**: A brief overview of the total volume and the general health (sentiment/priority) of the department.
-2.  **Key Topics Analysis**: Which labels (topics) are the most discussed?
-3.  **Risk Assessment (High Priority & Negative Areas)**:
-    - Identify which topics have the highest percentage of **Negative** sentiment.
-    - Identify which topics have the highest percentage of **High** priority.
-    - Use the 'sources' data to pinpoint exactly where the bad metrics are coming from.
-4.  **Operational Wins**: Highlight areas where sentiment is predominantly positive.
-5.  **Recommendations**: Based on the data, suggest 2-3 focus areas for the department head.
-
-### Constraints:
-- Do not simply list numbers; interpret them (e.g., instead of "Food is 40%", say "Food is the primary driver of complaints, accounting for 40%...").
-- Focus on significant values (e.g., >10%). Ignore negligible percentages.
-
-### Data:
-```json
-{json_data}
-"""
-
-MANAGER_REPORT_USER_PROMPT = """
-I will provide you with a JSON object containing global statistical data for the entire company.
-The data covers the period from **{date_from}** to **{date_to}**.
-
-### The Data Structure explains:
-1. **Global Distribution**: Overall company health (Sentiment, Priority) and Department workload distribution.
-2. **Sources (Cross-Department Analysis)**:
-   - `sources_of_sentiments`: Which department is contributing most to the Negative feedback?
-   - `sources_of_priorities`: Which department is generating the most High Priority incidents?
-
-### Your Task:
-Write a "Executive Operational Report" in Markdown format. The report must include the following sections:
-
-1.  **Global Health Check**:
-    - Summarize the overall sentiment and priority scores for the company.
-    - Is the general trend positive or worrying?
-
-2.  **Departmental Workload & Performance**:
-    - Which departments are handling the most volume?
-    - Briefly mention which department is performing best (highest positive sentiment source).
-
-3.  **Critical Bottlenecks (The "Red Zone")**:
-    - **Who is driving Negativity?** Analyze `sources_of_sentiments` (specifically negative). Identify the department contributing most to negative customer experience.
-    - **Who is driving Urgency?** Analyze `sources_of_priorities` (specifically high). Identify the department generating the most emergency tasks.
-    *Use bold text to highlight these departments.*
-
-4.  **Strategic Action Items**:
-    - Provide 3 bullet points on where the management should focus their resources immediately to improve the metrics.
-
-### Constraints:
-- Be concise. Executives do not have time for fluff.
-- Use **bold text** for key insights and department names.
-
-### Data:
-```json
-{json_data}
-"""
 
 class PromptBuilder:
     """
@@ -187,25 +122,10 @@ class PromptBuilder:
     def build_classification_messages(self, review: str, max_segments: int = 3) -> str:
         """Build prompt for classification with labeled segments."""
         labels_block = self._build_labels_block()
+        sentiment_labels_block = self._build_sentiment_labels_block()
         return CLASSIFICATION_PROMPT_TEMPLATE.format(
             review=review,
             labels_block=labels_block,
+            sentiment_labels_block=sentiment_labels_block,
             max_segments=max_segments,
         )
-    
-    def build_department_report_prompt(self, department_name: str, date_from: str, date_to: str, stats_data: str) -> str:
-        """Build prompt for department report generation"""
-        return DEPARTMENT_REPORT_USER_PROMPT.format(
-          department_name=department_name,
-          date_from=date_from,
-          date_to=date_to,
-          json_data=stats_data
-      )
-    
-    def build_manager_report_prompt(self, date_from: str, date_to: str, stats_data: str) -> str:
-        """Build prompt for department report generation"""
-        return MANAGER_REPORT_USER_PROMPT.format(
-          date_from=date_from,
-          date_to=date_to,
-          json_data=stats_data
-      )
