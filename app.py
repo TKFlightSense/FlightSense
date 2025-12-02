@@ -409,6 +409,7 @@ async def get_manager_statistics(
         logger.error(f"Error while accessing manager stats: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+
 # -------------------------------------------------------------------------
 # MAIN ENTRY POINT
 # -------------------------------------------------------------------------
@@ -429,3 +430,4 @@ if __name__ == "__main__":
         reload=reload,
         log_level="info",
     )
+
