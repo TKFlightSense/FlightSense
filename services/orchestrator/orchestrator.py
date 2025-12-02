@@ -3,6 +3,9 @@ from typing import Dict, Union, Optional, Any
 import os
 import logging
 
+from dateutil import relativedelta
+from datetime import datetime
+
 from services.db_service.db_service import DbService
 from services.orchestrator.filter import DataFilter
 from services.orchestrator.review_listener import ReviewListener
@@ -13,6 +16,8 @@ from services.reporting_service import ReportingService
 from packages.llm.classifier import FeedbackClassifier
 from packages.tickets.client import MockTicketClient, RealJiraTicketClient
 from services.agents.jira_agent import JiraTicketAgent
+from services.statistics_service import StatisticsService
+from models.enums.enums import DepartmentToLabels
 
 logger = logging.getLogger(__name__)
 
