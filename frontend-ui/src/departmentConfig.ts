@@ -1,4 +1,5 @@
 export type DepartmentCode = "IUIUB" | "BMCOGM" | "KABIN" | "TGS" | "RVCBM" | "CMYM";
+export type DepartmentId = DepartmentCode; // Alias for compatibility
 
 export type DepartmentLabel =
   | "İkram ve Uçak İçi Ürünler Bşk."

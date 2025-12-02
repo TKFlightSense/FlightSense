@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../hooks/useTheme";
-import { DEPARTMENT_LABEL_TO_CODE } from "../departmentConfig";
+import { DEPARTMENT_LABEL_TO_CODE, type DepartmentLabel } from "../departmentConfig";
 import {
   PAGE_WRAPPER,
   PAGE_BACKGROUND_OVERLAY,
@@ -67,14 +67,17 @@ export default function DepartmentDashboard() {
 
     // departmentName route paramı URL encoded gelebilir; decode edelim
     const label = decodeURIComponent(departmentName);
-    const code = DEPARTMENT_LABEL_TO_CODE[label] ?? label;
+    const code = DEPARTMENT_LABEL_TO_CODE[label as DepartmentLabel] ?? label;
 
-    fetchDepartmentStatistics(token, code, timeRange)
+    fetchDepartmentStatistics(token, {
+      department_name: code,
+      period: timeRange,
+    })
       .then((res) => {
         if (!res.success) {
           throw new Error("API returned success = false");
         }
-        const ui = mapDepartmentStatsApiToUi(res.result.data, label, timeRange);
+        const ui = mapDepartmentStatsApiToUi(res.data, label, timeRange);
         setStats(ui);
       })
       .catch((err) => {

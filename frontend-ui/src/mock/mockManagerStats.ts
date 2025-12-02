@@ -11,7 +11,7 @@ export type TopIssue = {
   labelKey: string;
   labelDisplay: string;
   count: number;
-  trend: "up" | "down" | "flat";
+  trend: "up" | "down" | "stable";
   positive: number;
   negative: number;
 };
@@ -96,7 +96,7 @@ export const MONTHLY_MANAGER_STATS: ManagerStats = {
       labelKey: "checkin_process",
       labelDisplay: "Check-in process",
       count: 95,
-      trend: "flat",
+      trend: "stable",
       positive: 35,
       negative: 60,
     },
@@ -188,7 +188,7 @@ export const MOCK_MANAGER_STATS_BY_RANGE: Record<TimeRangeKey, ManagerStats> = {
         labelKey: "checkin_process",
         labelDisplay: "Check-in process",
         count: 24,
-        trend: "flat",
+        trend: "stable",
         positive: 8,
         negative: 16,
       },
@@ -284,7 +284,7 @@ export const MOCK_MANAGER_STATS_BY_RANGE: Record<TimeRangeKey, ManagerStats> = {
         labelKey: "checkin_process",
         labelDisplay: "Check-in process",
         count: 1140,
-        trend: "flat",
+        trend: "stable",
         positive: 420,
         negative: 720,
       },
