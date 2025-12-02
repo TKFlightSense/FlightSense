@@ -9,7 +9,7 @@ import thyLogo from "../assets/thy-logo-2.png";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { loginFromMock } = useAuth();
+  const { login, loginFromMock } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const [username, setUsername] = useState("");
@@ -25,7 +25,7 @@ export default function Login() {
     };
   }, []);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -38,25 +38,42 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
-      const user: MockUser | undefined = MOCK_USERS.find(
-        (u) =>
-          u.username.toLowerCase() === trimmedUsername.toLowerCase() &&
-          u.password === password
-      );
+      // 1. Try real API login
+      const user = await login(trimmedUsername, password);
 
-      if (!user) {
-        setError("Invalid username or password.");
-        return;
-      }
-
-      loginFromMock(user);
-
+      // 2. Navigate on success
       if (user.role === "admin" || user.role === "manager") {
         navigate("/dashboard");
       } else if (user.role === "department_viewer" && user.departmentId) {
         navigate(`/department/${user.departmentId}`);
       } else {
         navigate("/dashboard");
+      }
+    } catch (err: any) {
+      console.warn("API login failed, checking mocks...", err);
+
+      // 3. Fallback: Check if it matches a mock user
+      const mockUser = MOCK_USERS.find(
+        (u) =>
+          u.username.toLowerCase() === trimmedUsername.toLowerCase() &&
+          u.password === password
+      );
+
+      if (mockUser) {
+        loginFromMock(mockUser);
+        if (mockUser.role === "admin" || mockUser.role === "manager") {
+          navigate("/dashboard");
+        } else if (
+          mockUser.role === "department_viewer" &&
+          mockUser.departmentId
+        ) {
+          navigate(`/department/${mockUser.departmentId}`);
+        } else {
+          navigate("/dashboard");
+        }
+      } else {
+        // Real login failed AND not a mock user
+        setError(err.message || "Invalid username or password.");
       }
     } finally {
       setIsSubmitting(false);
