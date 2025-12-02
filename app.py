@@ -21,7 +21,7 @@ from services.db_service.mysql_db_service import MySQLDbService
 # Import orchestrator
 from services.orchestrator.orchestrator import FlightSenseOrchestrator
 from services.orchestrator.filter import DataFilter
-from services.scheduler.scheduler import StatisticsScheduler
+from services.scheduler.scheduler import StatisticsScheduler, ReviewListenerScheduler
 
 # Set up logging
 logging.basicConfig(
@@ -41,6 +41,7 @@ JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
 # Global orchestrator instance
 orchestrator: Optional[FlightSenseOrchestrator] = None
 scheduler: Optional[StatisticsScheduler] = None
+review_listener_scheduler: Optional[ReviewListenerScheduler] = None
 
 
 # -------------------------------------------------------------------------
@@ -50,7 +51,7 @@ scheduler: Optional[StatisticsScheduler] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager - handles startup and shutdown."""
-    global orchestrator, scheduler
+    global orchestrator, scheduler, review_listener_scheduler
     
     # Startup
     logger.info("Starting FlightSense application...")
@@ -62,14 +63,20 @@ async def lifespan(app: FastAPI):
         # Initialize orchestrator with all services
         orchestrator = FlightSenseOrchestrator(db_service, JWT_SECRET)
         
-        # Initialize and start scheduler
+        # Initialize and start statistics scheduler (runs every hour)
         scheduler = StatisticsScheduler(orchestrator)
         await scheduler.start()
+        
+        # Initialize and start review listener scheduler (polls every 30 seconds for new reviews)
+        review_poll_interval = int(os.getenv("REVIEW_POLL_INTERVAL", "30"))
+        review_listener_scheduler = ReviewListenerScheduler(orchestrator, poll_interval_seconds=review_poll_interval)
+        await review_listener_scheduler.start()
         
         logger.info("FlightSense initialized successfully")
         logger.info(f"   - Database: {'MySQL' if USE_MYSQL else 'SQLite'}")
         logger.info(f"   - Jira: {'Real' if os.getenv('USE_REAL_JIRA') == 'true' else 'Mock'}")
         logger.info(f"   - LLM Provider: {os.getenv('LLM_PROVIDER', 'openai')}")
+        logger.info(f"   - Review Listener: polling every {review_poll_interval}s")
         
     except Exception as e:
         logger.error(f"Failed to initialize FlightSense: {e}")
@@ -79,6 +86,8 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down FlightSense...")
+    if review_listener_scheduler:
+        await review_listener_scheduler.stop()
     if scheduler:
         await scheduler.stop()
         

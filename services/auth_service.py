@@ -5,6 +5,7 @@ import logging
 
 import bcrypt
 import jwt
+from mysql.connector import Error as MySQLError
 
 from services.db_service.mysql_db_service import MySQLDbService 
 from services.access_control_service import AccessControlService
@@ -67,6 +68,16 @@ class AuthService:
         except ValueError as e:
             logger.error(f"Validation error: {e}")
             return {"success": False, "error": str(e)}
+        except MySQLError as e:
+            # Handle duplicate username/email (MySQL error code 1062)
+            if e.errno == 1062:
+                if "username" in str(e):
+                    return {"success": False, "error": "Username already exists"}
+                elif "email" in str(e):
+                    return {"success": False, "error": "Email already exists"}
+                return {"success": False, "error": "User already exists"}
+            logger.error(f"Database error during registration: {e}")
+            return {"success": False, "error": "Registration failed"}
         except Exception as e:
             logger.error(f"Registration error: {e}")
             return {"success": False, "error": "Registration failed"}
@@ -78,6 +89,10 @@ class AuthService:
 
             if not user:
                 return {"success": False, "error": "Invalid credentials"}
+
+            # Check if user is active
+            if not user.get("is_active", True):
+                return {"success": False, "error": "Account is deactivated"}
 
             if not bcrypt.checkpw(
                 password.encode("utf-8"), user["password_hash"].encode("utf-8")
@@ -95,10 +110,13 @@ class AuthService:
                     "username": user["username"],
                     "email": user["email"],
                     "role": user["role"],
-                    "department": user["department"],
+                    "department": user.get("department"),
                     "allowed_pages": allowed_pages,
                 },
             }
+        except MySQLError as e:
+            logger.error(f"Database error during login: {e}")
+            return {"success": False, "error": "Login failed"}
         except Exception as e:
             logger.error(f"Login error: {e}")
             return {"success": False, "error": "Login failed"}
@@ -122,6 +140,7 @@ class AuthService:
             "user_id": user["id"],
             "username": user["username"],
             "role": user["role"],
+            "department": user.get("department"),
             "exp": datetime.now(timezone.utc)
             + timedelta(hours=self.token_expiry_hours),
         }

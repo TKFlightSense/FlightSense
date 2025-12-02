@@ -835,6 +835,10 @@ class MySQLDbService:
     def get_department_table_name(self, department_name: str) -> str:
         return DepartmentTables[department_name].value
     
+    def get_table_name(self, department_name: str) -> str:
+        """Alias for get_department_table_name for convenience."""
+        return self.get_department_table_name(department_name)
+    
     def get_department_high_counts(self, department_name, date_from, date_to):
         table = self.get_table_name(department_name)
         if not table:
@@ -843,7 +847,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(high_count)
             FROM {table}
-            WHERE date_from >= %s AND date_to <= %s
+            WHERE date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (date_from, date_to), fetch=True)
@@ -857,7 +861,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(high_count)
             FROM {table}
-            WHERE label = %s AND date_from >= %s AND date_to <= %s
+            WHERE label = %s AND date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (label, date_from, date_to), fetch=True)
@@ -869,7 +873,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(low_count)
             FROM {table}
-            WHERE date_from >= %s AND date_to <= %s
+            WHERE date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (date_from, date_to), fetch=True)
@@ -883,7 +887,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(low_count)
             FROM {table}
-            WHERE label = %s AND date_from >= %s AND date_to <= %s
+            WHERE label = %s AND date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (label, date_from, date_to), fetch=True)
@@ -895,7 +899,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(medium_count)
             FROM {table}
-            WHERE date_from >= %s AND date_to <= %s
+            WHERE date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (date_from, date_to), fetch=True)
@@ -909,7 +913,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(medium_count)
             FROM {table}
-            WHERE label = %s AND date_from >= %s AND date_to <= %s
+            WHERE label = %s AND date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (label, date_from, date_to), fetch=True)
@@ -923,7 +927,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(positive_count)
             FROM {table}
-            WHERE date_from >= %s AND date_to <= %s
+            WHERE date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (date_from, date_to), fetch=True)
@@ -937,7 +941,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(positive_count)
             FROM {table}
-            WHERE label = %s AND date_from >= %s AND date_to <= %s
+            WHERE label = %s AND date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (label, date_from, date_to), fetch=True)
@@ -949,7 +953,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(negative_count)
             FROM {table}
-            WHERE date_from >= %s AND date_to <= %s
+            WHERE date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (date_from, date_to), fetch=True)
@@ -963,7 +967,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(negative_count)
             FROM {table}
-            WHERE label = %s AND date_from >= %s AND date_to <= %s
+            WHERE label = %s AND date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (label, date_from, date_to), fetch=True)
@@ -975,7 +979,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(neutral_count)
             FROM {table}
-            WHERE date_from >= %s AND date_to <= %s
+            WHERE date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (date_from, date_to), fetch=True)
@@ -989,7 +993,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(neutral_count)
             FROM {table}
-            WHERE label = %s AND date_from >= %s AND date_to <= %s
+            WHERE label = %s AND date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (label, date_from, date_to), fetch=True)
@@ -1001,7 +1005,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(positive_count + negative_count + neutral_count)
             FROM {table}
-            WHERE date_from >= %s AND date_to <= %s
+            WHERE date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (date_from, date_to), fetch=True)
@@ -1013,7 +1017,7 @@ class MySQLDbService:
         query = f"""
             SELECT SUM(positive_count + negative_count + neutral_count)
             FROM {table}
-            WHERE label = %s AND date_from >= %s AND date_to <= %s
+            WHERE label = %s AND date_from >= %s AND date_from < %s
         """
 
         result = self.execute(query, (label, date_from, date_to), fetch=True)

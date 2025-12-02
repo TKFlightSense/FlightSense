@@ -3,7 +3,7 @@ from typing import Dict, Union, Optional, Any
 import os
 import logging
 
-from dateutil import relativedelta
+from dateutil.relativedelta import relativedelta
 from datetime import datetime, date
 
 from services.db_service.mysql_db_service import MySQLDbService
@@ -87,6 +87,7 @@ class FlightSenseOrchestrator:
         """
         Manually trigger processing of new unprocessed reviews.
         This calls the ReviewListener to check for and classify new reviews.
+        After processing, triggers an immediate statistics update so dashboard shows new data.
         
         Returns:
             Dict with success status and number of reviews processed
@@ -97,6 +98,12 @@ class FlightSenseOrchestrator:
         try:
             processed = self.review_listener.check_and_process()
             stats = self.review_listener.get_stats()
+            
+            # If we processed any reviews, update statistics immediately
+            if processed > 0:
+                logger.info(f"Triggering immediate statistics update after processing {processed} reviews")
+                self._update_recent_statistics()
+            
             return {
                 "success": True,
                 "processed_this_batch": processed,
@@ -105,6 +112,29 @@ class FlightSenseOrchestrator:
         except Exception as e:
             logger.error(f"Error processing new reviews: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
+
+    def _update_recent_statistics(self):
+        """
+        Update statistics for recent time windows to ensure dashboard shows latest data.
+        This covers the current hour and the previous hour to catch edge cases.
+        """
+        try:
+            now = datetime.now()
+            # Current hour window
+            current_hour_end = now.replace(minute=0, second=0, microsecond=0) + relativedelta(hours=1)
+            current_hour_start = current_hour_end - relativedelta(hours=1)
+            
+            # Also update previous hour in case reviews span boundaries
+            prev_hour_start = current_hour_start - relativedelta(hours=1)
+            
+            # Update current hour
+            self.db.update_department_statistics(current_hour_start, current_hour_end)
+            # Update previous hour
+            self.db.update_department_statistics(prev_hour_start, current_hour_start)
+            
+            logger.info(f"Updated statistics for {prev_hour_start} - {current_hour_end}")
+        except Exception as e:
+            logger.error(f"Error updating recent statistics: {e}", exc_info=True)
 
     def process_review(self, review_row: Dict[str, Any]) -> Dict:
         """

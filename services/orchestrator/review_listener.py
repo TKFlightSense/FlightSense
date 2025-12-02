@@ -183,8 +183,7 @@ class ReviewListener:
     def get_stats(self) -> Dict[str, Any]:
         """Return listener statistics."""
         return {
-            "running": self.running,
             "processed_count": self.processed_count,
-            "poll_interval": self.poll_interval,
             "batch_size": self.batch_size,
+            "callbacks_registered": len(self.callbacks),
         }

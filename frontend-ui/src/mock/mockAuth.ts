@@ -19,7 +19,7 @@ export const MOCK_USERS: MockUser[] = [
     password: "admin123",
     role: "admin",
   },
-  {
+  { 
     username: "manager",
     password: "manager123",
     role: "manager",
