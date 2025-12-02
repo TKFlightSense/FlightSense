@@ -167,6 +167,32 @@ export const MONTHLY_DEPARTMENT_STATS: Record<DepartmentId, DepartmentStats> = {
       { label: "W4", positive: 50, negative: 17 },
     ],
   },
+  RVCBM: {
+    departmentId: "RVCBM",
+    name: "Rezervasyon ve Biletleme Çzm. Mdr.",
+    periodLabel: "Last 30 days",
+    totalReviews: 0,
+    positive: 0,
+    negative: 0,
+    highPriority: 0,
+    mediumPriority: 0,
+    lowPriority: 0,
+    topIssues: [],
+    trend: [],
+  },
+  CMYM: {
+    departmentId: "CMYM",
+    name: "Çağrı Merkezi Yönetimi Mdr.",
+    periodLabel: "Last 30 days",
+    totalReviews: 0,
+    positive: 0,
+    negative: 0,
+    highPriority: 0,
+    mediumPriority: 0,
+    lowPriority: 0,
+    topIssues: [],
+    trend: [],
+  },
 };
 
 /**
