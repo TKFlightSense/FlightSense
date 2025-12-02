@@ -21,11 +21,11 @@ class MySQLDbService:
 
     def __init__(
         self,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        database: Optional[str] = None,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
+        host: Optional[str] = "localhost",
+        port: Optional[int] = 3306,
+        database: Optional[str] = "flightsense",
+        user: Optional[str] = "flightsense",
+        password: Optional[str] = "rootroot",
         pool_size: int = 5,
     ):
         """
@@ -42,7 +42,7 @@ class MySQLDbService:
         self.host = host or os.getenv("MYSQL_HOST", "localhost")
         self.port = port or int(os.getenv("MYSQL_PORT", "3306"))
         self.database = database or os.getenv("MYSQL_DATABASE", "flightsense")
-        self.user = user or os.getenv("MYSQL_USER", "root")
+        self.user = user or os.getenv("MYSQL_USER", "flightsense")
         self.password = password or os.getenv("MYSQL_PASSWORD", "")
 
         self.pool = None
@@ -65,6 +65,7 @@ class MySQLDbService:
                 port=self.port,
                 user=self.user,
                 password=self.password,
+                database=self.database,
                 autocommit=False,
             )
             logger.info(f"Created MySQL connection pool (size={pool_size})")
@@ -186,9 +187,9 @@ class MySQLDbService:
             positive_count INT DEFAULT 0,
             negative_count INT DEFAULT 0,
             neutral_count INT DEFAULT 0,
-            low_priority INT DEFAULT 0,
-            medium_priority INT DEFAULT 0,
-            high_priority INT DEFAULT 0,
+            `low_priority` INT DEFAULT 0,
+            `medium_priority` INT DEFAULT 0,
+            `high_priority` INT DEFAULT 0,
             INDEX idx_label_type (label_type),
             INDEX idx_starting_datetime (starting_datetime),
             INDEX idx_ending_datetime (ending_datetime)
@@ -620,7 +621,7 @@ if __name__ == "__main__":
     try:
         db = MySQLDbService()
         print("✅ MySQL database initialized successfully")
-        print(f"📊 Processed data rows: {db._get_row_count('processed_data')}")
+        print(f"📊 Processed data rows: {db._get_row_count('reviews')}")
         print(f"🎫 Tickets: {db._get_row_count('tickets')}")
         print(f"👥 Users: {db._get_row_count('user_data')}")
     except Exception as e:

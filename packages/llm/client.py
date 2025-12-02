@@ -56,7 +56,11 @@ class LLMClient:
         max_tokens: Optional[int] = None,
     ):
         self.provider = provider or os.getenv("LLM_PROVIDER") or _LLM_CONFIG["provider"]
-        self.temperature = temperature if temperature is not None else _LLM_CONFIG["temperature"]
+        self.temperature = (
+            temperature
+            if temperature is not None
+            else _LLM_CONFIG.get("temperature")  # may be None
+        )
         self.max_tokens = max_tokens if max_tokens is not None else _LLM_CONFIG["max_tokens"]
         self.system_prompt = _LLM_CONFIG["system_prompt"]
         
@@ -140,8 +144,7 @@ class LLMClient:
                     {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                max_completion_tokens=self.max_tokens,
             )
             return response.choices[0].message.content.strip()
         except Exception as e:

@@ -236,9 +236,9 @@ def create_tables(host, port, db_name, db_user, db_password):
                 positive_count INT DEFAULT 0,
                 negative_count INT DEFAULT 0,
                 neutral_count INT DEFAULT 0,
-                low_priority INT DEFAULT 0,
-                medium_priority INT DEFAULT 0,
-                high_priority INT DEFAULT 0,
+                `low_priority` INT DEFAULT 0,
+                `medium_priority` INT DEFAULT 0,
+                `high_priority` INT DEFAULT 0,
                 INDEX idx_label_type (label_type),
                 INDEX idx_starting_datetime (starting_datetime),
                 INDEX idx_ending_datetime (ending_datetime)
