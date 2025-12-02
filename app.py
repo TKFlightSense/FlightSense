@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, date
 
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +21,7 @@ from services.db_service.mysql_db_service import MySQLDbService
 # Import orchestrator
 from services.orchestrator.orchestrator import FlightSenseOrchestrator
 from services.orchestrator.filter import DataFilter
+from services.scheduler.scheduler import StatisticsScheduler
 
 # Set up logging
 logging.basicConfig(
@@ -39,6 +40,7 @@ JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
 
 # Global orchestrator instance
 orchestrator: Optional[FlightSenseOrchestrator] = None
+scheduler: Optional[StatisticsScheduler] = None
 
 
 # -------------------------------------------------------------------------
@@ -48,7 +50,7 @@ orchestrator: Optional[FlightSenseOrchestrator] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager - handles startup and shutdown."""
-    global orchestrator
+    global orchestrator, scheduler
     
     # Startup
     logger.info("Starting FlightSense application...")
@@ -59,6 +61,10 @@ async def lifespan(app: FastAPI):
         
         # Initialize orchestrator with all services
         orchestrator = FlightSenseOrchestrator(db_service, JWT_SECRET)
+        
+        # Initialize and start scheduler
+        scheduler = StatisticsScheduler(orchestrator)
+        await scheduler.start()
         
         logger.info("FlightSense initialized successfully")
         logger.info(f"   - Database: {'MySQL' if USE_MYSQL else 'SQLite'}")
@@ -73,6 +79,9 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down FlightSense...")
+    if scheduler:
+        await scheduler.stop()
+        
     if USE_MYSQL and hasattr(db_service, 'close'):
         db_service.close()
 
@@ -169,9 +178,7 @@ class ManagerStatisticsRequest(BaseModel):
 
 # -------------------------------------------------------------------------
 # HEALTH CHECK
-# -------------------------------------------------------------------------
-
-@app.get("/health")
+# -------------------------------------------------------------------------@app.get("/health")
 async def health_check():
     """Health check endpoint."""
     return {

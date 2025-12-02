@@ -8,7 +8,8 @@ import os
 from decimal import Decimal
 
 from models.labels import ALL_LABELS
-from models.enums.enums import DepartmentTables
+from models.enums.enums import DepartmentTables, DepartmentToLabels
+from datetime import date, datetime, time
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -1015,6 +1016,86 @@ class MySQLDbService:
         result = self.execute(query, (label, date_from, date_to), fetch=True)
         return result[0][0] if result and result[0][0] is not None else 0
     
+    def update_department_statistics(self, start_dt: datetime, end_dt: datetime):
+        """
+        Aggregates reviews processed within a specific time range and updates department statistics.
+        """
+        logger.info(f"Updating department statistics for range: {start_dt} - {end_dt}")
+        
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            
+            for dept_enum in DepartmentTables:
+                dept_name = dept_enum.name
+                table_name = dept_enum.value
+                
+                try:
+                    labels = DepartmentToLabels[dept_name].value
+                except KeyError:
+                    continue
+                
+                if not labels:
+                    continue
+                
+                # 1. Delete existing stats for this EXACT time range to allow re-runs
+                delete_query = f"""
+                DELETE FROM {table_name} 
+                WHERE date_from = %s AND date_to = %s
+                """
+                cursor.execute(delete_query, (start_dt, end_dt))
+                
+                # 2. Aggregate data based on processed_reviews.created_at
+                placeholders = ', '.join(['%s'] * len(labels))
+                
+                agg_query = f"""
+                SELECT 
+                    pr.label,
+                    SUM(CASE WHEN pr.sentiment = 'POSITIVE' THEN 1 ELSE 0 END) as pos,
+                    SUM(CASE WHEN pr.sentiment = 'NEGATIVE' THEN 1 ELSE 0 END) as neg,
+                    SUM(CASE WHEN pr.sentiment = 'NEUTRAL' THEN 1 ELSE 0 END) as neu,
+                    SUM(CASE WHEN pr.priority = 'HIGH' THEN 1 ELSE 0 END) as high,
+                    SUM(CASE WHEN pr.priority = 'MEDIUM' THEN 1 ELSE 0 END) as med,
+                    SUM(CASE WHEN pr.priority = 'LOW' THEN 1 ELSE 0 END) as low
+                FROM processed_reviews pr
+                WHERE pr.created_at >= %s AND pr.created_at < %s
+                  AND pr.label IN ({placeholders})
+                GROUP BY pr.label
+                """
+                
+                params = [start_dt, end_dt] + labels
+                cursor.execute(agg_query, params)
+                results = cursor.fetchall()
+                
+                # 3. Insert new stats
+                if results:
+                    insert_query = f"""
+                    INSERT INTO {table_name} 
+                    (label, date_from, date_to, positive_count, negative_count, neutral_count, high_count, medium_count, low_count)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    
+                    insert_data = []
+                    for row in results:
+                        insert_data.append((
+                            row[0], start_dt, end_dt, 
+                            row[1], row[2], row[3], 
+                            row[4], row[5], row[6]
+                        ))
+                    
+                    cursor.executemany(insert_query, insert_data)
+                    logger.info(f"Updated {table_name}: {cursor.rowcount} rows inserted for {start_dt}-{end_dt}")
+            
+            conn.commit()
+            cursor.close()
+            
+        except Error as e:
+            logger.error(f"Error updating department statistics: {e}")
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
     # -------------------------------------------------------------------------
     # CLEANUP
     # -------------------------------------------------------------------------

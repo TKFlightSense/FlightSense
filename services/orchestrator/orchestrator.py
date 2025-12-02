@@ -4,7 +4,7 @@ import os
 import logging
 
 from dateutil import relativedelta
-from datetime import datetime
+from datetime import datetime, date
 
 from services.db_service.mysql_db_service import MySQLDbService
 from services.orchestrator.filter import DataFilter
@@ -218,7 +218,7 @@ class FlightSenseOrchestrator:
         if not user_info:
             return {"success": False, "error": "Unauthorized"}
 
-        # Optionally enforce that only manager/admin can access this
+        # Optionally enforce that only manager/administrator can access this
         role = user_info.get("role")
         if not self.access.is_full_access_role(role):
             return {"success": False, "error": "Forbidden: manager access required"}
@@ -325,3 +325,17 @@ class FlightSenseOrchestrator:
                 "historical_data": historical_data
             },
         }
+
+    def run_statistics_job(self, start_dt: datetime, end_dt: datetime) -> Dict:
+        """
+        Run the statistics aggregation job for a specific time range.
+        """
+        if not hasattr(self.db, 'update_department_statistics'):
+             return {"success": False, "error": "Database service does not support statistics update"}
+        
+        try:
+            self.db.update_department_statistics(start_dt, end_dt)
+            return {"success": True, "message": f"Statistics updated for {start_dt} - {end_dt}"}
+        except Exception as e:
+            logger.error(f"Error running statistics job: {e}")
+            return {"success": False, "error": str(e)}
