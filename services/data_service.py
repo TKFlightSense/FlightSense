@@ -4,7 +4,7 @@ import logging
 
 import pandas as pd
 
-from services.db_service.db_service import DbService
+from services.db_service.mysql_db_service import MySQLDbService
 from services.orchestrator.filter import DataFilter
 from services.access_control_service import AccessControlService
 
@@ -17,7 +17,7 @@ class DataService:
     Uses plain-string roles and labels.
     """
 
-    def __init__(self, db_service: DbService, access_control: AccessControlService):
+    def __init__(self, db_service: MySQLDbService, access_control: AccessControlService):
         self.db = db_service
         self.access = access_control
 

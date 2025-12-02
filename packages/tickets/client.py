@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional
 import logging
 
-from services.db_service.db_service import DbService
+from services.db_service.mysql_db_service import MySQLDbService
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,8 @@ class MockTicketClient(AbstractTicketClient):
     Jira clone: stores tickets in the 'tickets' table via DbService.
     """
 
-    def __init__(self, db: Optional[DbService] = None) -> None:
-        self.db = db or DbService()
+    def __init__(self, db: Optional[MySQLDbService] = None) -> None:
+        self.db = db or MySQLDbService()
 
     def create_issue(self, payload: TicketPayload) -> Dict[str, Any]:
         fake_key = f"MOCK-{payload.project_key}-{payload.issue_type}"
@@ -63,10 +63,10 @@ class RealJiraTicketClient(AbstractTicketClient):
     Real Jira integration: creates tickets in Atlassian Jira and stores references in local DB.
     """
 
-    def __init__(self, db: Optional[DbService] = None) -> None:
+    def __init__(self, db: Optional[MySQLDbService] = None) -> None:
         from packages.jira_client.client import JiraClient
         
-        self.db = db or DbService()
+        self.db = db or MySQLDbService()
         try:
             self.jira = JiraClient()
             logger.info("Initialized real Jira client")
