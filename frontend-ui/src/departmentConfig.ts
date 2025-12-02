@@ -1,37 +1,27 @@
-export type DepartmentId =
-  | "IkramveUcakIciUrunlerBsk"
-  | "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu"
-  | "KabinHizmetleriBsk"
-  | "TGS";
+export type DepartmentCode = "IUIUB" | "BMCOGM" | "KABIN" | "TGS" | "RVCBM" | "CMYM";
 
-export type Department = {
-  id: DepartmentId;
-  name: string;
-  labels: string[];
+export type DepartmentLabel =
+  | "İkram ve Uçak İçi Ürünler Bşk."
+  | "Yer İşletme Bşk - Bagaj"
+  | "Kabin Hizmetleri Bşk."
+  | "TGS - Yer Hizmetleri"
+  | "Rezervasyon ve Biletleme Çzm. Mdr."
+  | "Çağrı Merkezi Yönetimi Mdr.";
+
+
+export const DEPARTMENT_LABEL_TO_CODE: Record<DepartmentLabel, DepartmentCode> = {
+  "İkram ve Uçak İçi Ürünler Bşk.": "IUIUB",
+  "Yer İşletme Bşk - Bagaj": "BMCOGM",
+  "Kabin Hizmetleri Bşk.": "KABIN",
+  "TGS - Yer Hizmetleri": "TGS",
+  "Rezervasyon ve Biletleme Çzm. Mdr.": "RVCBM",
+  "Çağrı Merkezi Yönetimi Mdr.": "CMYM",
 };
 
-export const departments: Department[] = [
-  {
-    id: "IkramveUcakIciUrunlerBsk",
-    name: "İkram ve Uçak İçi Ürünler Başkanlığı",
-    labels: [
-      "inflight_experience_food_beverage",
-      "inflight_experience_entertainment",
-    ],
-  },
-  {
-    id: "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu",
-    name: "Yer İşletme Bşk - Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Md.",
-    labels: ["baggage_lost", "baggage_damaged"],
-  },
-  {
-    id: "KabinHizmetleriBsk",
-    name: "Kabin Hizmetleri Başkanlığı",
-    labels: ["inflight_experience_cleanliness"],
-  },
-  {
-    id: "TGS",
-    name: "TGS - Yer Hizmetleri",
-    labels: ["checkin_process", "boarding_process"],
-  },
-];
+
+export const DEPARTMENT_CODE_TO_LABEL: Record<DepartmentCode, DepartmentLabel> = Object.entries(
+  DEPARTMENT_LABEL_TO_CODE
+).reduce((acc, [label, code]) => {
+  acc[code as DepartmentCode] = label as DepartmentLabel;
+  return acc;
+}, {} as Record<DepartmentCode, DepartmentLabel>);

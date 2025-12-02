@@ -1,24 +1,57 @@
 // src/pages/DepartmentDashboard.tsx
+
+import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { departments, type DepartmentId } from "../departmentConfig";
-import { MOCK_DEPARTMENT_STATS } from "../mock/mockDepartmentStats";
+import { useTheme } from "../hooks/useTheme";
+import { DEPARTMENT_LABEL_TO_CODE } from "../departmentConfig";
+import {
+  PAGE_WRAPPER,
+  PAGE_BACKGROUND_OVERLAY,
+  TOPBAR,
+  CARD,
+  KPI_TITLE,
+} from "../styles/dashboardTokens";
+
 import FeedbackTrendChart from "../components/charts/FeedbackTrendChart";
-import DistributionPie from "../components/charts/DistributionPie";
+import DistributionPie, {
+  type PieItem,
+} from "../components/charts/DistributionPie";
+
+import {
+  fetchDepartmentStatistics,
+  type Period,
+} from "../services/api";
+import {
+  mapDepartmentStatsApiToUi,
+  type DepartmentStatsUi,
+} from "../utils/departmentStatsMapper";
+
+const THY_RED = "#b7312c";
 
 export default function DepartmentDashboard() {
-  const { departmentId } = useParams<{ departmentId: string }>();
-  const { user, logout } = useAuth();
+  const { departmentName } = useParams<{ departmentName: string }>();
+  const { user, logout, token } = useAuth() as any;
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
-  if (!departmentId) {
+  const [timeRange, setTimeRange] = useState<Period>("monthly");
+  const [stats, setStats] = useState<DepartmentStatsUi | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // departmentName yoksa
+  if (!departmentName) {
     return (
-      <div className="h-screen flex items-center justify-center bg-rose-50">
-        <div className="bg-white px-6 py-4 rounded-xl shadow">
-          <p className="text-slate-800 text-sm mb-2">
+      <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className={`${CARD} px-6 py-4 max-w-md`}>
+          <p className="text-slate-900 dark:text-slate-50 text-sm mb-2">
             No department specified in URL.
           </p>
-          <Link to="/" className="text-xs text-blue-600 underline">
+          <Link
+            to="/"
+            className="text-xs text-blue-600 dark:text-blue-300 underline"
+          >
             Back to login
           </Link>
         </div>
@@ -26,21 +59,68 @@ export default function DepartmentDashboard() {
     );
   }
 
-  const deptId = departmentId as DepartmentId;
-  const department = departments.find((d) => d.id === deptId);
-  const stats = MOCK_DEPARTMENT_STATS[deptId];
+  useEffect(() => {
+    if (!token || !departmentName) return;
 
-  if (!department || !stats) {
+    setLoading(true);
+    setError(null);
+
+    // departmentName route paramı URL encoded gelebilir; decode edelim
+    const label = decodeURIComponent(departmentName);
+    const code = DEPARTMENT_LABEL_TO_CODE[label] ?? label;
+
+    fetchDepartmentStatistics(token, code, timeRange)
+      .then((res) => {
+        if (!res.success) {
+          throw new Error("API returned success = false");
+        }
+        const ui = mapDepartmentStatsApiToUi(res.result.data, label, timeRange);
+        setStats(ui);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(err.message || "Failed to load department data");
+      })
+      .finally(() => setLoading(false));
+  }, [token, departmentName, timeRange]);
+
+  function handleLogout() {
+    logout();
+    navigate("/");
+  }
+
+  if (loading || !stats) {
     return (
-      <div className="h-screen flex items-center justify-center bg-rose-50">
-        <div className="bg-white px-6 py-4 rounded-xl shadow max-w-md">
-          <p className="text-sm text-slate-800 mb-1">Unknown department:</p>
-          <p className="text-xs font-mono text-slate-600 mb-3">
-            {departmentId}
+      <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className={`${CARD} px-6 py-4 max-w-md`}>
+          <p className="text-sm text-slate-900 dark:text-slate-50">
+            Loading department dashboard...
           </p>
-          <Link to="/" className="text-xs text-blue-600 underline">
-            Back to login
-          </Link>
+          {error && (
+            <p className="mt-2 text-xs text-red-500">
+              {error}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className={`${CARD} px-6 py-4 max-w-md`}>
+          <p className="text-sm text-red-500 mb-2">Error</p>
+          <p className="text-xs text-slate-900 dark:text-slate-50 mb-3">
+            {error}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-xs px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 transition
+                       dark:border-slate-600 dark:text-slate-50 dark:bg-slate-900/70 dark:hover:bg-slate-800"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -54,305 +134,311 @@ export default function DepartmentDashboard() {
   const totalPriority =
     stats.highPriority + stats.mediumPriority + stats.lowPriority || 1;
 
-  function handleLogout() {
-    logout();
-    navigate("/");
-  }
+  const issuesPieData: PieItem[] = stats.topIssues.map((issue) => ({
+    name: issue.labelDisplay,
+    value: issue.count,
+  }));
+
+  const labelPercentages = stats.topIssues.map((issue) => {
+    const total = Math.max(issue.positive + issue.negative, 1);
+    const pos = Math.round((issue.positive / total) * 100);
+    const neg = 100 - pos;
+    return {
+      labelKey: issue.labelKey,
+      labelDisplay: issue.labelDisplay,
+      positivePercent: pos,
+      negativePercent: neg,
+    };
+  });
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-8 py-4 border-b bg-white">
-        <div>
-          <h1 className="text-lg font-semibold text-slate-900">
-            {department.name}
-          </h1>
-          <p className="text-[11px] text-slate-500">
-            Department dashboard · {stats.periodLabel}
-          </p>
-        </div>
+    <div className={PAGE_WRAPPER}>
+      <div className={PAGE_BACKGROUND_OVERLAY} />
 
-        <div className="flex items-center gap-4">
-          {user && (
-            <div className="text-right">
-              <p className="text-sm text-slate-700">
-                {user.username}{" "}
-                <span className="text-xs text-slate-500">({user.role})</span>
-              </p>
-              {user.departmentId && (
-                <p className="text-[11px] text-slate-500">
-                  Assigned dept: {user.departmentId}
-                </p>
-              )}
-            </div>
-          )}
-          <button
-            onClick={handleLogout}
-            className="text-xs px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition"
-          >
-            Log out
-          </button>
-        </div>
-      </header>
-
-      {/* Main content */}
-      <main className="px-8 py-6 max-w-6xl mx-auto space-y-6">
-        {/* Trend chart */}
-        <section className="space-y-3">
+      <div className="relative z-10 min-h-screen flex flex-col">
+        {/* Top bar */}
+        <header className={TOPBAR}>
           <div>
-            <p className="text-sm font-semibold text-slate-900">
-              Feedback trend for this department
+            <p className="text-xs font-semibold tracking-[0.25em] text-slate-400 uppercase">
+              FlightSense
             </p>
-            <p className="text-[11px] text-slate-500">
-              Positive vs negative reviews over time ({stats.periodLabel})
-            </p>
-          </div>
-          <FeedbackTrendChart data={stats.trend} />
-        </section>
-
-        {/* KPI cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Total reviews */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-              Total reviews
-            </p>
-            <p className="mt-2 text-3xl font-semibold text-slate-900">
-              {stats.totalReviews.toLocaleString("en-US")}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              For this department ({stats.periodLabel})
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+              <span style={{ color: THY_RED }}>{stats.departmentName}</span>
+            </h1>
+            <p className="text-[11px] text-slate-500 dark:text-slate-300">
+              Period · {stats.periodLabel}
             </p>
           </div>
 
-          {/* Sentiment */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-              Sentiment
-            </p>
-            <div className="mt-3 flex items-end justify-between">
-              <div>
-                <p className="text-sm text-emerald-600 font-semibold">
-                  {positivePercent}% positive
+          <div className="flex items-center gap-3">
+            {user && (
+              <div className="text-right">
+                <p className="text-sm text-slate-900 dark:text-slate-50">
+                  {user.username}{" "}
+                  <span className="text-xs text-slate-500 dark:text-slate-300">
+                    ({user.role})
+                  </span>
                 </p>
-                <p className="text-xs text-slate-500">
-                  {stats.positive} reviews
-                </p>
+                {user.department && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Assigned dept: {user.department}
+                  </p>
+                )}
               </div>
-              <div>
-                <p className="text-sm text-rose-600 font-semibold">
-                  {negativePercent}% negative
-                </p>
-                <p className="text-xs text-slate-500">
-                  {stats.negative} reviews
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden flex">
-              <div
-                className="h-full bg-emerald-500"
-                style={{ width: `${positivePercent}%` }}
-              />
-              <div
-                className="h-full bg-rose-500"
-                style={{ width: `${negativePercent}%` }}
-              />
-            </div>
+            )}
+
+            <button
+              onClick={toggleTheme}
+              className="text-xs px-3 py-1.5 rounded-full border border-slate-300 bg-white/80 text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition
+                         dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-50 dark:hover:bg-slate-800"
+            >
+              {theme === "dark" ? "Light mode ☀️" : "Dark mode 🌙"}
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="text-xs px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 transition
+                         dark:border-slate-600 dark:text-slate-50 dark:bg-slate-900/70 dark:hover:bg-slate-800"
+            >
+              Log out
+            </button>
           </div>
+        </header>
 
-          {/* Priority mix */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-              Priority mix
-            </p>
-            <div className="mt-3 flex justify-between text-xs">
+        {/* Main content */}
+        <main className="px-6 md:px-8 py-6 max-w-6xl mx-auto w-full space-y-6">
+          {/* Trend chart */}
+          <section className="space-y-3">
+            <div className="flex flex-wrap gap-3 items-center justify-between">
               <div>
-                <p className="text-[11px] text-slate-500">High</p>
-                <p className="font-semibold text-slate-900">
-                  {stats.highPriority}
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                  Feedback trend for {stats.departmentName}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-300">
+                  Positive vs negative reviews over time · {stats.periodLabel}
                 </p>
               </div>
-              <div>
-                <p className="text-[11px] text-slate-500">Medium</p>
-                <p className="font-semibold text-slate-900">
-                  {stats.mediumPriority}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-slate-500">Low</p>
-                <p className="font-semibold text-slate-900">
-                  {stats.lowPriority}
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden flex">
-              <div
-                className="h-full bg-rose-500"
-                style={{
-                  width: `${(stats.highPriority / totalPriority) * 100}%`,
-                }}
-              />
-              <div
-                className="h-full bg-amber-400"
-                style={{
-                  width: `${(stats.mediumPriority / totalPriority) * 100}%`,
-                }}
-              />
-              <div
-                className="h-full bg-sky-400"
-                style={{
-                  width: `${(stats.lowPriority / totalPriority) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Middle: pie + labels (with numeric panel) */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Pie chart: issues/labels for this department */}
-          <div className="lg:col-span-2">
-            <DistributionPie
-              title="Issues by label"
-              subtitle="Distribution of feedback across labels handled by this department"
-              data={stats.topIssues.map((issue) => ({
-                name: issue.labelDisplay,
-                value: issue.count,
-              }))}
-              rightContent={
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                      Total reviews
-                    </p>
-                    <p className="text-xl font-semibold text-slate-900">
-                      {stats.totalReviews.toLocaleString("en-US")}
-                    </p>
-                  </div>
-
-                  <div className="flex justify-between gap-4">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                        Positive
-                      </p>
-                      <p className="text-sm font-semibold text-emerald-600">
-                        {stats.positive.toLocaleString("en-US")}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                        Negative
-                      </p>
-                      <p className="text-sm font-semibold text-rose-600">
-                        {stats.negative.toLocaleString("en-US")}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">
-                      Priority
-                    </p>
-                    <p className="text-[11px] text-slate-600">
-                      High:{" "}
-                      <span className="font-semibold">
-                        {stats.highPriority}
-                      </span>
-                    </p>
-                    <p className="text-[11px] text-slate-600">
-                      Medium:{" "}
-                      <span className="font-semibold">
-                        {stats.mediumPriority}
-                      </span>
-                    </p>
-                    <p className="text-[11px] text-slate-600">
-                      Low:{" "}
-                      <span className="font-semibold">
-                        {stats.lowPriority}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              }
-            />
-          </div>
-
-          {/* Labels routed to this department */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
-            <p className="text-sm font-semibold text-slate-900 mb-2">
-              Labels routed to this department
-            </p>
-            <p className="text-[11px] text-slate-500 mb-3">
-              These are the fine-grained LLM labels that generate tickets for
-              this team.
-            </p>
-
-            <ul className="flex flex-wrap gap-2">
-              {department.labels.map((label) => (
-                <li
-                  key={label}
-                  className="inline-flex items-center px-2 py-1 rounded-full border border-slate-200 bg-slate-50 text-[11px] font-mono text-slate-700"
+              <div className="flex gap-2 text-[11px]">
+                <button
+                  onClick={() => setTimeRange("weekly")}
+                  className={
+                    "px-3 py-1 rounded-full border transition " +
+                    (timeRange === "weekly"
+                      ? "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50"
+                      : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70")
+                  }
                 >
-                  {label}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+                  Weekly
+                </button>
+                <button
+                  onClick={() => setTimeRange("monthly")}
+                  className={
+                    "px-3 py-1 rounded-full border transition " +
+                    (timeRange === "monthly"
+                      ? "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50"
+                      : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70")
+                  }
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setTimeRange("yearly")}
+                  className={
+                    "px-3 py-1 rounded-full border transition " +
+                    (timeRange === "yearly"
+                      ? "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50"
+                      : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70")
+                  }
+                >
+                  Yearly
+                </button>
+              </div>
+            </div>
+            <div className={`${CARD} p-4`}>
+              <FeedbackTrendChart data={stats.trend} mode={theme} />
+            </div>
+          </section>
 
-        {/* Bottom: top issues list */}
-        <section className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
-          <p className="text-sm font-semibold text-slate-900 mb-2">
-            Top issues in this department
-          </p>
-          <p className="text-[11px] text-slate-500 mb-3">
-            Based on number of reviews mapped to this department in the selected
-            period.
-          </p>
+          {/* KPI cards */}
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`${CARD} p-4`}>
+              <p className={KPI_TITLE}>Total reviews</p>
+              <p className="mt-2 text-3xl font-semibold">
+                {stats.totalReviews.toLocaleString("en-US")}
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
+                For this department ({stats.periodLabel})
+              </p>
+            </div>
 
-          <ul className="space-y-2 text-xs">
-            {stats.topIssues.map((issue) => (
-              <li
-                key={issue.labelKey}
-                className="flex items-center justify-between"
-              >
+            <div className={`${CARD} p-4`}>
+              <p className={KPI_TITLE}>Sentiment</p>
+              <div className="mt-3 flex items-end justify-between">
                 <div>
-                  <p className="text-slate-800">{issue.labelDisplay}</p>
-                  <p className="font-mono text-[11px] text-slate-500">
-                    {issue.labelKey}
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">
+                    {positivePercent}% positive
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-300">
+                    {stats.positive} reviews
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-slate-900">
-                    {issue.count} reviews
-                  </p>
+                <div>
                   <p
-                    className={
-                      "text-[11px] " +
-                      (issue.trend === "up"
-                        ? "text-rose-600"
-                        : issue.trend === "down"
-                        ? "text-emerald-600"
-                        : "text-slate-500")
-                    }
+                    className="text-sm font-semibold"
+                    style={{ color: THY_RED }}
                   >
-                    {issue.trend === "up"
-                      ? "↑ increasing"
-                      : issue.trend === "down"
-                      ? "↓ decreasing"
-                      : "→ stable"}
+                    {negativePercent}% negative
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-300">
+                    {stats.negative} reviews
                   </p>
                 </div>
-              </li>
-            ))}
-          </ul>
+              </div>
+              <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex">
+                <div
+                  className="h-full bg-emerald-500"
+                  style={{ width: `${positivePercent}%` }}
+                />
+                <div
+                  className="h-full"
+                  style={{
+                    width: `${negativePercent}%`,
+                    backgroundColor: THY_RED,
+                  }}
+                />
+              </div>
+            </div>
 
-          <p className="mt-4 text-[11px] text-slate-400">
-            Later this section can open filtered review lists or ticket views
-            for this department.
-          </p>
-        </section>
-      </main>
+            <div className={`${CARD} p-4`}>
+              <p className={KPI_TITLE}>Priority mix</p>
+              <div className="mt-3 flex justify-between text-xs text-slate-700 dark:text-slate-200">
+                <div>
+                  <p className="text-[11px] text-slate-500">High</p>
+                  <p className="font-semibold">{stats.highPriority}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-slate-500">Medium</p>
+                  <p className="font-semibold">{stats.mediumPriority}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-slate-500">Low</p>
+                  <p className="font-semibold">{stats.lowPriority}</p>
+                </div>
+              </div>
+              <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex">
+                <div
+                  className="h-full"
+                  style={{
+                    width: `${(stats.highPriority / totalPriority) * 100}%`,
+                    backgroundColor: THY_RED,
+                  }}
+                />
+                <div
+                  className="h-full bg-amber-400"
+                  style={{
+                    width: `${(stats.mediumPriority / totalPriority) * 100}%`,
+                  }}
+                />
+                <div
+                  className="h-full bg-sky-400"
+                  style={{
+                    width: `${(stats.lowPriority / totalPriority) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Pie + label sentiment percentages */}
+          <section>
+            <div className={`${CARD} p-4`}>
+              <DistributionPie
+                title="Issues by label"
+                subtitle="Distribution of feedback across labels handled by this department"
+                data={issuesPieData}
+                mode={theme}
+                rightContent={
+                  <div className="space-y-3 text-xs">
+                    {labelPercentages.map((issue) => (
+                      <div key={issue.labelKey}>
+                        <p className="font-semibold text-slate-900 dark:text-slate-50">
+                          {issue.labelDisplay}
+                        </p>
+                        <p className="text-[11px]">
+                          <span className="text-emerald-500 dark:text-emerald-400 font-semibold">
+                            {issue.positivePercent}% positive
+                          </span>
+                          <span className="mx-1 text-slate-500">·</span>
+                          <span
+                            className="font-semibold"
+                            style={{ color: THY_RED }}
+                          >
+                            {issue.negativePercent}% negative
+                          </span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                }
+              />
+            </div>
+          </section>
+
+          {/* Bottom: top issues list */}
+          <section className={`${CARD} p-4`}>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-2">
+              Top issues in this department
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-300 mb-3">
+              Selected issues and their sentiment split in the current period.
+            </p>
+
+            <ul className="space-y-2 text-xs">
+              {stats.topIssues.map((issue) => {
+                const total = Math.max(issue.positive + issue.negative, 1);
+                const pos = Math.round((issue.positive / total) * 100);
+                const neg = 100 - pos;
+
+                return (
+                  <li
+                    key={issue.labelKey}
+                    className="flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="text-slate-900 dark:text-slate-50">
+                        {issue.labelDisplay}
+                      </p>
+                      <p className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                        {issue.labelKey}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-slate-900 dark:text-slate-50">
+                        {issue.count} reviews
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <span className="text-emerald-500 dark:text-emerald-400 font-semibold">
+                          {pos}% +
+                        </span>{" "}
+                        /{" "}
+                        <span
+                          className="font-semibold"
+                          style={{ color: THY_RED }}
+                        >
+                          {neg}% −
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        → stable
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        </main>
+      </div>
     </div>
   );
 }
