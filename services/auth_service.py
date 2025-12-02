@@ -6,7 +6,7 @@ import logging
 import bcrypt
 import jwt
 
-from services.db_service.db_service import DbService
+from services.db_service.mysql_db_service import MySQLDbService 
 from services.access_control_service import AccessControlService
 from models.roles import VALID_ROLES
 
@@ -22,7 +22,7 @@ class AuthService:
 
     def __init__(
         self,
-        db_service: DbService,
+        db_service: MySQLDbService,
         secret_key: str,
         access_control: AccessControlService,
         token_expiry_hours: int = 24,

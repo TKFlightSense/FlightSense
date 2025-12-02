@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 from typing import Optional
 from models.enums.enums import LabelToDepartment, DepartmentToLabels, Departments
 
-from services.db_service.my_db_service import Database
+from services.db_service.mysql_db_service import MySQLDbService
 
 
 logger = logging.getLogger(__name__)
@@ -23,8 +23,8 @@ class StatisticsService:
         processed_data.sentiment  in  ('positive', 'negative')
     """
 
-    def __init__(self, db_service: Optional[Database] = None):
-        self.db = db_service if db_service is not None else Database(password="")
+    def __init__(self, db_service: Optional[MySQLDbService] = None):
+        self.db = db_service if db_service is not None else MySQLDbService()
         self.departments = Departments
         self.label_to_department = LabelToDepartment
 
