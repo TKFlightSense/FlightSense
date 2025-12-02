@@ -16,7 +16,6 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 
 # Import database services
-from services.db_service.db_service import DbService
 from services.db_service.mysql_db_service import MySQLDbService
 
 # Import orchestrator
@@ -55,13 +54,8 @@ async def lifespan(app: FastAPI):
     logger.info("Starting FlightSense application...")
     
     try:
-        # Initialize database service
-        if USE_MYSQL:
-            logger.info("Using MySQL database")
-            db_service = MySQLDbService()
-        else:
-            logger.info("Using SQLite database")
-            db_service = DbService()
+        logger.info("Using MySQL database")
+        db_service = MySQLDbService()
         
         # Initialize orchestrator with all services
         orchestrator = FlightSenseOrchestrator(db_service, JWT_SECRET)
@@ -407,8 +401,6 @@ async def get_manager_statistics(
     except Exception as e:
         logger.error(f"Error while accessing manager stats: {e}")
         raise HTTPException(status_code=400, detail=str(e))
-
-
 
 # -------------------------------------------------------------------------
 # MAIN ENTRY POINT

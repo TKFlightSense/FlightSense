@@ -5,8 +5,10 @@ from pathlib import Path
 from typing import Optional, List, Tuple, Dict, Any
 import logging
 import os
+from decimal import Decimal
 
 from models.labels import ALL_LABELS
+from models.enums.enums import DepartmentTables
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -108,6 +110,12 @@ class MySQLDbService:
         self._create_statistics_table()
         self._create_user_table()
         self._create_tickets_table()
+        self._create_cagri_merkezi_table()
+        self._create_ikram_ucak_ici_table()
+        self._create_kabin_hizmetleri_table()
+        self._create_rez_biletleme_table()
+        self._create_tgs_table()
+        self._create_yer_isletme_bagaj_table()
         logger.info("All MySQL tables created/verified successfully")
 
     # -------------------------------------------------------------------------
@@ -205,6 +213,204 @@ class MySQLDbService:
             logger.info("Table 'statistics' created/verified")
         except Error as e:
             logger.error(f"Error creating statistics table: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def _create_kabin_hizmetleri_table(self):
+        """Create kabin_hizmetleri table in MySQL."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS kabin_hizmetleri (
+            ID INT AUTO_INCREMENT PRIMARY KEY,
+            label VARCHAR(255) NOT NULL,
+            date_from DATETIME,
+            date_to DATETIME,
+            positive_count INT DEFAULT 0,
+            negative_count INT DEFAULT 0,
+            neutral_count INT DEFAULT 0,
+            low_count INT DEFAULT 0,
+            medium_count INT DEFAULT 0,
+            high_count INT DEFAULT 0,
+            
+            INDEX idx_label (label),
+            INDEX idx_analysis_range (label, date_from, date_to)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'kabin_hizmetleri' created/verified")
+        except Error as e:
+            logger.error(f"Error creating kabin_hizmetleri table: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def _create_ikram_ucak_ici_table(self):
+        """Create ikram_ucak_ici table in MySQL."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS ikram_ucak_ici (
+            ID INT AUTO_INCREMENT PRIMARY KEY,
+            label VARCHAR(255) NOT NULL,
+            date_from DATETIME,
+            date_to DATETIME,
+            positive_count INT DEFAULT 0,
+            negative_count INT DEFAULT 0,
+            neutral_count INT DEFAULT 0,
+            low_count INT DEFAULT 0,
+            medium_count INT DEFAULT 0,
+            high_count INT DEFAULT 0,
+            
+            INDEX idx_label (label),
+            INDEX idx_analysis_range (label, date_from, date_to)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'ikram_ucak_ici' created/verified")
+        except Error as e:
+            logger.error(f"Error creating ikram_ucak_ici table: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def _create_yer_isletme_bagaj_table(self):
+        """Create yer_isletme_bagaj table in MySQL."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS yer_isletme_bagaj (
+            ID INT AUTO_INCREMENT PRIMARY KEY,
+            label VARCHAR(255) NOT NULL,
+            date_from DATETIME,
+            date_to DATETIME,
+            positive_count INT DEFAULT 0,
+            negative_count INT DEFAULT 0,
+            neutral_count INT DEFAULT 0,
+            low_count INT DEFAULT 0,
+            medium_count INT DEFAULT 0,
+            high_count INT DEFAULT 0,
+            
+            INDEX idx_label (label),
+            INDEX idx_analysis_range (label, date_from, date_to)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'yer_isletme_bagaj' created/verified")
+        except Error as e:
+            logger.error(f"Error creating yer_isletme_bagaj table: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def _create_tgs_table(self):
+        """Create tgs table in MySQL."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS tgs (
+            ID INT AUTO_INCREMENT PRIMARY KEY,
+            label VARCHAR(255) NOT NULL,
+            date_from DATETIME,
+            date_to DATETIME,
+            positive_count INT DEFAULT 0,
+            negative_count INT DEFAULT 0,
+            neutral_count INT DEFAULT 0,
+            low_count INT DEFAULT 0,
+            medium_count INT DEFAULT 0,
+            high_count INT DEFAULT 0,
+            
+            INDEX idx_label (label),
+            INDEX idx_analysis_range (label, date_from, date_to)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'tgs' created/verified")
+        except Error as e:
+            logger.error(f"Error creating tgs table: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def _create_rez_biletleme_table(self):
+        """Create rez_biletleme table in MySQL."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS rez_biletleme (
+            ID INT AUTO_INCREMENT PRIMARY KEY,
+            label VARCHAR(255) NOT NULL,
+            date_from DATETIME,
+            date_to DATETIME,
+            positive_count INT DEFAULT 0,
+            negative_count INT DEFAULT 0,
+            neutral_count INT DEFAULT 0,
+            low_count INT DEFAULT 0,
+            medium_count INT DEFAULT 0,
+            high_count INT DEFAULT 0,
+            
+            INDEX idx_label (label),
+            INDEX idx_analysis_range (label, date_from, date_to)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'rez_biletleme' created/verified")
+        except Error as e:
+            logger.error(f"Error creating rez_biletleme table: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def _create_cagri_merkezi_table(self):
+        """Create cagri_merkezi table in MySQL."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS cagri_merkezi (
+            ID INT AUTO_INCREMENT PRIMARY KEY,
+            label VARCHAR(255) NOT NULL,
+            date_from DATETIME,
+            date_to DATETIME,
+            positive_count INT DEFAULT 0,
+            negative_count INT DEFAULT 0,
+            neutral_count INT DEFAULT 0,
+            low_count INT DEFAULT 0,
+            medium_count INT DEFAULT 0,
+            high_count INT DEFAULT 0,
+            
+            INDEX idx_label (label),
+            INDEX idx_analysis_range (label, date_from, date_to)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'cagri_merkezi' created/verified")
+        except Error as e:
+            logger.error(f"Error creating cagri_merkezi table: {e}")
             raise
         finally:
             conn.close()
@@ -585,37 +791,230 @@ class MySQLDbService:
     # -------------------------------------------------------------------------
     # STATISTICS OPERATIONS
     # -------------------------------------------------------------------------
+    def _convert_decimal(self, value):
+        """Decimal → int/float dönüştürücü"""
+        if isinstance(value, Decimal):
+            # Eğer virgülsüz bir sayı (ör: 19.0) ise int yap
+            if value == value.to_integral_value():
+                return int(value)
+            return float(value)
+        return value
 
-    def get_sentiment_distribution(self) -> pd.DataFrame:
-        # TODO: Implement sentiment distribution retrieval
-        logger.warning("get_sentiment_distribution is not implemented: processed_data has no 'labels' column")
-        return pd.DataFrame()
+    def execute(self, query, params=None, fetch=False):
+        if self.connection is None:
+            self.connect()
 
-    def get_statistics_data(self, limit: int = 10) -> pd.DataFrame:
-        """Get recent statistics."""
-        # Order by starting_datetime (new schema) rather than old 'date' column
-        query = f"SELECT * FROM statistics ORDER BY starting_datetime DESC LIMIT {limit}"
-        conn = self._get_connection()
+        cursor = self.connection.cursor()
+
         try:
-            conn.database = self.database
-            return pd.read_sql_query(query, conn)
+            cursor.execute(query, params)
+
+            if fetch:
+                rows = cursor.fetchall()
+                # Decimal → int dönüşümü uygulayalım
+                cleaned = []
+                for row in rows:
+                    cleaned.append(tuple(self._convert_decimal(v) for v in row))
+                self.connection.commit()
+                return cleaned
+
+            self.connection.commit()
+            return None
+
+        except Error as err:
+            print(f"Sorgu hatası: {err}")
+            return None
+
         finally:
-            conn.close()
-
-    def _get_row_count(self, table_name: str) -> int:
-        """Get row count for a table."""
-        query = f"SELECT COUNT(*) as count FROM {table_name}"
-        conn = self._get_connection()
-        try:
-            conn.database = self.database
-            cursor = conn.cursor()
-            cursor.execute(query)
-            result = cursor.fetchone()
             cursor.close()
-            return result[0] if result else 0
-        finally:
-            conn.close()
 
+    def get_department_table_name(self, department_name: str) -> str:
+        return DepartmentTables[department_name].value
+    
+    def get_department_high_counts(self, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+        if not table:
+            raise ValueError(f"Unknown department: {department_name}")
+
+        query = f"""
+            SELECT SUM(high_count)
+            FROM {table}
+            WHERE date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+
+    def get_label_high_counts(self, label, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+        if not table:
+            raise ValueError(f"Unknown department: {department_name}")
+
+        query = f"""
+            SELECT SUM(high_count)
+            FROM {table}
+            WHERE label = %s AND date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (label, date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+
+    def get_department_low_counts(self, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+
+        query = f"""
+            SELECT SUM(low_count)
+            FROM {table}
+            WHERE date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+    
+    def get_label_low_counts(self, label, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+        if not table:
+            raise ValueError(f"Unknown department: {department_name}")
+
+        query = f"""
+            SELECT SUM(low_count)
+            FROM {table}
+            WHERE label = %s AND date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (label, date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+    
+    def get_department_medium_counts(self, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+
+        query = f"""
+            SELECT SUM(medium_count)
+            FROM {table}
+            WHERE date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+
+    def get_label_medium_counts(self, label, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+        if not table:
+            raise ValueError(f"Unknown department: {department_name}")
+
+        query = f"""
+            SELECT SUM(medium_count)
+            FROM {table}
+            WHERE label = %s AND date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (label, date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+    
+    def get_department_positive_counts(self, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+        if not table:
+            raise ValueError(f"Unknown department: {department_name}")
+
+        query = f"""
+            SELECT SUM(positive_count)
+            FROM {table}
+            WHERE date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+    
+    def get_label_positive_counts(self, label, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+        if not table:
+            raise ValueError(f"Unknown department: {department_name}")
+
+        query = f"""
+            SELECT SUM(positive_count)
+            FROM {table}
+            WHERE label = %s AND date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (label, date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+    
+    def get_department_negative_counts(self, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+
+        query = f"""
+            SELECT SUM(negative_count)
+            FROM {table}
+            WHERE date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+    
+    def get_label_negative_counts(self, label, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+        if not table:
+            raise ValueError(f"Unknown department: {department_name}")
+
+        query = f"""
+            SELECT SUM(negative_count)
+            FROM {table}
+            WHERE label = %s AND date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (label, date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+    
+    def get_department_neutral_counts(self, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+
+        query = f"""
+            SELECT SUM(neutral_count)
+            FROM {table}
+            WHERE date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+
+    def get_label_neutral_counts(self, label, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+        if not table:
+            raise ValueError(f"Unknown department: {department_name}")
+
+        query = f"""
+            SELECT SUM(neutral_count)
+            FROM {table}
+            WHERE label = %s AND date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (label, date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+    
+    def get_department_total_count(self, department_name, date_from, date_to):
+        table = self.get_table_name(department_name)
+
+        query = f"""
+            SELECT SUM(positive_count + negative_count + neutral_count)
+            FROM {table}
+            WHERE date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+
+    def get_label_total_count(self, department_name, label, date_from, date_to):
+        table = self.get_table_name(department_name)
+
+        query = f"""
+            SELECT SUM(positive_count + negative_count + neutral_count)
+            FROM {table}
+            WHERE label = %s AND date_from >= %s AND date_to <= %s
+        """
+
+        result = self.execute(query, (label, date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+    
     # -------------------------------------------------------------------------
     # CLEANUP
     # -------------------------------------------------------------------------
@@ -632,9 +1031,9 @@ if __name__ == "__main__":
     # Test MySQL connection
     try:
         db = MySQLDbService()
-        print("✅ MySQL database initialized successfully")
-        print(f"📊 Processed data rows: {db._get_row_count('reviews')}")
-        print(f"🎫 Tickets: {db._get_row_count('tickets')}")
-        print(f"👥 Users: {db._get_row_count('user_data')}")
+        print("MySQL database initialized successfully")
+        print(f"Processed data rows: {db._get_row_count('reviews')}")
+        print(f"Tickets: {db._get_row_count('tickets')}")
+        print(f"Users: {db._get_row_count('user_data')}")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")

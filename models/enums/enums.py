@@ -97,3 +97,10 @@ class DepartmentToLabels(Enum):
         "customer_support",
     ]
 
+class DepartmentTables(str, Enum):
+    KHB = "kabin_hizmetleri"
+    IUIUB = "ikram_ucak_ici"
+    BMCOGM = "yer_isletme_bagaj"
+    TGS = "tgs"
+    RVCBM = "rez_biletleme"
+    CMYM = "cagri_merkezi"

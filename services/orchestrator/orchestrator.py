@@ -6,7 +6,7 @@ import logging
 from dateutil import relativedelta
 from datetime import datetime
 
-from services.db_service.db_service import DbService
+from services.db_service.mysql_db_service import MySQLDbService
 from services.orchestrator.filter import DataFilter
 from services.orchestrator.review_listener import ReviewListener
 from services.access_control_service import AccessControlService
@@ -27,7 +27,7 @@ class FlightSenseOrchestrator:
     Thin façade that composes domain services.
     """
 
-    def __init__(self, db_service: DbService, secret_key: str):
+    def __init__(self, db_service: MySQLDbService, secret_key: str):
         self.db = db_service
 
         self.access = AccessControlService()
@@ -35,7 +35,7 @@ class FlightSenseOrchestrator:
         self.data = DataService(self.db, self.access)
 
         self.classifier = FeedbackClassifier()
-        self.stats = StatisticsService()
+        self.stats = StatisticsService(self.db)
         
         # Choose between mock and real Jira based on environment
         use_real_jira = os.getenv("USE_REAL_JIRA", "false").lower() == "true"
