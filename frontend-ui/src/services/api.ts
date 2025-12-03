@@ -4,6 +4,8 @@ export type Period = "weekly" | "monthly" | "yearly";
 
 export interface ManagerStatisticsData {
   total: number;
+  unique_reviews: number;
+  processed_segments: number;
   department_distribution: Record<string, number>;
   sentiment_counts: {
     positive: number;

@@ -27,6 +27,8 @@ export type ManagerTopIssue = {
 export type ManagerStatsUi = {
   periodLabel: string;
   totalReviews: number;
+  uniqueReviews: number;
+  processedSegments: number;
   positive: number;
   negative: number;
   highPriority: number;
@@ -65,6 +67,8 @@ export function mapManagerStatsApiToUi(
   period: Period
 ): ManagerStatsUi {
   const totalReviews = apiData.total;
+  const uniqueReviews = apiData.unique_reviews ?? 0;
+  const processedSegments = apiData.processed_segments ?? 0;
   const periodLabel = apiData.period_label;
 
   const positive = apiData.sentiment_counts.positive ?? 0;
@@ -99,6 +103,8 @@ export function mapManagerStatsApiToUi(
   return {
     periodLabel,
     totalReviews,
+    uniqueReviews,
+    processedSegments,
     positive,
     negative,
     highPriority,

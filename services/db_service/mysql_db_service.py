@@ -1022,6 +1022,45 @@ class MySQLDbService:
 
         result = self.execute(query, (label, date_from, date_to), fetch=True)
         return result[0][0] if result and result[0][0] is not None else 0
+
+    def get_unique_reviews_count(self, date_from: datetime, date_to: datetime) -> int:
+        """
+        Get count of unique reviews from the reviews table within a date range.
+        This counts actual reviews, not processed segments.
+        """
+        query = """
+            SELECT COUNT(DISTINCT id) 
+            FROM reviews 
+            WHERE date >= %s AND date < %s
+        """
+        result = self.execute(query, (date_from.date(), date_to.date()), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+
+    def get_processed_segments_count(self, date_from: datetime, date_to: datetime) -> int:
+        """
+        Get count of processed segments from the processed_reviews table within a date range.
+        This counts segments (one review can have multiple segments).
+        """
+        query = """
+            SELECT COUNT(*) 
+            FROM processed_reviews 
+            WHERE created_at >= %s AND created_at < %s
+        """
+        result = self.execute(query, (date_from, date_to), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
+
+    def get_unique_processed_reviews_count(self, date_from: datetime, date_to: datetime) -> int:
+        """
+        Get count of unique reviews that have been processed (have at least one segment).
+        """
+        query = """
+            SELECT COUNT(DISTINCT r.id) 
+            FROM reviews r
+            INNER JOIN processed_reviews pr ON r.id = pr.review_id
+            WHERE r.date >= %s AND r.date < %s
+        """
+        result = self.execute(query, (date_from.date(), date_to.date()), fetch=True)
+        return result[0][0] if result and result[0][0] is not None else 0
     
     def update_department_statistics(self, start_dt: datetime, end_dt: datetime):
         """

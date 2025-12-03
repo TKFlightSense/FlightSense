@@ -207,6 +207,14 @@ export default function DepartmentDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="text-xs px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 hover:border-slate-400 transition flex items-center gap-1.5
+                         dark:border-slate-600 dark:text-slate-50 dark:bg-slate-900/70 dark:hover:bg-slate-800"
+            >
+              ← Back to Dashboard
+            </button>
+
             {user && (
               <div className="text-right">
                 <p className="text-sm text-slate-900 dark:text-slate-50">

@@ -267,6 +267,10 @@ class FlightSenseOrchestrator:
         review_count_distribution = self.stats.get_manager_review_count_distribution(date_from, date_to)
         sentiment = self.stats.get_manager_sentiment_distribution(date_from, date_to)
         priority = self.stats.get_manager_priority_distribution(date_from, date_to)
+        
+        # Get unique reviews count directly from reviews table
+        unique_reviews_count = self.db.get_unique_reviews_count(date_from, date_to)
+        processed_segments_count = self.db.get_processed_segments_count(date_from, date_to)
 
         if period == "weekly":
             period_label = "Last 7 days"
@@ -282,6 +286,8 @@ class FlightSenseOrchestrator:
             "success": True,
             "data": {
                 "total": review_count_distribution["total_count"],
+                "unique_reviews": unique_reviews_count,
+                "processed_segments": processed_segments_count,
                 "department_distribution": review_count_distribution["department_counts"],
                 "sentiment_counts": sentiment["counts"],
                 "sentiment_percentages": sentiment["percentage"],

@@ -268,15 +268,26 @@ export default function Dashboard() {
           </section>
 
           {/* KPI cards */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Total reviews */}
+          <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Unique Reviews */}
             <div className={`${CARD} p-4`}>
-              <p className={KPI_TITLE}>Total reviews</p>
+              <p className={KPI_TITLE}>Unique reviews</p>
               <p className="mt-3 text-3xl font-semibold">
-                {stats.totalReviews.toLocaleString("en-US")}
+                {stats.uniqueReviews.toLocaleString("en-US")}
               </p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
-                Across all departments ({stats.periodLabel})
+                Total customer reviews ({stats.periodLabel})
+              </p>
+            </div>
+
+            {/* Processed Segments */}
+            <div className={`${CARD} p-4`}>
+              <p className={KPI_TITLE}>Processed segments</p>
+              <p className="mt-3 text-3xl font-semibold">
+                {stats.processedSegments.toLocaleString("en-US")}
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
+                Classified feedback segments
               </p>
             </div>
 
@@ -289,7 +300,7 @@ export default function Dashboard() {
                     {positivePercent}% positive
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-300">
-                    {stats.positive} reviews
+                    {stats.positive} segments
                   </p>
                 </div>
                 <div>
@@ -300,7 +311,7 @@ export default function Dashboard() {
                     {negativePercent}% negative
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-300">
-                    {stats.negative} reviews
+                    {stats.negative} segments
                   </p>
                 </div>
               </div>

@@ -25,6 +25,8 @@ export type TrendPoint = {
 export type ManagerStats = {
   periodLabel: string;
   totalReviews: number;
+  uniqueReviews: number;
+  processedSegments: number;
   positive: number;
   negative: number;
   highPriority: number;
@@ -44,6 +46,8 @@ export type TimeRangeKey = "weekly" | "monthly" | "yearly";
 export const MONTHLY_MANAGER_STATS: ManagerStats = {
   periodLabel: "Last 30 days",
   totalReviews: 1240,
+  uniqueReviews: 480,
+  processedSegments: 1240,
   positive: 830,
   negative: 410,
   highPriority: 180,
@@ -136,6 +140,8 @@ export const MOCK_MANAGER_STATS_BY_RANGE: Record<TimeRangeKey, ManagerStats> = {
   weekly: {
     periodLabel: "Last 7 days",
     totalReviews: 290,
+    uniqueReviews: 112,
+    processedSegments: 290,
     positive: 195,
     negative: 95,
     highPriority: 45,
@@ -232,6 +238,8 @@ export const MOCK_MANAGER_STATS_BY_RANGE: Record<TimeRangeKey, ManagerStats> = {
   yearly: {
     periodLabel: "Last 12 months",
     totalReviews: 14600,
+    uniqueReviews: 5600,
+    processedSegments: 14600,
     positive: 9850,
     negative: 4750,
     highPriority: 2100,
