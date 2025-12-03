@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../hooks/useTheme";
-import { DEPARTMENT_LABEL_TO_CODE, type DepartmentLabel, type DepartmentId } from "../departmentConfig";
+import { 
+  DEPARTMENT_LABEL_TO_CODE, 
+  getJiraProjectUrl,
+  type DepartmentLabel, 
+  type DepartmentCode
+} from "../departmentConfig";
 import {
   PAGE_WRAPPER,
   PAGE_BACKGROUND_OVERLAY,
@@ -40,6 +45,7 @@ export default function DepartmentDashboard() {
   const [stats, setStats] = useState<DepartmentStatsUi | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [departmentCode, setDepartmentCode] = useState<DepartmentCode | null>(null);
 
   // departmentName yoksa
   if (!departmentName) {
@@ -64,7 +70,8 @@ export default function DepartmentDashboard() {
     if (!departmentName) return;
 
     const label = decodeURIComponent(departmentName);
-    const code = (DEPARTMENT_LABEL_TO_CODE[label as DepartmentLabel] ?? label) as DepartmentId;
+    const code = (DEPARTMENT_LABEL_TO_CODE[label as DepartmentLabel] ?? label) as DepartmentCode;
+    setDepartmentCode(code);
 
     // If no token (mock login), use mock data
     if (!token) {
@@ -214,6 +221,21 @@ export default function DepartmentDashboard() {
             >
               ← Back to Dashboard
             </button>
+
+            {departmentCode && (
+              <a
+                href={getJiraProjectUrl(departmentCode)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs px-3 py-1.5 rounded-full border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 hover:border-blue-600 transition flex items-center gap-1.5
+                           dark:border-blue-400 dark:text-blue-300 dark:bg-slate-900/70 dark:hover:bg-blue-900/30"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11.53 2c-.94 0-1.7.76-1.7 1.7v1.37c-.88.21-1.69.59-2.4 1.1L6.12 4.86a1.7 1.7 0 00-2.4 0 1.7 1.7 0 000 2.4l1.31 1.31c-.51.71-.89 1.52-1.1 2.4H2.56c-.94 0-1.7.76-1.7 1.7s.76 1.7 1.7 1.7h1.37c.21.88.59 1.69 1.1 2.4l-1.31 1.31a1.7 1.7 0 000 2.4 1.7 1.7 0 002.4 0l1.31-1.31c.71.51 1.52.89 2.4 1.1v1.37c0 .94.76 1.7 1.7 1.7s1.7-.76 1.7-1.7v-1.37c.88-.21 1.69-.59 2.4-1.1l1.31 1.31a1.7 1.7 0 002.4 0 1.7 1.7 0 000-2.4l-1.31-1.31c.51-.71.89-1.52 1.1-2.4h1.37c.94 0 1.7-.76 1.7-1.7s-.76-1.7-1.7-1.7h-1.37c-.21-.88-.59-1.69-1.1-2.4l1.31-1.31a1.7 1.7 0 000-2.4 1.7 1.7 0 00-2.4 0l-1.31 1.31c-.71-.51-1.52-.89-2.4-1.1V3.7c0-.94-.76-1.7-1.7-1.7zm0 7.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z"/>
+                </svg>
+                Open Jira Board
+              </a>
+            )}
 
             {user && (
               <div className="text-right">
