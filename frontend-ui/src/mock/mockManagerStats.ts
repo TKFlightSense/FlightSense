@@ -63,7 +63,7 @@ export const MONTHLY_MANAGER_STATS: ManagerStats = {
       negative: 140,
     },
     {
-      id: "IkramveUcakIciUrunlerBsk",
+      id: "IUIUB",
       name: "İkram ve Uçak İçi Ürünler Bşk.",
       totalReviews: 310,
       highPriority: 50,
@@ -71,7 +71,7 @@ export const MONTHLY_MANAGER_STATS: ManagerStats = {
       negative: 80,
     },
     {
-      id: "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu",
+      id: "BMCOGM",
       name: "Yer İşletme Bşk - Bagaj",
       totalReviews: 280,
       highPriority: 40,
@@ -79,7 +79,7 @@ export const MONTHLY_MANAGER_STATS: ManagerStats = {
       negative: 130,
     },
     {
-      id: "KabinHizmetleriBsk",
+      id: "KHB",
       name: "Kabin Hizmetleri Bşk.",
       totalReviews: 230,
       highPriority: 15,
@@ -157,7 +157,7 @@ export const MOCK_MANAGER_STATS_BY_RANGE: Record<TimeRangeKey, ManagerStats> = {
         negative: 33,
       },
       {
-        id: "IkramveUcakIciUrunlerBsk",
+        id: "IUIUB",
         name: "İkram ve Uçak İçi Ürünler Bşk.",
         totalReviews: 75,
         highPriority: 13,
@@ -165,7 +165,7 @@ export const MOCK_MANAGER_STATS_BY_RANGE: Record<TimeRangeKey, ManagerStats> = {
         negative: 18,
       },
       {
-        id: "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu",
+        id: "BMCOGM",
         name: "Yer İşletme Bşk - Bagaj",
         totalReviews: 65,
         highPriority: 8,
@@ -173,7 +173,7 @@ export const MOCK_MANAGER_STATS_BY_RANGE: Record<TimeRangeKey, ManagerStats> = {
         negative: 33, // slightly more negative for baggage
       },
       {
-        id: "KabinHizmetleriBsk",
+        id: "KHB",
         name: "Kabin Hizmetleri Bşk.",
         totalReviews: 50,
         highPriority: 4,
@@ -255,7 +255,7 @@ export const MOCK_MANAGER_STATS_BY_RANGE: Record<TimeRangeKey, ManagerStats> = {
         negative: 1700,
       },
       {
-        id: "IkramveUcakIciUrunlerBsk",
+        id: "IUIUB",
         name: "İkram ve Uçak İçi Ürünler Bşk.",
         totalReviews: 3700,
         highPriority: 650,
@@ -263,7 +263,7 @@ export const MOCK_MANAGER_STATS_BY_RANGE: Record<TimeRangeKey, ManagerStats> = {
         negative: 1000,
       },
       {
-        id: "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu",
+        id: "BMCOGM",
         name: "Yer İşletme Bşk - Bagaj",
         totalReviews: 3300,
         highPriority: 400,
@@ -271,7 +271,7 @@ export const MOCK_MANAGER_STATS_BY_RANGE: Record<TimeRangeKey, ManagerStats> = {
         negative: 1650,
       },
       {
-        id: "KabinHizmetleriBsk",
+        id: "KHB",
         name: "Kabin Hizmetleri Bşk.",
         totalReviews: 2600,
         highPriority: 150,

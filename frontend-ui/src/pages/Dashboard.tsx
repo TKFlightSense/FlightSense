@@ -151,8 +151,7 @@ export default function Dashboard() {
 
   function handleDepartmentSliceClick(item: PieItem) {
     if (item.id) {
-      // item.id should be compatible with your <Route path="/department/:departmentId" />
-      window.open(`/department/${item.id}`, "_blank", "noopener,noreferrer");
+      navigate(`/department/${item.id}`);
     }
   }
 
@@ -377,7 +376,7 @@ export default function Dashboard() {
             <div className={`${CARD} p-4`}>
               <DistributionPie
                 title="Reviews by department"
-                subtitle="Click a department slice to open its dashboard"
+                subtitle="Click a department slice to view details"
                 data={departmentPieData}
                 onSliceClick={handleDepartmentSliceClick}
                 mode={theme}

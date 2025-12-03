@@ -5,10 +5,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../hooks/useTheme";
 import { 
-  DEPARTMENT_LABEL_TO_CODE, 
-  getJiraProjectUrl,
-  type DepartmentLabel, 
-  type DepartmentCode
+  JIRA_KEY_TO_DEPARTMENT_LABEL, 
+  getJiraProjectUrl
 } from "../departmentConfig";
 import {
   PAGE_WRAPPER,
@@ -31,7 +29,6 @@ import {
   mapDepartmentStatsApiToUi,
   type DepartmentStatsUi,
 } from "../utils/departmentStatsMapper";
-import { MOCK_DEPARTMENT_STATS_BY_RANGE, type TimeRangeKey } from "../mock/mockDepartmentStats";
 
 const THY_RED = "#b7312c";
 
@@ -45,7 +42,7 @@ export default function DepartmentDashboard() {
   const [stats, setStats] = useState<DepartmentStatsUi | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [departmentCode, setDepartmentCode] = useState<DepartmentCode | null>(null);
+  const [jiraKey, setJiraKey] = useState<string | null>(null);
 
   // departmentName yoksa
   if (!departmentName) {
@@ -69,33 +66,14 @@ export default function DepartmentDashboard() {
   useEffect(() => {
     if (!departmentName) return;
 
-    const label = decodeURIComponent(departmentName);
-    const code = (DEPARTMENT_LABEL_TO_CODE[label as DepartmentLabel] ?? label) as DepartmentCode;
-    setDepartmentCode(code);
+    // URL uses Jira project keys which are also backend department codes (e.g., /department/KHB)
+    const key = decodeURIComponent(departmentName);
+    const label = JIRA_KEY_TO_DEPARTMENT_LABEL[key] ?? key;
+    setJiraKey(key);
 
     // If no token (mock login), use mock data
     if (!token) {
-      const mockKey = timeRange as TimeRangeKey;
-      const mockData = MOCK_DEPARTMENT_STATS_BY_RANGE[code]?.[mockKey];
-      if (mockData) {
-        // We need to map mock data to UI format if they differ, or just cast if they are compatible.
-        // mapDepartmentStatsApiToUi expects DepartmentStatisticsData from API.
-        // The mock data structure is slightly different or needs mapping.
-        // Actually, let's check mapDepartmentStatsApiToUi.
-        // For now, let's assume we can't easily map without the mapper.
-        // But wait, the mock data is typed as DepartmentStats.
-        // Let's try to use it directly if possible, or map it.
-        // Since I don't want to rewrite the mapper right now, I'll just set error if mock data is missing.
-        // But wait, the user wants to connect API.
-        // If I am here, it means I am fixing the "connect API" part.
-        // The fallback is just for safety.
-        
-        // Let's just skip the mock fallback implementation details for now and focus on the API part.
-        // But if I don't handle !token, the page hangs.
-        setError("Using mock data (no API token available).");
-        // We need to setStats to something.
-        // Let's leave it as is for now, but at least show an error.
-      }
+      setError("Using mock data (no API token available).");
       return;
     }
 
@@ -103,7 +81,7 @@ export default function DepartmentDashboard() {
     setError(null);
 
     fetchDepartmentStatistics(token, {
-      department_name: code,
+      department_name: key,  // Backend expects the department code (KHB, TGS, etc.)
       period: timeRange,
     })
       .then((res) => {
@@ -116,13 +94,6 @@ export default function DepartmentDashboard() {
       .catch((err) => {
         console.error(err);
         setError(err.message || "Failed to load department data");
-        // Fallback to mock if API fails?
-        const mockKey = timeRange as TimeRangeKey;
-        const mockData = MOCK_DEPARTMENT_STATS_BY_RANGE[code]?.[mockKey];
-         if (mockData) {
-             // We would need to map this mockData to DepartmentStatsUi.
-             // Since I don't have the mapper handy for mock->UI, I will just show the error.
-         }
       })
       .finally(() => setLoading(false));
   }, [token, departmentName, timeRange]);
@@ -222,9 +193,9 @@ export default function DepartmentDashboard() {
               ← Back to Dashboard
             </button>
 
-            {departmentCode && (
+            {jiraKey && (
               <a
-                href={getJiraProjectUrl(departmentCode)}
+                href={getJiraProjectUrl(jiraKey)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs px-3 py-1.5 rounded-full border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 hover:border-blue-600 transition flex items-center gap-1.5

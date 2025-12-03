@@ -1,5 +1,6 @@
 // src/utils/managerStatsMapper.ts
 import type { ManagerStatisticsData, Period } from "../services/api";
+import { DEPARTMENT_LABEL_TO_JIRA_KEY } from "../departmentConfig";
 
 export type ManagerTrendPoint = {
   label: string;
@@ -87,9 +88,12 @@ export function mapManagerStatsApiToUi(
     const depPositive = sentimentEntry?.counts.positive ?? 0;
     const depNegative = sentimentEntry?.counts.negative ?? 0;
 
+    // Backend returns department labels - convert to codes for URL routing
+    const departmentCode = DEPARTMENT_LABEL_TO_JIRA_KEY[backendName] ?? backendName;
+
     return {
-      id: backendName,      // route param olarak da bunu kullanacağız
-      name: backendName,    // UI'da görünen isim
+      id: departmentCode,     // Department code for URL routing (KHB, TGS, etc.)
+      name: backendName,      // Keep original label for display
       totalReviews: total,
       positive: depPositive,
       negative: depNegative,
