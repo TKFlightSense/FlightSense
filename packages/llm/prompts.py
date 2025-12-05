@@ -95,98 +95,98 @@ DEPARTMENT_EXAMPLES = {
     "BMCOGM": """
 Example 1:
 Reviews:
-- "My suitcase arrived with a broken handle and a large crack on the side after flight TK1983."
-- "I waited for over 2 hours at the carousel in Istanbul, and my bag never showed up. The staff had no information."
-- "My luggage was completely soaked when I retrieved it, ruining my clothes inside."
+- "My checked bag containing my heart medication has been missing for 48 hours. This is life-threatening."
+- "You completely destroyed my custom wheelchair. I am stranded at the airport without mobility."
+- "My suitcase arrived open with all valuables, including a laptop and jewelry, stolen."
 Summary:
-Passengers reported severe issues with baggage handling, including damaged luggage (broken handles, cracks, water damage) and significant delays in baggage delivery at Istanbul, with a lack of information from staff regarding lost items.
+Passengers reported critical baggage incidents involving lost life-sustaining medication, destruction of essential mobility aids (wheelchair), and theft of high-value items from checked luggage.
 
 Example 2:
 Reviews:
-- "Baggage delivery was surprisingly fast today, got my bags in 15 minutes."
-- "No issues with my luggage, everything arrived safe and sound."
+- "Baggage claim was chaos, waited 3 hours."
+- "Bag handle broken."
 Summary:
-Passengers reported a positive experience with efficient and safe baggage delivery.
+Passengers reported significant delays and minor damage to luggage.
 """,
     "IUIB": """
 Example 1:
 Reviews:
-- "The pasta served on the flight was cold and tasteless. Very disappointed with the meal quality."
-- "The in-flight entertainment system at seat 12A was frozen for the entire 8-hour flight."
-- "They ran out of the vegetarian option before reaching row 20."
+- "I found a sharp piece of glass in my pasta meal. I almost swallowed it."
+- "The seat 4A is broken and has a sharp metal edge that cut my leg."
+- "Smoke started coming out of the IFE screen in row 15."
 Summary:
-Passengers expressed dissatisfaction with the in-flight product, specifically citing poor food quality (cold, tasteless), insufficient stock of special meals (vegetarian), and malfunctioning in-flight entertainment systems.
+Passengers reported severe safety hazards including foreign objects in food (glass), injury-causing seat defects, and potential fire hazards (smoking IFE screen).
 
 Example 2:
 Reviews:
-- "The new movie selection is fantastic, kept me entertained the whole way."
-- "The breakfast was delicious, fresh fruit and hot coffee were perfect."
+- "Food was cold."
+- "IFE selection is poor."
 Summary:
-Passengers praised the in-flight entertainment content and the quality of the breakfast service.
+Passengers expressed dissatisfaction with meal temperature and entertainment variety.
 """,
     "TGS": """
 Example 1:
 Reviews:
-- "The check-in line was moving extremely slowly, only two counters were open for economy class."
-- "Boarding was a mess, there was no zone enforcement and people were pushing."
-- "Ground staff at the gate were rude when I asked about the delay."
+- "The gate agent physically pushed an elderly passenger who was moving slowly."
+- "My 8-year-old unaccompanied minor was left alone at the gate for 2 hours with no supervision."
+- "Staff refused to let us board despite being at the gate 20 minutes before departure, causing us to miss a funeral."
 Summary:
-Passengers reported operational inefficiencies and poor service from ground staff, highlighting long wait times at check-in, chaotic boarding processes due to lack of zone enforcement, and unprofessional behavior from gate agents.
+Passengers reported serious misconduct by ground staff, including physical aggression, negligence regarding unaccompanied minors, and unjust denied boarding causing severe personal distress.
 
 Example 2:
 Reviews:
-- "Check-in was a breeze with the self-service kiosks."
-- "Boarding started on time and was very organized."
+- "Check-in was slow."
+- "Boarding was disorganized."
 Summary:
-Passengers reported a smooth and efficient ground experience, praising the self-service check-in options and organized boarding process.
+Passengers reported operational inefficiencies during check-in and boarding.
 """,
     "KHB": """
 Example 1:
 Reviews:
-- "The tray table was sticky and had coffee stains from the previous flight."
-- "The lavatory was in a terrible state, no paper towels and very dirty."
-- "There was trash in the seat pocket when I boarded."
+- "A flight attendant ignored my call for help when the passenger next to me was having a seizure."
+- "The crew member in the aft galley appeared visibly intoxicated and was slurring words."
+- "I was verbally abused and threatened by a purser for asking for water."
 Summary:
-Passengers raised serious concerns about cabin cleanliness, reporting dirty tray tables, uncleaned seat pockets, and poor hygiene in the lavatories.
+Passengers reported critical safety and conduct violations by cabin crew, including failure to respond to medical emergencies, working under the influence, and abusive behavior.
 
 Example 2:
 Reviews:
-- "The cabin was spotless when we boarded."
-- "Toilets were kept clean throughout the long flight."
+- "Crew was not friendly."
+- "Service was slow."
 Summary:
-Passengers complimented the high standards of cabin cleanliness and hygiene maintenance during the flight.
+Passengers reported poor service attitude and slow response times.
 """,
     "RVBCM": """
 Example 1:
 Reviews:
-- "I tried to change my flight online but the system kept crashing."
-- "The ticket price was very high for such a short flight."
+- "Your system charged my credit card 5 times for the same ticket, blocking $10,000 and leaving me with no funds."
+- "My confirmed booking was cancelled without notice 2 hours before the flight, leaving me stranded."
 Summary:
-Passengers reported technical issues with the online booking system and dissatisfaction with ticket pricing.
+Passengers reported severe ticketing system errors resulting in massive financial holds and unnotified cancellations causing travel disruption.
 """,
     "CMYM": """
 Example 1:
 Reviews:
-- "I called customer service and waited on hold for 45 minutes."
-- "The agent was helpful but couldn't resolve my issue."
+- "The agent screamed at me and used profanity when I asked to speak to a supervisor."
+- "I was given incorrect visa information by your call center, resulting in my deportation upon arrival."
 Summary:
-Passengers reported long wait times for customer service, though some agents were helpful.
+Passengers reported gross misconduct by call center agents (profanity) and critical misinformation leading to legal/immigration consequences.
 """,
     "GYB": """
 Example 1:
 Reviews:
-- "The loyalty points I earned were not credited to my account."
-- "I didn't receive the discount I was promised."
+- "I am an Elite Plus member and was denied all priority services, causing me to miss my connection."
+- "100,000 miles were deducted from my account without my authorization."
 Summary:
-Passengers reported issues with loyalty program credits and missing discounts.
+Passengers reported unauthorized loss of loyalty points and denial of entitled elite status benefits causing travel disruption.
 """,
     "default": """
 Example 1:
 Reviews:
-- "The service was generally poor and the flight was delayed by 3 hours."
-- "Not the standard I expect from this airline."
+- "The flight was delayed 5 hours and we were given no water."
+- "Staff was rude and unhelpful."
 Summary:
-Passengers reported general dissatisfaction with the service standards and significant flight delays.
+Passengers reported significant delays with lack of basic care and poor staff behavior.
 """
 }
 
