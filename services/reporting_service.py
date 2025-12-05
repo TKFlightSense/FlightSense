@@ -42,11 +42,7 @@ class ReportingService:
     def create_tickets_for_filtered(self, user_info: Dict, filters: Union[Dict, DataFilter]) -> Dict[str, Any]:
         """
         Create Jira tickets for all reviews matching the filter.
-        (Placeholder for manual batch operation)
         """
-        # This would typically involve:
-        # 1. Fetching data matching filters
-        # 2. Iterating and calling jira_agent.create_ticket_for_row
         return {"success": False, "error": "Batch ticket creation not fully implemented yet"}
 
     def handle_high_priority_automation(self, review_row: Dict[str, Any], segments: List[Dict[str, Any]]) -> None:
@@ -76,16 +72,11 @@ class ReportingService:
                 
             try:
                 # Map label to department
-                # LabelToDepartment is an Enum, so we access .value
                 if label in LabelToDepartment.__members__:
                      department = LabelToDepartment[label].value
                 else:
-                     # Fallback or try direct lookup if it's not in members (unlikely if typed correctly)
-                     # The Enum might be defined such that LabelToDepartment['baggage_lost'] works
-                     # Let's assume standard Enum usage: LabelToDepartment.baggage_lost.value
-                     # But labels are strings like "baggage_lost".
-                     # We need to find the Enum member with that name.
-                     department = LabelToDepartment[label].value
+                     logger.warning(f"Label '{label}' not found in LabelToDepartment mapping")
+                     continue
 
                 if department in alerted_departments:
                     continue
@@ -95,9 +86,12 @@ class ReportingService:
                 enhanced_row["labels"] = label
                 enhanced_row["priority"] = "HIGH"
                 
+                # Convert to Series for compatibility with Jira agent
+                row_series = pd.Series(enhanced_row)
+                
                 # 1. Create Jira Ticket
                 logger.info(f"Creating Jira ticket for high priority review {review_id} (Dept: {department})")
-                self.jira_agent.create_ticket_for_row(enhanced_row)
+                self.jira_agent.create_ticket_for_row(row_series)
                 
                 # 2. Send Email Alert
                 logger.info(f"Sending email alert for high priority review {review_id} (Dept: {department})")
@@ -105,7 +99,5 @@ class ReportingService:
                 
                 alerted_departments.add(department)
                 
-            except KeyError:
-                logger.warning(f"Could not map label '{label}' to a department")
             except Exception as e:
                 logger.error(f"Error triggering agents for high priority review {review_id}: {e}")
