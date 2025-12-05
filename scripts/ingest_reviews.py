@@ -3,6 +3,7 @@ import sys
 import argparse
 import pandas as pd
 import requests
+import numpy as np
 from dotenv import load_dotenv
 
 # Add parent directory to path to allow importing services
@@ -38,11 +39,27 @@ def ingest_reviews(csv_file, username, password):
 
     # Fill missing optional columns
     if 'date' not in df.columns:
-        df['date'] = pd.Timestamp.now().date()
+        print("    [INFO] Generating random dates for the last 7 days...")
+        
+        # 1. Define the time window
+        end_date = pd.Timestamp.now()
+        start_date = end_date - pd.Timedelta(days=7)
+        
+        # 2. Calculate the total range in seconds
+        time_range_seconds = (end_date - start_date).total_seconds()
+        
+        # 3. Generate random seconds for each row
+        random_seconds = np.random.randint(0, int(time_range_seconds), size=len(df))
+        
+        # 4. Add random seconds to the start_date
+        random_dates = start_date + pd.to_timedelta(random_seconds, unit='s')
+        
+        # 5. Assign to dataframe (formatting as YYYY-MM-DD strings)
+        df['date'] = random_dates.strftime('%Y-%m-%d')    
     if 'flight_number' not in df.columns:
-        df['flight_number'] = None
+            df['flight_number'] = None
     if 'pnr' not in df.columns:
-        df['pnr'] = None
+        df['pnr'] = "TSTPNR"
 
     print(f"    Found {len(df)} reviews to ingest.")
 

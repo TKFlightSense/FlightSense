@@ -1031,7 +1031,7 @@ class MySQLDbService:
         query = """
             SELECT COUNT(DISTINCT id) 
             FROM reviews 
-            WHERE date >= %s AND date < %s
+            WHERE date >= %s AND date <= %s
         """
         result = self.execute(query, (date_from.date(), date_to.date()), fetch=True)
         return result[0][0] if result and result[0][0] is not None else 0

@@ -16,9 +16,6 @@ ALLOWED LABELS (exact strings + explanations + priority explanations)
 ---------------------------------------------------------------------
 {labels_block}
 
-SENTIMENT LABELS (positive or neutral or negative)
----------------------------------------
-{sentiment_labels_block}
 
 TASK
 ----
@@ -54,9 +51,7 @@ Priority assignment rules:
 - If a situation falls between categories, default to the LOWER priority (e.g., if unclear between LOW and MEDIUM, choose LOW).
 
 Sentiment analysis rules:
-- CHECK if the segment's label is in the provided SENTIMENT LABELS list.
-- IF label is NOT in the list: Set sentiment to "NONE".
-- IF label IS in the list: Analyze the tone and assign "POSITIVE", "NEGATIVE", or "NEUTRAL".
+- Analyze the tone and assign "POSITIVE", "NEGATIVE", or "NEUTRAL".
     - Use "NEUTRAL" for purely factual descriptions (e.g., "Dinner was served at 6pm") or ambivalent statements.
     - Use "NEGATIVE" for complaints, sarcasm, or dissatisfaction.
     - Use "POSITIVE" for praise, gratitude, or satisfaction.
