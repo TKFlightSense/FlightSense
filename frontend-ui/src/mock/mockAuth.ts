@@ -28,7 +28,7 @@ export const MOCK_USERS: MockUser[] = [
     username: "ikram.user",
     password: "test123",
     role: "department_viewer",
-    departmentId: "IUIUB",
+    departmentId: "IUIB",
   },
   {
     username: "bagaj.user",
@@ -40,7 +40,7 @@ export const MOCK_USERS: MockUser[] = [
     username: "kabin.user",
     password: "test123",
     role: "department_viewer",
-    departmentId: "KABIN",
+    departmentId: "KHB",
   },
   {
     username: "tgs.user",

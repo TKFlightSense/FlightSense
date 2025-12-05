@@ -35,8 +35,8 @@ export type TimeRangeKey = "weekly" | "monthly" | "yearly";
  * MONTHLY BASELINE – same totals as before, just extended with issue-level pos/neg.
  */
 export const MONTHLY_DEPARTMENT_STATS: Record<DepartmentId, DepartmentStats> = {
-  IUIUB: {
-    departmentId: "IUIUB",
+  IUIB: {
+    departmentId: "IUIB",
     name: "İkram ve Uçak İçi Ürünler Başkanlığı",
     periodLabel: "Last 30 days",
     totalReviews: 310,
@@ -105,8 +105,8 @@ export const MONTHLY_DEPARTMENT_STATS: Record<DepartmentId, DepartmentStats> = {
       { label: "W4", positive: 20, negative: 23 },
     ],
   },
-  KABIN: {
-    departmentId: "KABIN",
+  KHB: {
+    departmentId: "KHB",
     name: "Kabin Hizmetleri Başkanlığı",
     periodLabel: "Last 30 days",
     totalReviews: 230,
@@ -167,8 +167,8 @@ export const MONTHLY_DEPARTMENT_STATS: Record<DepartmentId, DepartmentStats> = {
       { label: "W4", positive: 50, negative: 17 },
     ],
   },
-  RVCBM: {
-    departmentId: "RVCBM",
+  RVBCM: {
+    departmentId: "RVBCM",
     name: "Rezervasyon ve Biletleme Çzm. Mdr.",
     periodLabel: "Last 30 days",
     totalReviews: 0,
@@ -193,6 +193,19 @@ export const MONTHLY_DEPARTMENT_STATS: Record<DepartmentId, DepartmentStats> = {
     topIssues: [],
     trend: [],
   },
+  GYB: {
+    departmentId: "GYB",
+    name: "Gelir Yönetimi Başkanlığı",
+    periodLabel: "Last 30 days",
+    totalReviews: 0,
+    positive: 0,
+    negative: 0,
+    highPriority: 0,
+    mediumPriority: 0,
+    lowPriority: 0,
+    topIssues: [],
+    trend: [],
+  },
 };
 
 /**
@@ -202,9 +215,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
   DepartmentId,
   Record<TimeRangeKey, DepartmentStats>
 > = {
-  IUIUB: {
+  IUIB: {
     weekly: {
-      departmentId: "IUIUB",
+      departmentId: "IUIB",
       name: "İkram ve Uçak İçi Ürünler Başkanlığı",
       periodLabel: "Last 7 days",
       totalReviews: 75,
@@ -241,9 +254,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         { label: "D7", positive: 8, negative: 2 },
       ],
     },
-    monthly: MONTHLY_DEPARTMENT_STATS.IUIUB,
+    monthly: MONTHLY_DEPARTMENT_STATS.IUIB,
     yearly: {
-      departmentId: "IUIUB",
+      departmentId: "IUIB",
       name: "İkram ve Uçak İçi Ürünler Başkanlığı",
       periodLabel: "Last 12 months",
       totalReviews: 3700,
@@ -377,9 +390,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
     },
   },
 
-  KABIN: {
+  KHB: {
     weekly: {
-      departmentId: "KABIN",
+      departmentId: "KHB",
       name: "Kabin Hizmetleri Başkanlığı",
       periodLabel: "Last 7 days",
       totalReviews: 50,
@@ -408,9 +421,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         { label: "D7", positive: 4, negative: 1 },
       ],
     },
-    monthly: MONTHLY_DEPARTMENT_STATS.KABIN,
+    monthly: MONTHLY_DEPARTMENT_STATS.KHB,
     yearly: {
-      departmentId: "KABIN",
+      departmentId: "KHB",
       name: "Kabin Hizmetleri Başkanlığı",
       periodLabel: "Last 12 months",
       totalReviews: 2600,
@@ -530,9 +543,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
       ],
     },
   },
-  RVCBM: {
+  RVBCM: {
     weekly: {
-      departmentId: "RVCBM",
+      departmentId: "RVBCM",
       name: "Rezervasyon ve Biletleme Çzm. Mdr.",
       periodLabel: "Last 7 days",
       totalReviews: 0,
@@ -545,7 +558,7 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
       trend: [],
     },
     monthly: {
-      departmentId: "RVCBM",
+      departmentId: "RVBCM",
       name: "Rezervasyon ve Biletleme Çzm. Mdr.",
       periodLabel: "Last 30 days",
       totalReviews: 0,
@@ -558,7 +571,7 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
       trend: [],
     },
     yearly: {
-      departmentId: "RVCBM",
+      departmentId: "RVBCM",
       name: "Rezervasyon ve Biletleme Çzm. Mdr.",
       periodLabel: "Last 12 months",
       totalReviews: 0,
@@ -601,6 +614,47 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
     yearly: {
       departmentId: "CMYM",
       name: "Çağrı Merkezi Yönetimi Mdr.",
+      periodLabel: "Last 12 months",
+      totalReviews: 0,
+      positive: 0,
+      negative: 0,
+      highPriority: 0,
+      mediumPriority: 0,
+      lowPriority: 0,
+      topIssues: [],
+      trend: [],
+    },
+  },
+  GYB: {
+    weekly: {
+      departmentId: "GYB",
+      name: "Gelir Yönetimi Başkanlığı",
+      periodLabel: "Last 7 days",
+      totalReviews: 0,
+      positive: 0,
+      negative: 0,
+      highPriority: 0,
+      mediumPriority: 0,
+      lowPriority: 0,
+      topIssues: [],
+      trend: [],
+    },
+    monthly: {
+      departmentId: "GYB",
+      name: "Gelir Yönetimi Başkanlığı",
+      periodLabel: "Last 30 days",
+      totalReviews: 0,
+      positive: 0,
+      negative: 0,
+      highPriority: 0,
+      mediumPriority: 0,
+      lowPriority: 0,
+      topIssues: [],
+      trend: [],
+    },
+    yearly: {
+      departmentId: "GYB",
+      name: "Gelir Yönetimi Başkanlığı",
       periodLabel: "Last 12 months",
       totalReviews: 0,
       positive: 0,
