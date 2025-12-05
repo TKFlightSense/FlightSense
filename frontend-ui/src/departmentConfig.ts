@@ -1,4 +1,4 @@
-export type DepartmentCode = "IUIB" | "BMCOGM" | "KHB" | "TGS" | "RVBCM" | "CMYM" | "GYB";
+export type DepartmentCode = "IUIUB" | "BMCOGM" | "KHB" | "TGS" | "RVBCM" | "CMYM" | "GYB";
 export type DepartmentId = DepartmentCode; // Alias for compatibility
 
 export type DepartmentLabel =
@@ -12,7 +12,7 @@ export type DepartmentLabel =
 
 
 export const DEPARTMENT_LABEL_TO_CODE: Record<DepartmentLabel, DepartmentCode> = {
-  "İkram ve Uçak İçi Ürünler Başkanlığı": "IUIB",
+  "İkram ve Uçak İçi Ürünler Başkanlığı": "IUIUB",
   "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü": "BMCOGM",
   "Kabin Hizmetleri Başkanlığı": "KHB",
   "Turkish Ground Services": "TGS",
@@ -34,7 +34,7 @@ export const DEPARTMENT_CODE_TO_LABEL: Record<DepartmentCode, DepartmentLabel> =
  * These map to Jira project URLs like: https://your-jira-instance.atlassian.net/jira/software/projects/{KEY}/boards
  */
 export const DEPARTMENT_JIRA_PROJECT_KEY: Record<DepartmentCode, string> = {
-  IUIB: "IUIB",
+  IUIUB: "IUIUB",
   BMCOGM: "BMCOGM",
   KHB: "KHB",
   TGS: "TGS",
@@ -48,7 +48,7 @@ export const DEPARTMENT_JIRA_PROJECT_KEY: Record<DepartmentCode, string> = {
  * These keys are also used as backend department codes for API calls.
  */
 export const DEPARTMENT_LABEL_TO_JIRA_KEY: Record<string, string> = {
-  "İkram ve Uçak İçi Ürünler Başkanlığı": "IUIB",
+  "İkram ve Uçak İçi Ürünler Başkanlığı": "IUIUB",
   "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü": "BMCOGM",
   "Kabin Hizmetleri Başkanlığı": "KHB",
   "Turkish Ground Services": "TGS",
@@ -61,7 +61,7 @@ export const DEPARTMENT_LABEL_TO_JIRA_KEY: Record<string, string> = {
  * Map from Jira project key (also backend code) to department display label.
  */
 export const JIRA_KEY_TO_DEPARTMENT_LABEL: Record<string, string> = {
-  "IUIB": "İkram ve Uçak İçi Ürünler Başkanlığı",
+  "IUIUB": "İkram ve Uçak İçi Ürünler Başkanlığı",
   "BMCOGM": "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü",
   "KHB": "Kabin Hizmetleri Başkanlığı",
   "TGS": "Turkish Ground Services",

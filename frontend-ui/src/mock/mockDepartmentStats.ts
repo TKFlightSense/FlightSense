@@ -35,8 +35,8 @@ export type TimeRangeKey = "weekly" | "monthly" | "yearly";
  * MONTHLY BASELINE – same totals as before, just extended with issue-level pos/neg.
  */
 export const MONTHLY_DEPARTMENT_STATS: Record<DepartmentId, DepartmentStats> = {
-  IUIB: {
-    departmentId: "IUIB",
+  IUIUB: {
+    departmentId: "IUIUB",
     name: "İkram ve Uçak İçi Ürünler Başkanlığı",
     periodLabel: "Last 30 days",
     totalReviews: 310,
@@ -215,9 +215,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
   DepartmentId,
   Record<TimeRangeKey, DepartmentStats>
 > = {
-  IUIB: {
+  IUIUB: {
     weekly: {
-      departmentId: "IUIB",
+      departmentId: "IUIUB",
       name: "İkram ve Uçak İçi Ürünler Başkanlığı",
       periodLabel: "Last 7 days",
       totalReviews: 75,
@@ -254,9 +254,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         { label: "D7", positive: 8, negative: 2 },
       ],
     },
-    monthly: MONTHLY_DEPARTMENT_STATS.IUIB,
+    monthly: MONTHLY_DEPARTMENT_STATS.IUIUB,
     yearly: {
-      departmentId: "IUIB",
+      departmentId: "IUIUB",
       name: "İkram ve Uçak İçi Ürünler Başkanlığı",
       periodLabel: "Last 12 months",
       totalReviews: 3700,

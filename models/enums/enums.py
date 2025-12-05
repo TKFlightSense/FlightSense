@@ -46,7 +46,7 @@ class Departments(str, Enum):
     """
     Full department names
     """
-    IUIB = "İkram ve Uçak İçi Ürünler Başkanlığı"
+    IUIUB = "İkram ve Uçak İçi Ürünler Başkanlığı"
     BMCOGM = "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü"
     KHB = "Kabin Hizmetleri Başkanlığı"
     TGS = "Turkish Ground Services"
@@ -58,8 +58,8 @@ class LabelToDepartment(str, Enum):
     """
     Label to department mapping
     """
-    inflight_experience_food_beverage = "IUIB"
-    inflight_experience_entertainment = "IUIB"
+    inflight_experience_food_beverage = "IUIUB"
+    inflight_experience_entertainment = "IUIUB"
     inflight_experience_seats_comfort = "KHB"
     inflight_experience_cabin_service = "KHB"
     inflight_experience_cleanliness = "KHB"
@@ -73,7 +73,7 @@ class LabelToDepartment(str, Enum):
 
 
 class DepartmentToLabels(Enum):
-    IUIB = [
+    IUIUB = [
         "inflight_experience_food_beverage",
         "inflight_experience_entertainment",
     ]
@@ -102,7 +102,7 @@ class DepartmentToLabels(Enum):
 
 class DepartmentTables(str, Enum):
     KHB = "kabin_hizmetleri"
-    IUIB = "ikram_ucak_ici"
+    IUIUB = "ikram_ucak_ici"
     BMCOGM = "yer_isletme_bagaj"
     TGS = "tgs"
     RVBCM = "rez_biletleme"

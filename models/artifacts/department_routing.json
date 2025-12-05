@@ -1,8 +1,8 @@
 {
   "label_to_department": {
-    "inflight_experience_food_beverage": "IUIB",
+    "inflight_experience_food_beverage": "IUIUB",
     "inflight_experience_seats_comfort": "KHB",
-    "inflight_experience_entertainment": "IUIB",
+    "inflight_experience_entertainment": "IUIUB",
     "inflight_experience_cabin_service": "KHB",
     "inflight_experience_cleanliness": "KHB",
     "checkin_process": "TGS",
@@ -14,8 +14,8 @@
     "pricing_and_loyalty": "GYB"
   },
   "department_config": {
-    "IUIB": {
-      "project_key": "IUIB",
+    "IUIUB": {
+      "project_key": "IUIUB",
       "issue_type": "Task"
     },
     "BMCOGM": {
@@ -44,7 +44,7 @@
     }
   },
   "department_labels": {
-    "IUIB": [
+    "IUIUB": [
       "inflight_experience_food_beverage",
       "inflight_experience_entertainment"
     ],

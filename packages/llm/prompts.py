@@ -109,7 +109,7 @@ Reviews:
 Summary:
 Passengers reported significant delays and minor damage to luggage.
 """,
-    "IUIB": """
+    "IUIUB": """
 Example 1:
 Reviews:
 - "I found a sharp piece of glass in my pasta meal. I almost swallowed it."
