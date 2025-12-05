@@ -37,6 +37,7 @@ Segmentation rules:
 - Keep segments concise while capturing the complete thought
 - Return AT MOST {max_segments} segments
 - If nothing fits any label, return empty segments list
+- If continuous text belongs to the same label, keep it as a single segment rather than splitting it
 
 Labeling rules:
 - Use ONLY the exact label strings provided (no variations, no typos)
