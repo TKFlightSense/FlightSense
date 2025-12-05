@@ -156,3 +156,42 @@ class EmailSummaryAgent:
                 subject=EMAIL_SUBJECT_TEMPLATE.format(department=dept),
                 body=body,
             )
+
+    def send_alert_email(self, review_row: Dict[str, Any], department: str, priority: str) -> None:
+        """
+        Send an immediate alert email for a high-priority review.
+        """
+        recipients = DEPARTMENT_RECIPIENTS.get(department, [])
+        if not recipients:
+            return
+
+        subject = f"[URGENT] High Priority Feedback Alert - {department}"
+        
+        review_text = review_row.get("review", "")
+        flight_number = review_row.get("flight_number", "N/A")
+        pnr = review_row.get("pnr", "N/A")
+        date_str = str(review_row.get("date", "N/A"))
+
+        # Generate summary using the summarizer
+        try:
+            summary = self.summarizer.summarize([review_text], department, "urgent alert")
+        except Exception as e:
+            summary = "Summary generation failed."
+            print(f"Failed to generate summary for alert: {e}")
+
+        body = (
+            f"URGENT ALERT: High Priority Feedback Detected\n\n"
+            f"Department: {department}\n"
+            f"Priority: {priority}\n"
+            f"Date: {date_str}\n"
+            f"Flight: {flight_number}\n"
+            f"PNR: {pnr}\n\n"
+            f"**AI Summary:**\n{summary}\n\n"
+            f"**Original Review:**\n{review_text}\n\n"
+            f"Please take immediate action."
+        )
+
+        try:
+            self._send_email(recipients, subject, body)
+        except Exception as e:
+            print(f"Failed to send alert email: {e}")

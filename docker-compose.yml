@@ -98,6 +98,56 @@ services:
     networks:
       - flightsense-network
 
+  # Background Worker
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flightsense-worker
+    restart: unless-stopped
+    command: python services/automation/background_worker.py
+    depends_on:
+      mysql:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    environment:
+      # Database Configuration
+      USE_MYSQL: "true"
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-flightsense}
+      MYSQL_USER: ${MYSQL_USER:-flightsense}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-flightsense123}
+      
+      # LLM Configuration
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      VLLM_API_BASE: ${VLLM_API_BASE:-http://localhost:8001}
+      
+      # Jira Configuration
+      USE_REAL_JIRA: ${USE_REAL_JIRA:-false}
+      JIRA_URL: ${JIRA_URL}
+      JIRA_USER: ${JIRA_USER}
+      JIRA_TOKEN: ${JIRA_TOKEN}
+      
+      # Email Configuration
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      
+      # API Security
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-key}
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./models:/app/models:ro
+      - ./configs:/app/configs:ro
+    networks:
+      - flightsense-network
+
   # Frontend UI
   frontend:
     build:

@@ -1,12 +1,12 @@
 {
   "department_recipients": {
-    "IUIB": ["ikramucakiciurunlerbsk@thy.com"],
-    "BMCOGM": ["yerisletme@thy.com"],
-    "KHB": ["kabinhizbsk@thy.com"],
-    "TGS": ["tgs@thy.com"],
-    "RVBCM": ["rezervasyon@thy.com"],
-    "CMYM": ["cagrimerkezi@thy.com"],
-    "GYB": ["geliryonetimi@thy.com"]
+    "IUIB": ["pbulut22@ku.edu.tr"],
+    "BMCOGM": ["pbulut22@ku.edu.tr"],
+    "KHB": ["pbulut22@ku.edu.tr"],
+    "TGS": ["pbulut22@ku.edu.tr"],
+    "RVBCM": ["pbulut22@ku.edu.tr"],
+    "CMYM": ["pbulut22@ku.edu.tr"],
+    "GYB": ["pbulut22@ku.edu.tr"]
   },
   "email_subject_template": "[TKFlightSense] Feedback Report – {department}",
   "default_days_lookback": 1
