@@ -7,6 +7,7 @@ import json
 import pandas as pd
 
 from packages.tickets.client import AbstractTicketClient, TicketPayload
+from packages.llm.summarizer import Summarizer
 from models.labels import ALL_LABELS
 
 
@@ -43,8 +44,9 @@ class JiraTicketAgent:
       - sends TicketPayloads to a TicketClient (mock Jira or real Jira).
     """
 
-    def __init__(self, ticket_client: AbstractTicketClient):
+    def __init__(self, ticket_client: AbstractTicketClient, summarizer: Optional[Summarizer] = None):
         self.client = ticket_client
+        self.summarizer = summarizer or Summarizer()
 
     # ---------- internal helpers ----------
 
@@ -64,13 +66,22 @@ class JiraTicketAgent:
     def _build_summary(self, row: pd.Series, primary_label: str) -> str:
         return f"[{primary_label}] Customer feedback on recent flight"
 
-    def _build_description(self, row: pd.Series) -> str:
+    def _build_description(self, row: pd.Series, department: str) -> str:
         review = row.get("review", "")
         date = row.get("date", "N/A")
         labels = row.get("labels", "")
+        
+        # Use summarizer to generate a better description
+        summary = self.summarizer.summarize(
+            reviews=[review],
+            department=department,
+            purpose="create jira task"
+        )
+        
         return (
             f"*Customer feedback date:* {date}\n"
             f"*Detected labels:* {labels}\n\n"
+            f"*Summary:*\n{summary}\n\n"
             f"*Raw feedback:*\n{review}\n"
         )
 
@@ -91,7 +102,7 @@ class JiraTicketAgent:
             return None
 
         summary = self._build_summary(row, primary_label)
-        description = self._build_description(row)
+        description = self._build_description(row, department)
         processed_id = row.get("id")  # requires 'id' column in DataFrame
 
         payload = TicketPayload(

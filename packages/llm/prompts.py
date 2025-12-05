@@ -74,6 +74,93 @@ Example of a valid output (for a different review):
 {{"segments": [{{"start": 0, "length": 42, "label": "baggage_lost", "priority": "HIGH", "sentiment": "NONE"}}]}}
 """.strip()
 
+SUMMARIZATION_PROMPT_TEMPLATE = """
+You are an expert summarizer for the {department} department of an airline.
+Your goal is to summarize the following customer reviews for the purpose of: {purpose}.
+
+Here are some examples of how to summarize for your department:
+{examples_block}
+
+Now, summarize the following reviews:
+{reviews_block}
+
+Summary:
+""".strip()
+
+DEPARTMENT_EXAMPLES = {
+    "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu": """
+Example 1:
+Reviews:
+- "My suitcase arrived with a broken handle and a large crack on the side after flight TK1983."
+- "I waited for over 2 hours at the carousel in Istanbul, and my bag never showed up. The staff had no information."
+- "My luggage was completely soaked when I retrieved it, ruining my clothes inside."
+Summary:
+Passengers reported severe issues with baggage handling, including damaged luggage (broken handles, cracks, water damage) and significant delays in baggage delivery at Istanbul, with a lack of information from staff regarding lost items.
+
+Example 2:
+Reviews:
+- "Baggage delivery was surprisingly fast today, got my bags in 15 minutes."
+- "No issues with my luggage, everything arrived safe and sound."
+Summary:
+Passengers reported a positive experience with efficient and safe baggage delivery.
+""",
+    "IkramveUcakIciUrunlerBsk": """
+Example 1:
+Reviews:
+- "The pasta served on the flight was cold and tasteless. Very disappointed with the meal quality."
+- "The in-flight entertainment system at seat 12A was frozen for the entire 8-hour flight."
+- "They ran out of the vegetarian option before reaching row 20."
+Summary:
+Passengers expressed dissatisfaction with the in-flight product, specifically citing poor food quality (cold, tasteless), insufficient stock of special meals (vegetarian), and malfunctioning in-flight entertainment systems.
+
+Example 2:
+Reviews:
+- "The new movie selection is fantastic, kept me entertained the whole way."
+- "The breakfast was delicious, fresh fruit and hot coffee were perfect."
+Summary:
+Passengers praised the in-flight entertainment content and the quality of the breakfast service.
+""",
+    "TGS": """
+Example 1:
+Reviews:
+- "The check-in line was moving extremely slowly, only two counters were open for economy class."
+- "Boarding was a mess, there was no zone enforcement and people were pushing."
+- "Ground staff at the gate were rude when I asked about the delay."
+Summary:
+Passengers reported operational inefficiencies and poor service from ground staff, highlighting long wait times at check-in, chaotic boarding processes due to lack of zone enforcement, and unprofessional behavior from gate agents.
+
+Example 2:
+Reviews:
+- "Check-in was a breeze with the self-service kiosks."
+- "Boarding started on time and was very organized."
+Summary:
+Passengers reported a smooth and efficient ground experience, praising the self-service check-in options and organized boarding process.
+""",
+    "KabinHizmetleriBsk": """
+Example 1:
+Reviews:
+- "The tray table was sticky and had coffee stains from the previous flight."
+- "The lavatory was in a terrible state, no paper towels and very dirty."
+- "There was trash in the seat pocket when I boarded."
+Summary:
+Passengers raised serious concerns about cabin cleanliness, reporting dirty tray tables, uncleaned seat pockets, and poor hygiene in the lavatories.
+
+Example 2:
+Reviews:
+- "The cabin was spotless when we boarded."
+- "Toilets were kept clean throughout the long flight."
+Summary:
+Passengers complimented the high standards of cabin cleanliness and hygiene maintenance during the flight.
+""",
+    "default": """
+Example 1:
+Reviews:
+- "The service was generally poor and the flight was delayed by 3 hours."
+- "Not the standard I expect from this airline."
+Summary:
+Passengers reported general dissatisfaction with the service standards and significant flight delays.
+"""
+}
 
 class PromptBuilder:
     """
@@ -123,4 +210,15 @@ class PromptBuilder:
             labels_block=labels_block,
             sentiment_labels_block=sentiment_labels_block,
             max_segments=max_segments,
+        )
+
+    def build_summarization_messages(self, reviews: list[str], department: str, purpose: str) -> str:
+        """Build prompt for summarization with in-context learning."""
+        examples_block = DEPARTMENT_EXAMPLES.get(department, DEPARTMENT_EXAMPLES["default"])
+        reviews_block = "\n".join([f"- {r}" for r in reviews])
+        return SUMMARIZATION_PROMPT_TEMPLATE.format(
+            department=department,
+            purpose=purpose,
+            examples_block=examples_block,
+            reviews_block=reviews_block,
         )

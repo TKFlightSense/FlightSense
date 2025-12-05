@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -11,8 +11,7 @@ from email.message import EmailMessage
 import pandas as pd
 
 from services.db_service.mysql_db_service import MySQLDbService
-# from packages.stats.statistics_service import StatisticsService  # if you have one
-# from packages.llm.summarizer import Summarizer  # you can add this later
+from packages.llm.summarizer import Summarizer
 
 
 def _load_email_config() -> Dict[str, Any]:
@@ -52,7 +51,7 @@ class EmailConfig:
 
 
 class EmailSummaryAgent:
-    def __init__(self, db: Optional[MySQLDbService] = None, email_config: Optional[EmailConfig] = None):
+    def __init__(self, db: Optional[MySQLDbService] = None, email_config: Optional[EmailConfig] = None, summarizer: Optional[Summarizer] = None):
         self.db = db or MySQLDbService()
         self.email_config = email_config or EmailConfig(
             smtp_host=os.getenv("SMTP_HOST", ""),
@@ -61,7 +60,7 @@ class EmailSummaryAgent:
             password=os.getenv("SMTP_PASS", ""),
             from_addr=os.getenv("SMTP_FROM", "reports@airline.com"),
         )
-        # self.summarizer = Summarizer(...)
+        self.summarizer = summarizer or Summarizer()
 
     def _fetch_department_feedback(self, department_labels: List[str], days: int = 1) -> pd.DataFrame:
         # simplest approach: retrieve a window and filter by labels in Python
@@ -79,6 +78,10 @@ class EmailSummaryAgent:
         if total == 0:
             return f"No new feedback for {dept} in the selected period."
 
+        # Extract reviews for summarization
+        reviews = df["review"].tolist()
+        summary = self.summarizer.summarize(reviews, dept, "email report")
+
         # Simple stats (you can replace with packages/stats logic)
         label_counts = (
             df["labels"]
@@ -94,6 +97,9 @@ class EmailSummaryAgent:
         lines.append(f"Daily feedback report for **{dept}**")
         lines.append("")
         lines.append(f"Total feedback items: {total}")
+        lines.append("")
+        lines.append(f"**Summary:**")
+        lines.append(summary)
         lines.append("")
         lines.append("Counts by label:")
         for lbl, cnt in label_counts.items():
