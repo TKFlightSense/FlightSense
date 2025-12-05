@@ -53,9 +53,9 @@ class FlightSenseOrchestrator:
         
         self.jira_agent = JiraTicketAgent(ticket_client=ticket_client)
         self.email_agent = EmailSummaryAgent(db=self.db)
-        
+
         self.reporting = ReportingService(
-            self.db, self.access, self.classifier, self.jira_agent
+            self.db, self.access, self.classifier, self.jira_agent, self.email_agent
         )
 
         # Initialize ReviewListener (if db_service is MySQLDbService)
@@ -109,7 +109,7 @@ class FlightSenseOrchestrator:
             
             return {
                 "success": True,
-                "processed_this_batch": processed,
+                "processed_count": processed,
                 "stats": stats,
             }
         except Exception as e:
@@ -180,49 +180,8 @@ class FlightSenseOrchestrator:
 
             logger.info(f"Processed review id={review_id}: inserted {inserted} segments")
             
-            # Step 4: Check for HIGH priority and trigger agents
-            high_priority_segments = [s for s in segments if s.get("priority") == "HIGH"]
-            
-            if high_priority_segments:
-                logger.info(f"High priority segments detected for review {review_id}")
-                
-                # Aggregate labels
-                labels = ",".join([s.get("label") for s in segments if s.get("label")])
-                
-                # Enhance review_row with labels for the agents
-                enhanced_row = review_row.copy()
-                enhanced_row["labels"] = labels
-                row_series = pd.Series(enhanced_row)
-                
-                # Keep track of departments we've already alerted for this review to avoid duplicates
-                alerted_departments = set()
-                
-                for seg in high_priority_segments:
-                    label = seg.get("label")
-                    if not label:
-                        continue
-                        
-                    try:
-                        # Get department from Enum
-                        department = LabelToDepartment[label].value
-                        
-                        if department in alerted_departments:
-                            continue
-                            
-                        # 1. Create Jira Ticket
-                        logger.info(f"Creating Jira ticket for high priority review {review_id} (Dept: {department})")
-                        self.jira_agent.create_ticket_for_row(row_series)
-                        
-                        # 2. Send Email Alert
-                        logger.info(f"Sending email alert for high priority review {review_id} (Dept: {department})")
-                        self.email_agent.send_alert_email(enhanced_row, department, "HIGH")
-                        
-                        alerted_departments.add(department)
-                        
-                    except KeyError:
-                        logger.warning(f"Could not map label '{label}' to a department")
-                    except Exception as e:
-                        logger.error(f"Error triggering agents for high priority review {review_id}: {e}")
+            # Step 4: Trigger High Priority Automation
+            self.reporting.handle_high_priority_automation(review_row, segments)
 
             return {
                 "success": True,

@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from datetime import datetime, timedelta
 
 # Add project root to path
 sys.path.append(str(Path(__file__).resolve().parents[2]))
@@ -31,9 +32,13 @@ def main():
         logger.critical(f"Failed to initialize services: {e}")
         sys.exit(1)
 
+    # Track last stats update time
+    last_stats_update = datetime.min
+
     # Main loop
     while True:
         try:
+            # 1. Process New Reviews (Immediate)
             logger.debug("Checking for new reviews...")
             result = orchestrator.process_new_reviews()
             
@@ -41,6 +46,23 @@ def main():
                 count = result["processed_count"]
                 logger.info(f"Successfully processed {count} new reviews.")
             
+            # 2. Periodic Statistics Update (Hourly)
+            now = datetime.now()
+            if now - last_stats_update > timedelta(hours=1):
+                logger.info("Running scheduled hourly statistics update...")
+                
+                # Calculate the last full hour window
+                end_dt = now.replace(minute=0, second=0, microsecond=0)
+                start_dt = end_dt - timedelta(hours=1)
+                
+                stats_result = orchestrator.run_statistics_job(start_dt, end_dt)
+                
+                if stats_result.get("success"):
+                    logger.info(f"Hourly statistics updated: {stats_result.get('message')}")
+                    last_stats_update = now
+                else:
+                    logger.error(f"Failed to update statistics: {stats_result.get('error')}")
+
         except Exception as e:
             logger.error(f"Error in processing loop: {e}")
         
