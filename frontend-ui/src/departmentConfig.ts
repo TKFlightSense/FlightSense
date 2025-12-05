@@ -1,22 +1,24 @@
-export type DepartmentCode = "IUIUB" | "BMCOGM" | "KABIN" | "TGS" | "RVCBM" | "CMYM";
+export type DepartmentCode = "IUIB" | "BMCOGM" | "KHB" | "TGS" | "RVBCM" | "CMYM" | "GYB";
 export type DepartmentId = DepartmentCode; // Alias for compatibility
 
 export type DepartmentLabel =
-  | "İkram ve Uçak İçi Ürünler Bşk."
-  | "Yer İşletme Bşk - Bagaj"
-  | "Kabin Hizmetleri Bşk."
-  | "TGS - Yer Hizmetleri"
-  | "Rezervasyon ve Biletleme Çzm. Mdr."
-  | "Çağrı Merkezi Yönetimi Mdr.";
+  | "İkram ve Uçak İçi Ürünler Başkanlığı"
+  | "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü"
+  | "Kabin Hizmetleri Başkanlığı"
+  | "Turkish Ground Services"
+  | "Rezervasyon ve Biletleme Çözümleri Müdürlüğü"
+  | "Çağrı Merkezi Yönetim Müdürlüğü"
+  | "Gelir Yönetimi Başkanlığı";
 
 
 export const DEPARTMENT_LABEL_TO_CODE: Record<DepartmentLabel, DepartmentCode> = {
-  "İkram ve Uçak İçi Ürünler Bşk.": "IUIUB",
-  "Yer İşletme Bşk - Bagaj": "BMCOGM",
-  "Kabin Hizmetleri Bşk.": "KABIN",
-  "TGS - Yer Hizmetleri": "TGS",
-  "Rezervasyon ve Biletleme Çzm. Mdr.": "RVCBM",
-  "Çağrı Merkezi Yönetimi Mdr.": "CMYM",
+  "İkram ve Uçak İçi Ürünler Başkanlığı": "IUIB",
+  "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü": "BMCOGM",
+  "Kabin Hizmetleri Başkanlığı": "KHB",
+  "Turkish Ground Services": "TGS",
+  "Rezervasyon ve Biletleme Çözümleri Müdürlüğü": "RVBCM",
+  "Çağrı Merkezi Yönetim Müdürlüğü": "CMYM",
+  "Gelir Yönetimi Başkanlığı": "GYB",
 };
 
 
@@ -32,12 +34,13 @@ export const DEPARTMENT_CODE_TO_LABEL: Record<DepartmentCode, DepartmentLabel> =
  * These map to Jira project URLs like: https://your-jira-instance.atlassian.net/jira/software/projects/{KEY}/boards
  */
 export const DEPARTMENT_JIRA_PROJECT_KEY: Record<DepartmentCode, string> = {
-  IUIUB: "IUIUB",
+  IUIB: "IUIB",
   BMCOGM: "BMCOGM",
-  KABIN: "KHB",
+  KHB: "KHB",
   TGS: "TGS",
-  RVCBM: "RVBCM",
+  RVBCM: "RVBCM",
   CMYM: "CMYM",
+  GYB: "GYB",
 };
 
 /**
@@ -45,24 +48,26 @@ export const DEPARTMENT_JIRA_PROJECT_KEY: Record<DepartmentCode, string> = {
  * These keys are also used as backend department codes for API calls.
  */
 export const DEPARTMENT_LABEL_TO_JIRA_KEY: Record<string, string> = {
-  "İkram ve Uçak İçi Ürünler Bşk.": "IUIUB",
-  "Yer İşletme Bşk - Bagaj": "BMCOGM",
-  "Kabin Hizmetleri Bşk.": "KHB",
-  "TGS - Yer Hizmetleri": "TGS",
-  "Rezervasyon ve Biletleme Çzm. Mdr.": "RVCBM",
-  "Çağrı Merkezi Yönetimi Mdr.": "CMYM",
+  "İkram ve Uçak İçi Ürünler Başkanlığı": "IUIB",
+  "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü": "BMCOGM",
+  "Kabin Hizmetleri Başkanlığı": "KHB",
+  "Turkish Ground Services": "TGS",
+  "Rezervasyon ve Biletleme Çözümleri Müdürlüğü": "RVBCM",
+  "Çağrı Merkezi Yönetim Müdürlüğü": "CMYM",
+  "Gelir Yönetimi Başkanlığı": "GYB",
 };
 
 /**
  * Map from Jira project key (also backend code) to department display label.
  */
 export const JIRA_KEY_TO_DEPARTMENT_LABEL: Record<string, string> = {
-  "IUIUB": "İkram ve Uçak İçi Ürünler Bşk.",
-  "BMCOGM": "Yer İşletme Bşk - Bagaj",
-  "KHB": "Kabin Hizmetleri Bşk.",
-  "TGS": "TGS - Yer Hizmetleri",
-  "RVCBM": "Rezervasyon ve Biletleme Çzm. Mdr.",
-  "CMYM": "Çağrı Merkezi Yönetimi Mdr.",
+  "IUIB": "İkram ve Uçak İçi Ürünler Başkanlığı",
+  "BMCOGM": "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü",
+  "KHB": "Kabin Hizmetleri Başkanlığı",
+  "TGS": "Turkish Ground Services",
+  "RVBCM": "Rezervasyon ve Biletleme Çözümleri Müdürlüğü",
+  "CMYM": "Çağrı Merkezi Yönetim Müdürlüğü",
+  "GYB": "Gelir Yönetimi Başkanlığı",
 };
 
 /**

@@ -46,19 +46,20 @@ class Departments(str, Enum):
     """
     Full department names
     """
-    IUIUB = "İkram ve Uçak İçi Ürünler Bşk."
-    BMCOGM = "Yer İşletme Bşk - Bagaj"
-    KHB = "Kabin Hizmetleri Bşk."
-    TGS = "TGS - Yer Hizmetleri"
-    RVCBM = "Rezervasyon ve Biletleme Çzm. Mdr."
-    CMYM = "Çağrı Merkezi Yönetimi Mdr."
+    IUIB = "İkram ve Uçak İçi Ürünler Başkanlığı"
+    BMCOGM = "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü"
+    KHB = "Kabin Hizmetleri Başkanlığı"
+    TGS = "Turkish Ground Services"
+    RVBCM = "Rezervasyon ve Biletleme Çözümleri Müdürlüğü"
+    CMYM = "Çağrı Merkezi Yönetim Müdürlüğü"
+    GYB = "Gelir Yönetimi Başkanlığı"
 
 class LabelToDepartment(str, Enum):
     """
     Label to department mapping
     """
-    inflight_experience_food_beverage = "IUIUB"
-    inflight_experience_entertainment = "IUIUB"
+    inflight_experience_food_beverage = "IUIB"
+    inflight_experience_entertainment = "IUIB"
     inflight_experience_seats_comfort = "KHB"
     inflight_experience_cabin_service = "KHB"
     inflight_experience_cleanliness = "KHB"
@@ -66,13 +67,13 @@ class LabelToDepartment(str, Enum):
     boarding_process = "TGS"
     baggage_lost = "BMCOGM"
     baggage_damaged = "BMCOGM"
-    booking_and_ticketing = "RVCBM"
+    booking_and_ticketing = "RVBCM"
     customer_support = "CMYM"
-    pricing_and_loyalty = "RVCBM"
+    pricing_and_loyalty = "GYB"
 
 
 class DepartmentToLabels(Enum):
-    IUIUB = [
+    IUIB = [
         "inflight_experience_food_beverage",
         "inflight_experience_entertainment",
     ]
@@ -89,18 +90,21 @@ class DepartmentToLabels(Enum):
         "baggage_lost",
         "baggage_damaged",
     ]
-    RVCBM = [
+    RVBCM = [
         "booking_and_ticketing",
-        "pricing_and_loyalty",
     ]
     CMYM = [
         "customer_support",
     ]
+    GYB = [
+        "pricing_and_loyalty",
+    ]
 
 class DepartmentTables(str, Enum):
     KHB = "kabin_hizmetleri"
-    IUIUB = "ikram_ucak_ici"
+    IUIB = "ikram_ucak_ici"
     BMCOGM = "yer_isletme_bagaj"
     TGS = "tgs"
-    RVCBM = "rez_biletleme"
+    RVBCM = "rez_biletleme"
     CMYM = "cagri_merkezi"
+    GYB = "gelir_yonetimi"

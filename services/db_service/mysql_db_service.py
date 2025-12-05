@@ -119,6 +119,7 @@ class MySQLDbService:
         self._create_rez_biletleme_table()
         self._create_tgs_table()
         self._create_yer_isletme_bagaj_table()
+        self._create_gelir_yonetimi_table()
         logger.info("All MySQL tables created/verified successfully")
 
     # -------------------------------------------------------------------------
@@ -414,6 +415,39 @@ class MySQLDbService:
             logger.info("Table 'cagri_merkezi' created/verified")
         except Error as e:
             logger.error(f"Error creating cagri_merkezi table: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def _create_gelir_yonetimi_table(self):
+        """Create gelir_yonetimi table in MySQL."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS gelir_yonetimi (
+            ID INT AUTO_INCREMENT PRIMARY KEY,
+            label VARCHAR(255) NOT NULL,
+            date_from DATETIME,
+            date_to DATETIME,
+            positive_count INT DEFAULT 0,
+            negative_count INT DEFAULT 0,
+            neutral_count INT DEFAULT 0,
+            low_count INT DEFAULT 0,
+            medium_count INT DEFAULT 0,
+            high_count INT DEFAULT 0,
+            
+            INDEX idx_label (label),
+            INDEX idx_analysis_range (label, date_from, date_to)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'gelir_yonetimi' created/verified")
+        except Error as e:
+            logger.error(f"Error creating gelir_yonetimi table: {e}")
             raise
         finally:
             conn.close()

@@ -1,9 +1,12 @@
 {
   "department_recipients": {
-    "IkramveUcakIciUrunlerBsk": ["ikramucakiciurunlerbsk@thy.com"],
-    "YerIsletmeBsk-BagajMusteriCozumveOperasyonelGelistirmeMudurlugu": ["yerisletme@thy.com"],
-    "KabinHizmetleriBsk": ["kabinhizbsk@thy.com"],
-    "TGS": ["tgs@thy.com"]
+    "IUIB": ["ikramucakiciurunlerbsk@thy.com"],
+    "BMCOGM": ["yerisletme@thy.com"],
+    "KHB": ["kabinhizbsk@thy.com"],
+    "TGS": ["tgs@thy.com"],
+    "RVBCM": ["rezervasyon@thy.com"],
+    "CMYM": ["cagrimerkezi@thy.com"],
+    "GYB": ["geliryonetimi@thy.com"]
   },
   "email_subject_template": "[TKFlightSense] Feedback Report – {department}",
   "default_days_lookback": 1

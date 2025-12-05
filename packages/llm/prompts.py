@@ -92,7 +92,7 @@ Summary:
 """.strip()
 
 DEPARTMENT_EXAMPLES = {
-    "YerIsletmeBsk-BagajMusteriCozumleriveOperasyonGelistirmeMudurlugu": """
+    "BMCOGM": """
 Example 1:
 Reviews:
 - "My suitcase arrived with a broken handle and a large crack on the side after flight TK1983."
@@ -108,7 +108,7 @@ Reviews:
 Summary:
 Passengers reported a positive experience with efficient and safe baggage delivery.
 """,
-    "IkramveUcakIciUrunlerBsk": """
+    "IUIB": """
 Example 1:
 Reviews:
 - "The pasta served on the flight was cold and tasteless. Very disappointed with the meal quality."
@@ -140,7 +140,7 @@ Reviews:
 Summary:
 Passengers reported a smooth and efficient ground experience, praising the self-service check-in options and organized boarding process.
 """,
-    "KabinHizmetleriBsk": """
+    "KHB": """
 Example 1:
 Reviews:
 - "The tray table was sticky and had coffee stains from the previous flight."
@@ -155,6 +155,30 @@ Reviews:
 - "Toilets were kept clean throughout the long flight."
 Summary:
 Passengers complimented the high standards of cabin cleanliness and hygiene maintenance during the flight.
+""",
+    "RVBCM": """
+Example 1:
+Reviews:
+- "I tried to change my flight online but the system kept crashing."
+- "The ticket price was very high for such a short flight."
+Summary:
+Passengers reported technical issues with the online booking system and dissatisfaction with ticket pricing.
+""",
+    "CMYM": """
+Example 1:
+Reviews:
+- "I called customer service and waited on hold for 45 minutes."
+- "The agent was helpful but couldn't resolve my issue."
+Summary:
+Passengers reported long wait times for customer service, though some agents were helpful.
+""",
+    "GYB": """
+Example 1:
+Reviews:
+- "The loyalty points I earned were not credited to my account."
+- "I didn't receive the discount I was promised."
+Summary:
+Passengers reported issues with loyalty program credits and missing discounts.
 """,
     "default": """
 Example 1:
