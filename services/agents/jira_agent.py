@@ -70,6 +70,8 @@ class JiraTicketAgent:
         review = row.get("review", "")
         date = row.get("date", "N/A")
         labels = row.get("labels", "")
+        flight_number = row.get("flight_number", "N/A")
+        pnr = row.get("pnr", "N/A")
         
         # Use summarizer to generate a better description
         summary = self.summarizer.summarize(
@@ -80,6 +82,8 @@ class JiraTicketAgent:
         
         return (
             f"*Customer feedback date:* {date}\n"
+            f"*Flight Number:* {flight_number}\n"
+            f"*PNR:* {pnr}\n"
             f"*Detected labels:* {labels}\n\n"
             f"*Summary:*\n{summary}\n\n"
             f"*Raw feedback:*\n{review}\n"

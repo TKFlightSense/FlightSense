@@ -82,6 +82,16 @@ class EmailSummaryAgent:
         reviews = df["review"].tolist()
         summary = self.summarizer.summarize(reviews, dept, "email report")
 
+        # Extract Flight Numbers and PNRs
+        flight_info_lines = []
+        if "flight_number" in df.columns and "pnr" in df.columns:
+            flight_info = df[["flight_number", "pnr"]].drop_duplicates()
+            if not flight_info.empty:
+                flight_info_lines.append("**Affected Flights & PNRs:**")
+                for _, row in flight_info.iterrows():
+                    flight_info_lines.append(f"- Flight: {row.get('flight_number', 'N/A')}, PNR: {row.get('pnr', 'N/A')}")
+                flight_info_lines.append("")
+
         # Simple stats (you can replace with packages/stats logic)
         label_counts = (
             df["labels"]
@@ -98,6 +108,10 @@ class EmailSummaryAgent:
         lines.append("")
         lines.append(f"Total feedback items: {total}")
         lines.append("")
+        
+        # Add flight info
+        lines.extend(flight_info_lines)
+
         lines.append(f"**Summary:**")
         lines.append(summary)
         lines.append("")
@@ -112,10 +126,6 @@ class EmailSummaryAgent:
         lines.append("Sample feedback:")
         for i, text in enumerate(sample, start=1):
             lines.append(f"{i}. {text}")
-
-        # Later: ask LLM to generate a nicer summary
-        # summary = self.summarizer.summarize(df["review"].tolist())
-        # lines.insert(1, f"Summary: {summary}\n")
 
         return "\n".join(lines)
 

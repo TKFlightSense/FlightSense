@@ -78,6 +78,10 @@ SUMMARIZATION_PROMPT_TEMPLATE = """
 You are an expert summarizer for the {department} department of an airline.
 Your goal is to summarize the following customer reviews for the purpose of: {purpose}.
 
+IMPORTANT:
+- Do NOT include specific flight numbers or PNRs in the summary text.
+- Focus on the issues, feedback, and sentiment.
+
 Here are some examples of how to summarize for your department:
 {examples_block}
 
