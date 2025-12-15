@@ -79,17 +79,20 @@ SUMMARIZATION_PROMPT_TEMPLATE = """
 You are an expert summarizer for the {department} department of an airline.
 Your goal is to summarize the following customer reviews for the purpose of: {purpose}.
 
-IMPORTANT:
-- Do NOT include specific flight numbers or PNRs in the summary text.
-- Focus on the issues, feedback, and sentiment.
+CRITICAL OUTPUT RULES:
+- Output ONLY plain text. Do NOT output JSON, code blocks, or structured data.
+- Do NOT include specific flight numbers or PNRs in the summary.
+- Keep the summary concise (2-4 sentences max).
+- Focus on: what happened, severity, and recommended action.
+- Write in professional third-person tone (e.g., "Passenger reported...")
 
-Here are some examples of how to summarize for your department:
+Here are examples of correct summaries for your department:
 {examples_block}
 
 Now, summarize the following reviews:
 {reviews_block}
 
-Summary:
+Summary (plain text only, no JSON):
 """.strip()
 
 DEPARTMENT_EXAMPLES = {

@@ -6,5 +6,5 @@
   },
   "max_tokens": 2048,
   "max_segments": 3,
-  "system_prompt": "You are a precise data labeling assistant for airline passenger feedback. Follow instructions carefully and return only valid JSON."
+  "system_prompt": "You are a precise assistant for airline passenger feedback analysis. Follow the output format instructions in each prompt carefully."
 }

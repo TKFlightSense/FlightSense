@@ -66,27 +66,38 @@ class JiraTicketAgent:
     def _build_summary(self, row: pd.Series, primary_label: str) -> str:
         return f"[{primary_label}] Customer feedback on recent flight"
 
+    def _map_priority_to_jira(self, priority: str) -> str:
+        """Map internal priority (HIGH/MEDIUM/LOW) to Jira priority names."""
+        mapping = {
+            "HIGH": "High",
+            "MEDIUM": "Medium",
+            "LOW": "Low",
+        }
+        return mapping.get(priority.upper() if priority else "", "Medium")
+
     def _build_description(self, row: pd.Series, department: str) -> str:
         review = row.get("review", "")
         date = row.get("date", "N/A")
-        labels = row.get("labels", "")
         flight_number = row.get("flight_number", "N/A")
         pnr = row.get("pnr", "N/A")
         
-        # Use summarizer to generate a better description
-        summary = self.summarizer.summarize(
+        # Use summarizer to generate AI summary
+        ai_summary = self.summarizer.summarize(
             reviews=[review],
             department=department,
             purpose="create jira task"
         )
         
+        # Clean, readable description
         return (
-            f"*Customer feedback date:* {date}\n"
-            f"*Flight Number:* {flight_number}\n"
-            f"*PNR:* {pnr}\n"
-            f"*Detected labels:* {labels}\n\n"
-            f"*Summary:*\n{summary}\n\n"
-            f"*Raw feedback:*\n{review}\n"
+            f"h3. AI Summary\n"
+            f"{ai_summary}\n\n"
+            f"h3. Flight Information\n"
+            f"* *Date:* {date}\n"
+            f"* *Flight:* {flight_number}\n"
+            f"* *PNR:* {pnr}\n\n"
+            f"h3. Customer Feedback\n"
+            f"{{quote}}{review}{{quote}}"
         )
 
     # ---------- public API ----------
@@ -108,6 +119,11 @@ class JiraTicketAgent:
         summary = self._build_summary(row, primary_label)
         description = self._build_description(row, department)
         processed_id = row.get("id")  # requires 'id' column in DataFrame
+        
+        # Map priority and prepare labels for Jira
+        internal_priority = row.get("priority", "MEDIUM")
+        jira_priority = self._map_priority_to_jira(internal_priority)
+        jira_labels = [primary_label, department]  # Add label and department as Jira labels
 
         payload = TicketPayload(
             project_key=cfg.project_key,
@@ -116,6 +132,8 @@ class JiraTicketAgent:
             description=description,
             department=department,
             primary_label=primary_label,
+            priority=jira_priority,
+            labels=jira_labels,
             processed_data_id=processed_id,
         )
 

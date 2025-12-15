@@ -165,7 +165,7 @@ class EmailSummaryAgent:
         if not recipients:
             return
 
-        subject = f"[URGENT] High Priority Feedback Alert - {department}"
+        subject = f"[URGENT] High Priority Feedback - {department}"
         
         review_text = review_row.get("review", "")
         flight_number = review_row.get("flight_number", "N/A")
@@ -180,15 +180,25 @@ class EmailSummaryAgent:
             print(f"Failed to generate summary for alert: {e}")
 
         body = (
-            f"URGENT ALERT: High Priority Feedback Detected\n\n"
-            f"Department: {department}\n"
-            f"Priority: {priority}\n"
-            f"Date: {date_str}\n"
-            f"Flight: {flight_number}\n"
-            f"PNR: {pnr}\n\n"
-            f"**AI Summary:**\n{summary}\n\n"
-            f"**Original Review:**\n{review_text}\n\n"
-            f"Please take immediate action."
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"⚠️  HIGH PRIORITY ALERT - {department}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"AI SUMMARY:\n"
+            f"{summary}\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"FLIGHT DETAILS\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Date:     {date_str}\n"
+            f"Flight:   {flight_number}\n"
+            f"PNR:      {pnr}\n"
+            f"Priority: {priority}\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"ORIGINAL FEEDBACK\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"{review_text}\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Please take immediate action.\n"
+            f"\n— FlightSense AI Classifier"
         )
 
         try:
