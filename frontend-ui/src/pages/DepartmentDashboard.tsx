@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../hooks/useTheme";
-import { 
-  JIRA_KEY_TO_DEPARTMENT_LABEL, 
-  getJiraProjectUrl
+import {
+  JIRA_KEY_TO_DEPARTMENT_LABEL,
+  getJiraProjectUrl,
+  type DepartmentId,
 } from "../departmentConfig";
 import {
   PAGE_WRAPPER,
@@ -21,14 +22,12 @@ import DistributionPie, {
   type PieItem,
 } from "../components/charts/DistributionPie";
 
-import {
-  fetchDepartmentStatistics,
-  type Period,
-} from "../services/api";
+import { fetchDepartmentStatistics, type Period } from "../services/api";
 import {
   mapDepartmentStatsApiToUi,
   type DepartmentStatsUi,
 } from "../utils/departmentStatsMapper";
+import { MOCK_DEPARTMENT_STATS_BY_RANGE } from "../mock/mockDepartmentStats";
 
 const THY_RED = "#b7312c";
 
@@ -68,20 +67,39 @@ export default function DepartmentDashboard() {
 
     // URL uses Jira project keys which are also backend department codes (e.g., /department/KHB)
     const key = decodeURIComponent(departmentName);
-    const label = JIRA_KEY_TO_DEPARTMENT_LABEL[key] ?? key;
+    const label = JIRA_KEY_TO_DEPARTMENT_LABEL[key as DepartmentId] ?? key;
     setJiraKey(key);
 
     // If no token (mock login), use mock data
     if (!token) {
-      setError("Using mock data (no API token available).");
+      setLoading(true);
+      setError(null);
+      // Simulate network delay
+      setTimeout(() => {
+        const mockStats =
+          MOCK_DEPARTMENT_STATS_BY_RANGE[key as DepartmentId]?.[timeRange];
+
+        if (mockStats) {
+          // The mock data is already in the UI shape, we just need to rename 'name' to 'departmentName'
+          const uiStats: DepartmentStatsUi = {
+            ...mockStats,
+            departmentName: mockStats.name,
+          };
+          setStats(uiStats);
+        } else {
+          setError(`No mock data found for department: ${key}`);
+        }
+        setLoading(false);
+      }, 500);
       return;
     }
 
+    // --- Real API call ---
     setLoading(true);
     setError(null);
 
     fetchDepartmentStatistics(token, {
-      department_name: key,  // Backend expects the department code (KHB, TGS, etc.)
+      department_name: key, // Backend expects the department code (KHB, TGS, etc.)
       period: timeRange,
     })
       .then((res) => {
@@ -103,7 +121,7 @@ export default function DepartmentDashboard() {
     navigate("/");
   }
 
-  if (loading || !stats) {
+  if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className={`${CARD} px-6 py-4 max-w-md`}>
@@ -120,7 +138,7 @@ export default function DepartmentDashboard() {
     );
   }
 
-  if (error) {
+  if (error && !stats) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className={`${CARD} px-6 py-4 max-w-md`}>
@@ -138,6 +156,18 @@ export default function DepartmentDashboard() {
         </div>
       </div>
     );
+  }
+  
+  if (!stats) {
+    return (
+       <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className={`${CARD} px-6 py-4 max-w-md`}>
+          <p className="text-sm text-slate-900 dark:text-slate-50">
+            No statistics available for this department.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   const positivePercent = Math.round(
