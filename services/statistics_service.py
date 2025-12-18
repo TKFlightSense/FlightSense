@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict
+from typing import Dict, List
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from typing import Optional
@@ -255,3 +255,67 @@ class StatisticsService:
             yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
 
         return yearly_stats_dict
+
+    def get_high_priority_samples_for_department(self, department_name: str, date_from: datetime, date_to: datetime, max_per_label: 3) :
+        
+        for label in DepartmentToLabels[department_name].value:
+             results = self.db.get_high_priority_reviews_for_labels(label, date_from, date_to, max_per_label)
+        
+        samples: List[str] = []
+        response: Dict[str, List[str]] = {}
+        
+        for label, value in results.items():
+            full_text = value["review"] or ""
+            index_str = value.get("index")
+            highlighted = self.highlight_segment_in_review(full_text, index_str)
+            samples.append(highlighted)
+            response[label] = samples
+        
+        
+        return samples
+
+    def get_high_priority_samples_for_manager(self, date_from: datetime, date_to: datetime) :
+        result: Dict[str, Dict[str, List[str]]] = {}
+        for department in self.departments:
+            try:
+                labels = DepartmentToLabels[department].value
+            except KeyError:
+                continue
+
+            labelDict: Dict[str, List[str]]= {}
+            for label in labels:
+                samples = self.get_high_priority_samples_for_department(label, date_from, date_to, max_per_label=2)
+                if len(samples) >= 2:
+                    break
+                labelDict[label] = samples
+            if labelDict:
+                result[department] = labelDict
+        return result
+
+
+    def highlight_segment_in_review(self, review: str, index_str: str | None) -> str:
+        """
+        Given full review and index like 'start:end', returns HTML with the
+        segment wrapped in <mark>...</mark>. If index invalid, returns review.
+        """
+        if not index_str:
+            return review
+
+        try:
+            start_str, end_str = index_str.split(":")
+            start = int(start_str)
+            end = int(end_str)
+        except Exception:
+            return review
+
+        if start < 0 or end <= start or end > len(review):
+            return review
+
+        return (
+            review[:start]
+            + "<mark>"
+            + review[start:end]
+            + "</mark>"
+            + review[end:]
+        )
+

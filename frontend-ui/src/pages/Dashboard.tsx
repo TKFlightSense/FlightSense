@@ -2,27 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { fetchManagerStatistics, type Period } from "../services/api";
-import {
-  mapManagerStatsApiToUi,
-  type ManagerStatsUi,
-} from "../utils/managerStatsMapper";
-import {
-  MOCK_MANAGER_STATS_BY_RANGE,
-  type TimeRangeKey,
-} from "../mock/mockManagerStats";
+import {mapManagerStatsApiToUi, type ManagerStatsUi} from "../utils/managerStatsMapper";
+import {MOCK_MANAGER_STATS_BY_RANGE} from "../mock/mockManagerStats";
 import FeedbackTrendChart from "../components/charts/FeedbackTrendChart";
-import DistributionPie, {
-  type PieItem,
-} from "../components/charts/DistributionPie";
+import DistributionPie, {type PieItem} from "../components/charts/DistributionPie";
 import { useTheme } from "../hooks/useTheme";
 
-import {
-  PAGE_WRAPPER,
-  PAGE_BACKGROUND_OVERLAY,
-  TOPBAR,
-  CARD,
-  KPI_TITLE,
-} from "../styles/dashboardTokens";
+import {PAGE_WRAPPER, PAGE_BACKGROUND_OVERLAY, TOPBAR, CARD, KPI_TITLE} from "../styles/dashboardTokens";
 
 const THY_RED = "#b7312c";
 
@@ -39,10 +25,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
 
-    // If you don’t have a backend token (mock login), just use mock data
     if (!token) {
-      const mockKey = timeRange as TimeRangeKey;
-      setStats(MOCK_MANAGER_STATS_BY_RANGE[mockKey]);
+      const apiMock = MOCK_MANAGER_STATS_BY_RANGE[timeRange];
+      const uiStats = mapManagerStatsApiToUi(apiMock, timeRange);
+      setStats(uiStats);
       setError("Using mock data (no API token available).");
       return;
     }
@@ -67,8 +53,10 @@ export default function Dashboard() {
         console.error(err);
 
         // Fallback to mock data if API fails
-        const mockKey = timeRange as TimeRangeKey;
-        setStats(MOCK_MANAGER_STATS_BY_RANGE[mockKey]);
+        
+        const apiMock = MOCK_MANAGER_STATS_BY_RANGE[timeRange];
+        const uiStats = mapManagerStatsApiToUi(apiMock, timeRange);
+        setStats(uiStats);
         setError(
           err?.message
             ? `API failed, showing mock data. (${err.message})`
@@ -100,7 +88,6 @@ export default function Dashboard() {
     );
   }
 
-  // While we don’t have any stats yet
   if (!stats) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-950 text-slate-50">
@@ -118,31 +105,15 @@ export default function Dashboard() {
     );
   }
 
-  const totalPriority =
-    stats.highPriority + stats.mediumPriority + stats.lowPriority || 1;
 
-  const positivePercent = Math.round(
-    (stats.positive / Math.max(stats.totalReviews, 1)) * 100
-  );
-  const negativePercent = 100 - positivePercent;
+  const{periodLabel, totalReviews, uniqueReviews, processedSegments, sentimentCounts, sentimentPercentages, priorityCounts, priorityPercentages, departments, historicalData, highPrioritySamples} = stats;
 
-  const departmentPieData: PieItem[] = stats.departments.map((dep) => ({
+  const departmentPieData: PieItem[] = departments.map((dep) => ({
     id: dep.id,
     name: dep.name,
     value: dep.totalReviews,
   }));
 
-  const departmentPercentages = stats.departments.map((dep) => {
-    const total = Math.max(dep.positive + dep.negative, 1);
-    const pos = Math.round((dep.positive / total) * 100);
-    const neg = 100 - pos;
-    return {
-      id: dep.id,
-      name: dep.name,
-      positivePercent: pos,
-      negativePercent: neg,
-    };
-  });
 
   function handleLogout() {
     logout();
@@ -154,6 +125,19 @@ export default function Dashboard() {
       navigate(`/department/${item.id}`);
     }
   }
+
+  function periodButtonClass(current: Period, target: Period) {
+    const base =
+      "px-3 py-1 rounded-full border transition text-[11px]";
+    const active =
+      "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50";
+    const inactive =
+      "border-slate-200 bg-white/70 text-slate-500 hover:bg-white " +
+      "dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70";
+
+    return base + " " + (current === target ? active : inactive);
+  }
+
 
   return (
     <div className={PAGE_WRAPPER}>
@@ -170,7 +154,7 @@ export default function Dashboard() {
               <span style={{ color: THY_RED }}>Manager Dashboard</span>
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-slate-300">
-              Period · {stats.periodLabel}
+              Period · {periodLabel}
             </p>
             {error && (
               <p className="mt-1 text-[11px] text-amber-500 dark:text-amber-300">
@@ -211,7 +195,7 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Main content – your original JSX unchanged */}
+
         <main className="px-6 md:px-8 py-6 max-w-6xl mx-auto w-full space-y-6">
           {/* Trend card */}
           <section className="space-y-3">
@@ -221,40 +205,25 @@ export default function Dashboard() {
                   Overall feedback trend
                 </p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-300">
-                  Positive vs negative reviews over time · {stats.periodLabel}
+                  Positive / neutral / negative reviews over time · {periodLabel}
                 </p>
               </div>
               <div className="flex gap-2 text-[11px]">
                 <button
                   onClick={() => setTimeRange("weekly")}
-                  className={
-                    "px-3 py-1 rounded-full border transition " +
-                    (timeRange === "weekly"
-                      ? "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50"
-                      : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70")
-                  }
+                  className={periodButtonClass(timeRange, "weekly")}
                 >
                   Weekly
                 </button>
                 <button
                   onClick={() => setTimeRange("monthly")}
-                  className={
-                    "px-3 py-1 rounded-full border transition " +
-                    (timeRange === "monthly"
-                      ? "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50"
-                      : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70")
-                  }
+                  className={periodButtonClass(timeRange, "monthly")}
                 >
                   Monthly
                 </button>
                 <button
                   onClick={() => setTimeRange("yearly")}
-                  className={
-                    "px-3 py-1 rounded-full border transition " +
-                    (timeRange === "yearly"
-                      ? "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50"
-                      : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70")
-                  }
+                  className={periodButtonClass(timeRange, "yearly")}
                 >
                   Yearly
                 </button>
@@ -262,55 +231,70 @@ export default function Dashboard() {
             </div>
 
             <div className={`${CARD} p-4`}>
-              <FeedbackTrendChart data={stats.trend} mode={theme} />
+              <FeedbackTrendChart data={historicalData} mode={theme} />
             </div>
           </section>
 
           {/* KPI cards */}
-          <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Unique Reviews */}
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            {/* Total Feedback Count */}
+            <div className={`${CARD} p-4`}>
+              <p className={KPI_TITLE}>Total Feedback Count</p>
+              <p className="mt-3 text-3xl font-semibold">
+                {totalReviews.toLocaleString("en-US")}
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
+                Total customer reviews ({periodLabel})
+              </p>
+            </div>
+          {/*
+            // Unique Reviews
             <div className={`${CARD} p-4`}>
               <p className={KPI_TITLE}>Unique reviews</p>
               <p className="mt-3 text-3xl font-semibold">
-                {stats.uniqueReviews.toLocaleString("en-US")}
+                {uniqueReviews.toLocaleString("en-US")}
               </p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
-                Total customer reviews ({stats.periodLabel})
+                Total customer reviews ({periodLabel})
               </p>
             </div>
 
-            {/* Processed Segments */}
+            // Processed Segments
             <div className={`${CARD} p-4`}>
               <p className={KPI_TITLE}>Processed segments</p>
               <p className="mt-3 text-3xl font-semibold">
-                {stats.processedSegments.toLocaleString("en-US")}
+                {processedSegments.toLocaleString("en-US")}
               </p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
                 Classified feedback segments
               </p>
             </div>
+          */}
 
             {/* Sentiment split */}
             <div className={`${CARD} p-4`}>
               <p className={KPI_TITLE}>Sentiment split</p>
               <div className="mt-3 flex items-end justify-between">
                 <div>
-                  <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">
-                    {positivePercent}% positive
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400"> Positive
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-300">
-                    {stats.positive} segments
+                  <p className="text-xs text-slate-500 dark:text-slate-300 font-semibold">
+                    {sentimentCounts.positive} ({sentimentPercentages.positive}%)
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-slate-600 dark:text-slate-200"> Neutral
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-300 font-semibold">
+                    {sentimentCounts.neutral} ({sentimentPercentages.neutral}%)
                   </p>
                 </div>
                 <div>
-                  <p
-                    className="text-sm font-semibold"
-                    style={{ color: THY_RED }}
-                  >
-                    {negativePercent}% negative
+                  <p className="text-sm" style={{ color: THY_RED }}> Negative
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-300">
-                    {stats.negative} segments
+                  <p className="text-xs text-slate-500 dark:text-slate-300 font-semibold">
+                    {sentimentCounts.negative} ({sentimentPercentages.negative}%)
                   </p>
                 </div>
               </div>
@@ -318,12 +302,16 @@ export default function Dashboard() {
               <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex">
                 <div
                   className="h-full bg-emerald-500"
-                  style={{ width: `${positivePercent}%` }}
+                  style={{ width: `${sentimentPercentages.positive}%` }}
+                />
+                <div
+                  className="h-full bg-slate-500 dark:bg-slate-300"
+                  style={{ width: `${sentimentPercentages.neutral}%` }}
                 />
                 <div
                   className="h-full"
                   style={{
-                    width: `${negativePercent}%`,
+                    width: `${sentimentPercentages.negative}%`,
                     backgroundColor: THY_RED,
                   }}
                 />
@@ -335,36 +323,36 @@ export default function Dashboard() {
               <p className={KPI_TITLE}>Priority mix</p>
               <div className="mt-3 flex justify-between text-xs text-slate-700 dark:text-slate-200">
                 <div>
-                  <p className="text-[11px] text-slate-500">High</p>
-                  <p className="font-semibold">{stats.highPriority}</p>
+                  <p className="text-sm" style={{ color: THY_RED }}> High</p>
+                  <p className="font-semibold">{priorityCounts.high} ({priorityPercentages.high}%)</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-500">Medium</p>
-                  <p className="font-semibold">{stats.mediumPriority}</p>
+                  <p className="text-sm text-amber-400">Medium</p>
+                  <p className="font-semibold">{priorityCounts.medium} ({priorityPercentages.medium}%)</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-500">Low</p>
-                  <p className="font-semibold">{stats.lowPriority}</p>
+                  <p className="text-sm text-sky-400">Low</p>
+                  <p className="font-semibold">{priorityCounts.low} ({priorityPercentages.low}%)</p>
                 </div>
               </div>
               <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex">
                 <div
                   className="h-full"
                   style={{
-                    width: `${(stats.highPriority / totalPriority) * 100}%`,
+                    width: `${priorityPercentages.high}%`,
                     backgroundColor: THY_RED,
                   }}
                 />
                 <div
                   className="h-full bg-amber-400"
                   style={{
-                    width: `${(stats.mediumPriority / totalPriority) * 100}%`,
+                    width: `${priorityPercentages.medium}%`,
                   }}
                 />
                 <div
                   className="h-full bg-sky-400"
                   style={{
-                    width: `${(stats.lowPriority / totalPriority) * 100}%`,
+                    width: `${priorityPercentages.low}%`,
                   }}
                 />
               </div>
@@ -382,21 +370,21 @@ export default function Dashboard() {
                 mode={theme}
                 rightContent={
                   <div className="space-y-3 text-xs">
-                    {departmentPercentages.map((dep) => (
+                    {departments.map((dep) => (
                       <div key={dep.id}>
                         <p className="font-semibold text-slate-900 dark:text-slate-50">
-                          {dep.name}
+                          {dep.name} ({dep.totalReviews.toLocaleString("en-US")} reviews)
                         </p>
-                        <p className="text-[11px]">
+                        <p className="text-[11px] flex flex-wrap gap-x-3">
                           <span className="text-emerald-500 dark:text-emerald-400 font-semibold">
-                            {dep.positivePercent}% positive
+                            {dep.sentimentPercentages.positive}% positive
                           </span>
-                          <span className="mx-1 text-slate-500">·</span>
-                          <span
-                            className="font-semibold"
-                            style={{ color: THY_RED }}
-                          >
-                            {dep.negativePercent}% negative
+                          <span className="text-slate-500 dark:text-slate-300 font-semibold">
+                             {dep.sentimentPercentages.neutral}% neutral
+                          </span>
+                          <span className="text-slate-500"></span>
+                          <span className="font-semibold" style={{ color: THY_RED }}>
+                             {dep.sentimentPercentages.negative}% negative
                           </span>
                         </p>
                       </div>
@@ -410,69 +398,38 @@ export default function Dashboard() {
           {/* High-priority issues across departments */}
           <section className={`${CARD} p-4`}>
             <p className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-2">
-              High-priority issues across departments
+              High-priority review samples across departments
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-300 mb-3">
-              Selected issues with the highest priority or volume in the current
-              period.
+              Selected high-priority feedback samples from each department for the selected period
             </p>
 
-            <ul className="space-y-2 text-xs">
-              {stats.topIssues.map((issue) => {
-                const total = Math.max(issue.positive + issue.negative, 1);
-                const pos = Math.round((issue.positive / total) * 100);
-                const neg = 100 - pos;
-
-                return (
-                  <li
-                    key={issue.labelKey}
-                    className="flex items-center justify-between"
+            {highPrioritySamples.length === 0 ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                No high-priority samples available for this period.
+              </p>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                {highPrioritySamples.map((item) => (
+                  <div
+                    key={item.department_id}
+                    className="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 bg-white/70 dark:bg-slate-900/50"
                   >
-                    <div>
-                      <p className="text-slate-900 dark:text-slate-50 font-medium">
-                        {issue.labelDisplay}
-                      </p>
-                      <p className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                        {issue.labelKey}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-slate-900 dark:text-slate-50">
-                        {issue.count} reviews
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        <span className="text-emerald-500 dark:text-emerald-400 font-semibold">
-                          {pos}% +
-                        </span>{" "}
-                        /{" "}
-                        <span
-                          className="font-semibold"
-                          style={{ color: THY_RED }}
-                        >
-                          {neg}% −
-                        </span>
-                      </p>
-                      <p
-                        className={
-                          "text-[11px] " +
-                          (issue.trend === "up"
-                            ? "text-rose-600 dark:text-rose-400"
-                            : issue.trend === "down"
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-slate-500 dark:text-slate-400")
-                        }
-                      >
-                        {issue.trend === "up"
-                          ? "↑ increasing"
-                          : issue.trend === "down"
-                          ? "↓ decreasing"
-                          : "→ stable"}
-                      </p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-50 mb-2">
+                      {item.department_name}
+                    </p>
+                    <ul className="space-y-1.5 text-[11px] text-slate-700 dark:text-slate-200">
+                      {item.samples.map((sample, idx) => (
+                        <li key={idx} className="relative pl-3">
+                          <span className="absolute left-0 top-1 h-1 w-1 rounded-full bg-slate-400 dark:bg-slate-500" />
+                          <span className="italic">“{sample}”</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </main>
       </div>

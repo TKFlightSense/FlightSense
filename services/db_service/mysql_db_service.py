@@ -1095,7 +1095,35 @@ class MySQLDbService:
         """
         result = self.execute(query, (date_from.date(), date_to.date()), fetch=True)
         return result[0][0] if result and result[0][0] is not None else 0
-    
+
+    def get_high_priority_reviews_for_labels(self, label, date_from: datetime, date_to: datetime, max_rows: int):
+
+        query = f"""
+                SELECT 
+                    pr.label,
+                    pr.`index`,
+                    r.id AS review_id,
+                    r.review,
+                    pr.created_at
+                FROM processed_reviews pr
+                JOIN reviews r ON r.id = pr.review_id
+                WHERE pr.priority = 'HIGH' AND pr.label = %s AND pr.created_at >= %s AND pr.created_at <= %s
+                ORDER BY pr.created_at DESC
+                LIMIT %s
+            """
+        rows = self.execute(query, (label, date_from, date_to, max_rows), fetch=True) or []
+
+        results: Dict[str, Dict[str, Any]] = {}
+
+        for label, index_str, review_id, review_text, created_at in rows:
+            results[label] = {
+                "index": index_str,
+                "review_id": review_id,
+                "review": review_text,
+                "created_at": created_at,
+            }
+        return results
+
     def update_department_statistics(self, start_dt: datetime, end_dt: datetime):
         """
         Aggregates reviews processed within a specific time range and updates department statistics.

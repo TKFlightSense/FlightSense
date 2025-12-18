@@ -1,28 +1,23 @@
-// src/utils/managerStatsMapper.ts
-import type { ManagerStatisticsData, Period } from "../services/api";
-import { DEPARTMENT_LABEL_TO_JIRA_KEY } from "../departmentConfig";
+import type { ManagerStatisticsData, Period, SentimentCounts, SentimentPercentages, PriorityCounts, PriorityPercentages } from "../services/api";
+import {DEPARTMENT_CODE_TO_LABEL } from "../departmentConfig";
 
 export type ManagerTrendPoint = {
-  label: string;
-  positive: number;
-  negative: number;
+  time_label: string;
+  sentimentCounts: SentimentCounts
 };
 
 export type ManagerDepartmentUi = {
   id: string;
   name: string;
   totalReviews: number;
-  positive: number;
-  negative: number;
+  sentimentCounts: SentimentCounts;
+  sentimentPercentages: SentimentPercentages;
 };
 
-export type ManagerTopIssue = {
-  labelKey: string;
-  labelDisplay: string;
-  count: number;
-  positive: number;
-  negative: number;
-  trend: "up" | "down" | "stable";
+export type ManagerHighPrioritySamplesUi = {
+  department_id: string;
+  department_name: string;
+  samples: string[];
 };
 
 export type ManagerStatsUi = {
@@ -30,14 +25,13 @@ export type ManagerStatsUi = {
   totalReviews: number;
   uniqueReviews: number;
   processedSegments: number;
-  positive: number;
-  negative: number;
-  highPriority: number;
-  mediumPriority: number;
-  lowPriority: number;
+  sentimentCounts: SentimentCounts;
+  sentimentPercentages: SentimentPercentages;
+  priorityCounts: PriorityCounts;
+  priorityPercentages: PriorityPercentages;
   departments: ManagerDepartmentUi[];
-  trend: ManagerTrendPoint[];
-  topIssues: ManagerTopIssue[];
+  historicalData: ManagerTrendPoint[];
+  highPrioritySamples: ManagerHighPrioritySamplesUi[];
 };
 
 function mapHistoricalDataToTrend(
@@ -56,66 +50,98 @@ function mapHistoricalDataToTrend(
     }
 
     return {
-      label: shortLabel,
-      positive: value.positive ?? 0,
-      negative: value.negative ?? 0,
+      time_label: shortLabel,
+      sentimentCounts: {
+        positive: value.positive?? 0,
+        negative: value.negative ?? 0,
+        neutral: value.neutral ?? 0,
+      },
     };
   });
 }
 
-export function mapManagerStatsApiToUi(
-  apiData: ManagerStatisticsData,
-  period: Period
-): ManagerStatsUi {
+export function mapManagerStatsApiToUi(apiData: ManagerStatisticsData, period: Period): ManagerStatsUi {
   const totalReviews = apiData.total;
   const uniqueReviews = apiData.unique_reviews ?? 0;
   const processedSegments = apiData.processed_segments ?? 0;
   const periodLabel = apiData.period_label;
 
-  const positive = apiData.sentiment_counts.positive ?? 0;
-  const negative = apiData.sentiment_counts.negative ?? 0;
 
-  const highPriority = apiData.priority_counts.high ?? 0;
-  const mediumPriority = apiData.priority_counts.medium ?? 0;
-  const lowPriority = apiData.priority_counts.low ?? 0;
+  const sentimentCounts: SentimentCounts = {
+    positive: apiData.sentiment_counts?.positive ?? 0,
+    negative: apiData.sentiment_counts?.negative ?? 0,
+    neutral: apiData.sentiment_counts?.neutral ?? 0,
+  };
 
-  const departmentsUi: ManagerDepartmentUi[] = Object.entries(
+  const sentimentPercentages: SentimentPercentages = {
+    positive: apiData.sentiment_percentages?.positive ?? 0,
+    negative: apiData.sentiment_percentages?.negative ?? 0,
+    neutral: apiData.sentiment_percentages?.neutral ?? 0,
+  };
+
+  const priorityCounts: PriorityCounts = {
+    high: apiData.priority_counts?.high ?? 0,
+    medium: apiData.priority_counts?.medium ?? 0,
+    low: apiData.priority_counts?.low ?? 0,
+  };
+
+  const priorityPercentages: PriorityPercentages = {
+    high: apiData.priority_percentages?.high ?? 0,
+    medium: apiData.priority_percentages?.medium ?? 0,
+    low: apiData.priority_percentages?.low ?? 0,
+  };
+
+  const departments: ManagerDepartmentUi[] = Object.entries(
     apiData.department_distribution
   ).map(([backendName, total]) => {
-    const sentimentEntry =
-      apiData.department_sentiment_distribution[backendName]?.sentiment;
+    const sentimentEntry = apiData.department_sentiment_distribution[backendName]?.sentiment;
 
-    const depPositive = sentimentEntry?.counts.positive ?? 0;
-    const depNegative = sentimentEntry?.counts.negative ?? 0;
+    const counts: SentimentCounts = {
+      positive: sentimentEntry?.counts.positive ?? 0,
+      negative: sentimentEntry?.counts.negative ?? 0,
+      neutral: sentimentEntry?.counts.neutral ?? 0,
+    };
 
-    // Backend returns department labels - convert to codes for URL routing
-    const departmentCode = DEPARTMENT_LABEL_TO_JIRA_KEY[backendName] ?? backendName;
+    const percentages: SentimentPercentages = {
+      positive: sentimentEntry?.percentage.positive ?? 0,
+      negative: sentimentEntry?.percentage.negative ?? 0,
+      neutral: sentimentEntry?.percentage.neutral ?? 0,
+    };
+
+    const departmentName= DEPARTMENT_CODE_TO_LABEL[backendName] ?? backendName;
 
     return {
-      id: departmentCode,     // Department code for URL routing (KHB, TGS, etc.)
-      name: backendName,      // Keep original label for display
+      id: backendName,
+      name: departmentName,
       totalReviews: total,
-      positive: depPositive,
-      negative: depNegative,
+      sentimentCounts: counts,
+      sentimentPercentages: percentages,
     };
-  });
+  }) ?? [];
 
-  const trend = mapHistoricalDataToTrend(apiData.historical_data, period);
+  const historicalData = mapHistoricalDataToTrend(apiData.historical_data, period) ?? [];
 
-  const topIssues: ManagerTopIssue[] = []; // backend şu anda issue bazlı data göndermiyor
-
+  const highPrioritySamples: ManagerHighPrioritySamplesUi[] = Object.entries(
+    apiData.high_priority_samples ?? {})
+    .map(([department_id, samples]) => {
+      const department_name = DEPARTMENT_CODE_TO_LABEL[department_id] ?? department_id;
+      return {
+        department_id,
+        department_name,
+        samples,
+      };
+    }) ?? [];
   return {
     periodLabel,
     totalReviews,
     uniqueReviews,
     processedSegments,
-    positive,
-    negative,
-    highPriority,
-    mediumPriority,
-    lowPriority,
-    departments: departmentsUi,
-    trend,
-    topIssues,
+    sentimentCounts,
+    sentimentPercentages,
+    priorityCounts,
+    priorityPercentages,
+    departments,
+    historicalData,
+    highPrioritySamples,
   };
 }

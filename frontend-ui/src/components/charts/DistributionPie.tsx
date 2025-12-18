@@ -25,21 +25,23 @@ type Props = {
 };
 
 const COLORS_DARK = [
-  "#38bdf8",
-  "#22c55e",
-  "#b7312c", // THY red
-  "#f97316",
-  "#a855f7",
-  "#facc15",
+  "#f94144",
+  "#f9c74f",
+  "#90be6d",
+  "#f3722c",
+  "#43aa8b",
+  "#f8961e",
+  "#577590",
 ];
 
 const COLORS_LIGHT = [
-  "#2563eb",
-  "#0ea5e9",
-  "#22c55e",
-  "#b7312c", // THY red
-  "#f97316",
-  "#7c3aed",
+  "#b80609",
+  "#bd8607",
+  "#567d38",
+  "#a23f09",
+  "#286552",
+  "#a35c05",
+  "#344656",
 ];
 
 export default function DistributionPie({
@@ -70,7 +72,7 @@ export default function DistributionPie({
       <div className="flex flex-col md:flex-row items-stretch gap-4">
         {/* Chart */}
         <div
-          className={`h-52 flex-1 min-w-[220px] rounded-2xl border px-3 py-2 ${chartBg}`}
+          className={`md:w-3/5 lg:w-2/3 h-52 min-w-[220px] rounded-2xl border px-3 py-2 ${chartBg}`}
         >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -118,7 +120,7 @@ export default function DistributionPie({
 
         {/* Right-side panel */}
         {rightContent && (
-          <div className="w-full md:w-52 text-xs space-y-2">
+          <div className="flex-1 text-xs space-y-2">
             {rightContent}
           </div>
         )}

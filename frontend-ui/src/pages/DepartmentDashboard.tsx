@@ -1,5 +1,3 @@
-// src/pages/DepartmentDashboard.tsx
-
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -43,7 +41,6 @@ export default function DepartmentDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [jiraKey, setJiraKey] = useState<string | null>(null);
 
-  // departmentName yoksa
   if (!departmentName) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -64,27 +61,21 @@ export default function DepartmentDashboard() {
 
   useEffect(() => {
     if (!departmentName) return;
-
-    // URL uses Jira project keys which are also backend department codes (e.g., /department/KHB)
     const key = decodeURIComponent(departmentName);
     const label = JIRA_KEY_TO_DEPARTMENT_LABEL[key as DepartmentId] ?? key;
     setJiraKey(key);
 
-    // If no token (mock login), use mock data
+    setLoading(true);
+    setError(null);
+
     if (!token) {
       setLoading(true);
       setError(null);
-      // Simulate network delay
       setTimeout(() => {
-        const mockStats =
-          MOCK_DEPARTMENT_STATS_BY_RANGE[key as DepartmentId]?.[timeRange];
+        const mockStats = MOCK_DEPARTMENT_STATS_BY_RANGE[key as DepartmentId]?.[timeRange];
 
         if (mockStats) {
-          // The mock data is already in the UI shape, we just need to rename 'name' to 'departmentName'
-          const uiStats: DepartmentStatsUi = {
-            ...mockStats,
-            departmentName: mockStats.name,
-          };
+          const uiStats = mapDepartmentStatsApiToUi(mockStats, timeRange);
           setStats(uiStats);
         } else {
           setError(`No mock data found for department: ${key}`);
@@ -106,7 +97,7 @@ export default function DepartmentDashboard() {
         if (!res.success) {
           throw new Error("API returned success = false");
         }
-        const ui = mapDepartmentStatsApiToUi(res.data, label, timeRange);
+        const ui = mapDepartmentStatsApiToUi(res.data, timeRange);
         setStats(ui);
       })
       .catch((err) => {
@@ -170,30 +161,36 @@ export default function DepartmentDashboard() {
     )
   }
 
-  const positivePercent = Math.round(
-    (stats.positive / Math.max(stats.totalReviews, 1)) * 100
-  );
-  const negativePercent = 100 - positivePercent;
 
-  const totalPriority =
-    stats.highPriority + stats.mediumPriority + stats.lowPriority || 1;
+  const {
+    departmentName: deptDisplayName,
+    periodLabel,
+    totalReviews,
+    sentimentCounts,
+    sentimentPercentages,
+    priorityCounts,
+    priorityPercentages,
+    labelDistribution,
+    highPrioritySamples,
+    historicalData,
+  } = stats;
 
-  const issuesPieData: PieItem[] = stats.topIssues.map((issue) => ({
-    name: issue.labelDisplay,
-    value: issue.count,
+  const labelPieData: PieItem[] = labelDistribution.map((label) => ({
+    id: label.key,
+    name: label.name,
+    value: label.totalReviews,
   }));
 
-  const labelPercentages = stats.topIssues.map((issue) => {
-    const total = Math.max(issue.positive + issue.negative, 1);
-    const pos = Math.round((issue.positive / total) * 100);
-    const neg = 100 - pos;
-    return {
-      labelKey: issue.labelKey,
-      labelDisplay: issue.labelDisplay,
-      positivePercent: pos,
-      negativePercent: neg,
-    };
-  });
+ function periodButtonClass(current: Period, target: Period) {
+    const base = "px-3 py-1 rounded-full border transition text-[11px]";
+    const active =
+      "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50";
+    const inactive =
+      "border-slate-200 bg-white/70 text-slate-500 hover:bg-white " +
+      "dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70";
+
+    return base + " " + (current === target ? active : inactive);
+  }
 
   return (
     <div className={PAGE_WRAPPER}>
@@ -207,21 +204,23 @@ export default function DepartmentDashboard() {
               FlightSense
             </p>
             <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-              <span style={{ color: THY_RED }}>{stats.departmentName}</span>
+              <span style={{ color: THY_RED }}>{deptDisplayName}</span>
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-slate-300">
-              Period · {stats.periodLabel}
+              Period · {periodLabel}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/dashboard")}
-              className="text-xs px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 hover:border-slate-400 transition flex items-center gap-1.5
-                         dark:border-slate-600 dark:text-slate-50 dark:bg-slate-900/70 dark:hover:bg-slate-800"
-            >
-              ← Back to Dashboard
-            </button>
+            {(user?.role === "manager" || user?.role === "admin") && (
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="text-xs px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 hover:border-slate-400 transition flex items-center gap-1.5
+                           dark:border-slate-600 dark:text-slate-50 dark:bg-slate-900/70 dark:hover:bg-slate-800"
+              >
+                ← Back to Dashboard
+              </button>
+            )}
 
             {jiraKey && (
               <a
@@ -279,50 +278,36 @@ export default function DepartmentDashboard() {
             <div className="flex flex-wrap gap-3 items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                  Feedback trend for {stats.departmentName}
+                  Feedback trend for {deptDisplayName}
                 </p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-300">
-                  Positive vs negative reviews over time · {stats.periodLabel}
+                  Positive vs negative reviews over time · {periodLabel}
                 </p>
               </div>
               <div className="flex gap-2 text-[11px]">
                 <button
                   onClick={() => setTimeRange("weekly")}
-                  className={
-                    "px-3 py-1 rounded-full border transition " +
-                    (timeRange === "weekly"
-                      ? "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50"
-                      : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70")
-                  }
+                  className={periodButtonClass(timeRange, "weekly")}
                 >
-                  Last Week
+                  Weekly
                 </button>
                 <button
                   onClick={() => setTimeRange("monthly")}
-                  className={
-                    "px-3 py-1 rounded-full border transition " +
-                    (timeRange === "monthly"
-                      ? "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50"
-                      : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70")
-                  }
+                  className={periodButtonClass(timeRange, "monthly")}
+
                 >
                   Last Month
                 </button>
                 <button
                   onClick={() => setTimeRange("yearly")}
-                  className={
-                    "px-3 py-1 rounded-full border transition " +
-                    (timeRange === "yearly"
-                      ? "border-slate-900 bg-white text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50"
-                      : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/70")
-                  }
+                  className={periodButtonClass(timeRange, "yearly")}
                 >
-                  Last Year
+                  Yearly
                 </button>
               </div>
             </div>
             <div className={`${CARD} p-4`}>
-              <FeedbackTrendChart data={stats.trend} mode={theme} />
+              <FeedbackTrendChart data={historicalData} mode={theme} />
             </div>
           </section>
 
@@ -331,10 +316,10 @@ export default function DepartmentDashboard() {
             <div className={`${CARD} p-4`}>
               <p className={KPI_TITLE}>Total reviews</p>
               <p className="mt-2 text-3xl font-semibold">
-                {stats.totalReviews.toLocaleString("en-US")}
+                {totalReviews.toLocaleString("en-US")}
               </p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
-                For this department ({stats.periodLabel})
+                For this department ({periodLabel})
               </p>
             </div>
 
@@ -342,34 +327,40 @@ export default function DepartmentDashboard() {
               <p className={KPI_TITLE}>Sentiment</p>
               <div className="mt-3 flex items-end justify-between">
                 <div>
-                  <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">
-                    {positivePercent}% positive
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400"> Positive
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-300">
-                    {stats.positive} reviews
+                  <p className="text-xs text-slate-500 dark:text-slate-300 font-semibold">
+                    {sentimentCounts.positive} ({sentimentPercentages.positive}%)
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-slate-600 dark:text-slate-200"> Neutral
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-300 font-semibold">
+                    {sentimentCounts.neutral} ({sentimentPercentages.neutral}%)
                   </p>
                 </div>
                 <div>
-                  <p
-                    className="text-sm font-semibold"
-                    style={{ color: THY_RED }}
-                  >
-                    {negativePercent}% negative
+                  <p className="text-sm" style={{ color: THY_RED }}> Negative
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-300">
-                    {stats.negative} reviews
+                  <p className="text-xs text-slate-500 dark:text-slate-300 font-semibold">
+                    {sentimentCounts.negative} ({sentimentPercentages.negative}%)
                   </p>
                 </div>
               </div>
               <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex">
                 <div
                   className="h-full bg-emerald-500"
-                  style={{ width: `${positivePercent}%` }}
+                  style={{ width: `${sentimentPercentages.positive}%` }}
+                />
+                <div
+                  className="h-full bg-slate-500 dark:bg-slate-300"
+                  style={{ width: `${sentimentPercentages.neutral}%` }}
                 />
                 <div
                   className="h-full"
                   style={{
-                    width: `${negativePercent}%`,
+                    width: `${sentimentPercentages.negative}%`,
                     backgroundColor: THY_RED,
                   }}
                 />
@@ -380,36 +371,36 @@ export default function DepartmentDashboard() {
               <p className={KPI_TITLE}>Priority mix</p>
               <div className="mt-3 flex justify-between text-xs text-slate-700 dark:text-slate-200">
                 <div>
-                  <p className="text-[11px] text-slate-500">High</p>
-                  <p className="font-semibold">{stats.highPriority}</p>
+                  <p className="text-sm"style={{ color: THY_RED }}>High</p>
+                  <p className="font-semibold">{priorityCounts.high} ({priorityPercentages.high}%)</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-500">Medium</p>
-                  <p className="font-semibold">{stats.mediumPriority}</p>
+                  <p className="text-sm text-amber-400">Medium</p>
+                  <p className="font-semibold">{priorityCounts.medium} ({priorityPercentages.medium}%)</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-500">Low</p>
-                  <p className="font-semibold">{stats.lowPriority}</p>
+                  <p className="text-sm text-sky-400">Low</p>
+                  <p className="font-semibold">{priorityCounts.low} ({priorityPercentages.low}%)</p>
                 </div>
               </div>
               <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex">
                 <div
                   className="h-full"
                   style={{
-                    width: `${(stats.highPriority / totalPriority) * 100}%`,
+                    width: `${priorityPercentages.high}%`,
                     backgroundColor: THY_RED,
                   }}
                 />
                 <div
                   className="h-full bg-amber-400"
                   style={{
-                    width: `${(stats.mediumPriority / totalPriority) * 100}%`,
+                    width: `${priorityPercentages.medium}%`,
                   }}
                 />
                 <div
                   className="h-full bg-sky-400"
                   style={{
-                    width: `${(stats.lowPriority / totalPriority) * 100}%`,
+                    width: `${priorityPercentages.low}%`,
                   }}
                 />
               </div>
@@ -420,27 +411,30 @@ export default function DepartmentDashboard() {
           <section>
             <div className={`${CARD} p-4`}>
               <DistributionPie
-                title="Issues by label"
+                title="Reviews by subcategories"
                 subtitle="Distribution of feedback across labels handled by this department"
-                data={issuesPieData}
+                data={labelPieData}
                 mode={theme}
                 rightContent={
                   <div className="space-y-3 text-xs">
-                    {labelPercentages.map((issue) => (
-                      <div key={issue.labelKey}>
+                    {labelDistribution.map((label) => (
+                      <div key={label.key}>
                         <p className="font-semibold text-slate-900 dark:text-slate-50">
-                          {issue.labelDisplay}
+                          {label.name}
                         </p>
-                        <p className="text-[11px]">
+                        <p className="text-[11px] flex flex-wrap gap-x-2">
                           <span className="text-emerald-500 dark:text-emerald-400 font-semibold">
-                            {issue.positivePercent}% positive
+                            {label.sentimentPercentages.positive}% positive
+                          </span>
+                          <span className="text-slate-500 dark:text-slate-300 font-semibold">
+                            {label.sentimentPercentages.neutral}% neutral
                           </span>
                           <span className="mx-1 text-slate-500">·</span>
                           <span
                             className="font-semibold"
                             style={{ color: THY_RED }}
                           >
-                            {issue.negativePercent}% negative
+                            {label.sentimentPercentages.negative}% negative
                           </span>
                         </p>
                       </div>
@@ -457,52 +451,34 @@ export default function DepartmentDashboard() {
               Top issues in this department
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-300 mb-3">
-              Selected issues and their sentiment split in the current period.
-            </p>
+              Selected high-priority feedback samples grouped by label for the selected period.</p>
 
-            <ul className="space-y-2 text-xs">
-              {stats.topIssues.map((issue) => {
-                const total = Math.max(issue.positive + issue.negative, 1);
-                const pos = Math.round((issue.positive / total) * 100);
-                const neg = 100 - pos;
-
-                return (
-                  <li
-                    key={issue.labelKey}
-                    className="flex items-center justify-between"
+            {highPrioritySamples.length === 0 ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                No high-priority samples available for this period.
+              </p>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                {highPrioritySamples.map((item) => (
+                  <div
+                    key={item.labelKey}
+                    className="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 bg-white/70 dark:bg-slate-900/50"
                   >
-                    <div>
-                      <p className="text-slate-900 dark:text-slate-50">
-                        {issue.labelDisplay}
-                      </p>
-                      <p className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                        {issue.labelKey}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-slate-900 dark:text-slate-50">
-                        {issue.count} reviews
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        <span className="text-emerald-500 dark:text-emerald-400 font-semibold">
-                          {pos}% +
-                        </span>{" "}
-                        /{" "}
-                        <span
-                          className="font-semibold"
-                          style={{ color: THY_RED }}
-                        >
-                          {neg}% −
-                        </span>
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        → stable
-                      </p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-50 mb-2">
+                      {item.labelDisplay}
+                    </p>
+                    <ul className="space-y-1.5 text-[11px] text-slate-700 dark:text-slate-200">
+                      {item.samples.map((sample, idx) => (
+                        <li key={idx} className="relative pl-3">
+                          <span className="absolute left-0 top-1 h-1 w-1 rounded-full bg-slate-400 dark:bg-slate-500" />
+                          <span className="italic">“{sample}”</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </main>
       </div>
