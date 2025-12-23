@@ -1,5 +1,5 @@
 import type { DepartmentStatisticsData, Period, SentimentCounts, SentimentPercentages, PriorityCounts, PriorityPercentages } from "../services/api";
-import {LABEL_KEY_TO_NAME, JIRA_KEY_TO_DEPARTMENT_LABEL} from "../departmentConfig"
+import {LABEL_KEY_TO_NAME, JIRA_KEY_TO_DEPARTMENT_LABEL, type DepartmentCode} from "../departmentConfig"
 
 export type DepartmentHighPrioritySamplesUi = {
   labelKey: string;
@@ -60,7 +60,7 @@ function mapHistoricalDataToTrend(
 }
 
 export function mapDepartmentStatsApiToUi(apiData: DepartmentStatisticsData, period: Period): DepartmentStatsUi {
-  const departmentName = JIRA_KEY_TO_DEPARTMENT_LABEL[apiData.department_name] ?? apiData.department_name;
+  const departmentName = JIRA_KEY_TO_DEPARTMENT_LABEL[apiData.department_name as DepartmentCode] ?? apiData.department_name;
   const totalReviews = apiData.total ?? 0;
   const periodLabel = apiData.period_label;
 

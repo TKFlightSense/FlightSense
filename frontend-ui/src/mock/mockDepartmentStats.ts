@@ -46,12 +46,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         ),
       },
 
-      label_distribution: {
-        inflight_experience_food_beverage: 48,
-        inflight_experience_entertainment: 27,
-      },
 
-      label_sentiment_distribution: {
+
+      label_distribution: {
         inflight_experience_food_beverage: {
           counts: { positive: 29, negative: 19, neutral: 0 },
           percentage: {
@@ -122,12 +119,9 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         low: 39,
       },
 
-      label_distribution: {
-        inflight_experience_food_beverage: 200,
-        inflight_experience_entertainment: 110,
-      },
+    
 
-      label_sentiment_distribution: {
+      label_distribution: {
         inflight_experience_food_beverage: {
           counts: { positive: 130, negative: 70, neutral: 0 },
           percentage: {
@@ -208,12 +202,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         ),
       },
 
-      label_distribution: {
-        inflight_experience_food_beverage: 2000,
-        inflight_experience_entertainment: 1100,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         inflight_experience_food_beverage: {
           counts: { positive: 1650, negative: 350, neutral: 0 },
           percentage: {
@@ -304,11 +294,6 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
       },
 
       label_distribution: {
-        baggage_lost: 61,
-        baggage_damaged: 29,
-      },
-
-      label_sentiment_distribution: {
         baggage_lost: {
           counts: { positive: 12, negative: 49, neutral: 0 },
           percentage: {
@@ -379,12 +364,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         low: 43,
       },
 
-      label_distribution: {
-        baggage_lost: 190,
-        baggage_damaged: 90,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         baggage_lost: {
           counts: { positive: 120, negative: 70, neutral: 0 },
           percentage: {
@@ -465,12 +446,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         ),
       },
 
-      label_distribution: {
-        baggage_lost: 1832,
-        baggage_damaged: 868,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         baggage_lost: {
           counts: { positive: 1490, negative: 342, neutral: 0 },
           percentage: {
@@ -556,12 +533,6 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
       },
 
       label_distribution: {
-        inflight_experience_seats_comfort: 8,
-        inflight_experience_cabin_service: 7,
-        inflight_experience_cleanliness: 5,
-      },
-
-      label_sentiment_distribution: {
         inflight_experience_seats_comfort: {
           counts: { positive: 4, negative: 3, neutral: 1 },
           percentage: {
@@ -646,12 +617,6 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
       },
 
       label_distribution: {
-        inflight_experience_seats_comfort: 90,
-        inflight_experience_cabin_service: 80,
-        inflight_experience_cleanliness: 60,
-      },
-
-      label_sentiment_distribution: {
         inflight_experience_seats_comfort: {
           counts: { positive: 55, negative: 30, neutral: 5 },
           percentage: {
@@ -741,13 +706,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         ),
       },
 
-      label_distribution: {
-        inflight_experience_seats_comfort: 959,
-        inflight_experience_cabin_service: 852,
-        inflight_experience_cleanliness: 639,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         inflight_experience_seats_comfort: {
           counts: { positive: 780, negative: 150, neutral: 29 },
           percentage: {
@@ -843,13 +803,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
             100
         ),
       },
-
+      
       label_distribution: {
-        checkin_process: 40,
-        boarding_process: 25,
-      },
-
-      label_sentiment_distribution: {
         checkin_process: {
           counts: { positive: 18, negative: 19, neutral: 3 },
           percentage: {
@@ -920,12 +875,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         low: Math.round((155 / 420) * 100),
       },
 
-      label_distribution: {
-        checkin_process: 260,
-        boarding_process: 160,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         checkin_process: {
           counts: { positive: 170, negative: 80, neutral: 10 },
           percentage: {
@@ -1003,11 +954,6 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
       },
 
       label_distribution: {
-        checkin_process: 2290,
-        boarding_process: 1410,
-      },
-
-      label_sentiment_distribution: {
         checkin_process: {
           counts: { positive: 1860, negative: 360, neutral: 70 },
           percentage: {
@@ -1092,11 +1038,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         ),
       },
 
-      label_distribution: {
-        booking_and_ticketing: 60,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         booking_and_ticketing: {
           counts: { positive: 41, negative: 15, neutral: 4 },
           percentage: {
@@ -1154,11 +1097,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         low: Math.round((40 / 90) * 100),
       },
 
-      label_distribution: {
-        booking_and_ticketing: 90,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         booking_and_ticketing: {
           counts: { positive: 58, negative: 27, neutral: 5 },
           percentage: {
@@ -1222,11 +1162,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         ),
       },
 
-      label_distribution: {
-        booking_and_ticketing: 2200,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         booking_and_ticketing: {
           counts: { positive: 1740, negative: 360, neutral: 100 },
           percentage: {
@@ -1291,11 +1228,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         low: Math.round((4 / 7) * 100),
       },
 
-      label_distribution: {
-        customer_support: 7,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         customer_support: {
           counts: { positive: 5, negative: 1, neutral: 1 },
           percentage: {
@@ -1353,11 +1287,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         low: Math.round((34 / 70) * 100),
       },
 
-      label_distribution: {
-        customer_support: 70,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         customer_support: {
           counts: { positive: 44, negative: 21, neutral: 5 },
           percentage: {
@@ -1421,11 +1352,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         ),
       },
 
-      label_distribution: {
-        customer_support: 1900,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         customer_support: {
           counts: { positive: 1540, negative: 280, neutral: 80 },
           percentage: {
@@ -1490,11 +1418,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         low: Math.round((10 / 23) * 100),
       },
 
-      label_distribution: {
-        pricing_and_loyalty: 23,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         pricing_and_loyalty: {
           counts: { positive: 17, negative: 4, neutral: 2 },
           percentage: {
@@ -1552,11 +1477,8 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
         low: Math.round((30 / 60) * 100),
       },
 
-      label_distribution: {
-        pricing_and_loyalty: 60,
-      },
 
-      label_sentiment_distribution: {
+      label_distribution: {
         pricing_and_loyalty: {
           counts: { positive: 38, negative: 18, neutral: 4 },
           percentage: {
@@ -1621,10 +1543,6 @@ export const MOCK_DEPARTMENT_STATS_BY_RANGE: Record<
       },
 
       label_distribution: {
-        pricing_and_loyalty: 850,
-      },
-
-      label_sentiment_distribution: {
         pricing_and_loyalty: {
           counts: { positive: 570, negative: 240, neutral: 40 },
           percentage: {

@@ -1,5 +1,5 @@
 import type { ManagerStatisticsData, Period, SentimentCounts, SentimentPercentages, PriorityCounts, PriorityPercentages } from "../services/api";
-import {DEPARTMENT_CODE_TO_LABEL } from "../departmentConfig";
+import {DEPARTMENT_CODE_TO_LABEL, type DepartmentCode } from "../departmentConfig";
 
 export type ManagerTrendPoint = {
   time_label: string;
@@ -108,7 +108,7 @@ export function mapManagerStatsApiToUi(apiData: ManagerStatisticsData, period: P
       neutral: sentimentEntry?.percentage.neutral ?? 0,
     };
 
-    const departmentName= DEPARTMENT_CODE_TO_LABEL[backendName] ?? backendName;
+    const departmentName= DEPARTMENT_CODE_TO_LABEL[backendName as DepartmentCode] ?? backendName;
 
     return {
       id: backendName,
@@ -124,7 +124,7 @@ export function mapManagerStatsApiToUi(apiData: ManagerStatisticsData, period: P
   const highPrioritySamples: ManagerHighPrioritySamplesUi[] = Object.entries(
     apiData.high_priority_samples ?? {})
     .map(([department_id, samples]) => {
-      const department_name = DEPARTMENT_CODE_TO_LABEL[department_id] ?? department_id;
+      const department_name = DEPARTMENT_CODE_TO_LABEL[department_id as DepartmentCode] ?? department_id;
       return {
         department_id,
         department_name,

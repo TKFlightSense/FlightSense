@@ -9,6 +9,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { Theme } from "../../hooks/useTheme";
+import type { SentimentCounts } from "../../services/api";
 
 export type TrendPoint = {
   time_label: string;
@@ -101,7 +102,7 @@ export default function FeedbackTrendChart({
 
             <Area
               type="monotone"
-              dataKey="sentimentCounts.positive"
+              dataKey={(d) => d.sentimentCounts.positive}
               name="Positive"
               stroke="#22c55e"
               strokeWidth={2}
@@ -111,7 +112,7 @@ export default function FeedbackTrendChart({
             />
             <Area
               type="monotone"
-              dataKey="sentimentCounts.negative"
+              dataKey={(d) => d.sentimentCounts.negative}
               name="Negative"
               stroke={THY_RED}
               strokeWidth={2}
@@ -121,7 +122,7 @@ export default function FeedbackTrendChart({
             />
             <Area
               type="monotone"
-              dataKey="sentimentCounts.neutral"
+              dataKey={(d) => d.sentimentCounts.neutral}
               name="Neutral"
               stroke="#9ca3af"
               strokeWidth={2}

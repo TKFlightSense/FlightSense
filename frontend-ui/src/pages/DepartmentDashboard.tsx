@@ -4,8 +4,10 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../hooks/useTheme";
 import {
   JIRA_KEY_TO_DEPARTMENT_LABEL,
+  DEPARTMENT_LABEL_TO_CODE,
   getJiraProjectUrl,
   type DepartmentId,
+  type DepartmentLabel,
 } from "../departmentConfig";
 import {
   PAGE_WRAPPER,
@@ -61,9 +63,10 @@ export default function DepartmentDashboard() {
 
   useEffect(() => {
     if (!departmentName) return;
-    const key = decodeURIComponent(departmentName);
-    const label = JIRA_KEY_TO_DEPARTMENT_LABEL[key as DepartmentId] ?? key;
-    setJiraKey(key);
+    const label = decodeURIComponent(departmentName);
+    const deptCode = DEPARTMENT_LABEL_TO_CODE[label as DepartmentLabel] ?? label;
+    setJiraKey(deptCode);
+
 
     setLoading(true);
     setError(null);
@@ -72,13 +75,13 @@ export default function DepartmentDashboard() {
       setLoading(true);
       setError(null);
       setTimeout(() => {
-        const mockStats = MOCK_DEPARTMENT_STATS_BY_RANGE[key as DepartmentId]?.[timeRange];
+        const mockStats = MOCK_DEPARTMENT_STATS_BY_RANGE[deptCode as DepartmentId]?.[timeRange];
 
         if (mockStats) {
           const uiStats = mapDepartmentStatsApiToUi(mockStats, timeRange);
           setStats(uiStats);
         } else {
-          setError(`No mock data found for department: ${key}`);
+          setError(`No mock data found for department: ${deptCode}`);
         }
         setLoading(false);
       }, 500);
@@ -88,9 +91,9 @@ export default function DepartmentDashboard() {
     // --- Real API call ---
     setLoading(true);
     setError(null);
-
+    console.log("key:", deptCode, "label: ", label);
     fetchDepartmentStatistics(token, {
-      department_name: key, // Backend expects the department code (KHB, TGS, etc.)
+      department_name: deptCode, // Backend expects the department code (KHB, TGS, etc.)
       period: timeRange,
     })
       .then((res) => {

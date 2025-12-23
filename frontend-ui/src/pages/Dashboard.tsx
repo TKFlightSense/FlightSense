@@ -236,20 +236,9 @@ export default function Dashboard() {
           </section>
 
           {/* KPI cards */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-            {/* Total Feedback Count */}
-            <div className={`${CARD} p-4`}>
-              <p className={KPI_TITLE}>Total Feedback Count</p>
-              <p className="mt-3 text-3xl font-semibold">
-                {totalReviews.toLocaleString("en-US")}
-              </p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
-                Total customer reviews ({periodLabel})
-              </p>
-            </div>
-          {/*
-            // Unique Reviews
+          <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          
+            {/* Unique Reviews */}
             <div className={`${CARD} p-4`}>
               <p className={KPI_TITLE}>Unique reviews</p>
               <p className="mt-3 text-3xl font-semibold">
@@ -260,17 +249,17 @@ export default function Dashboard() {
               </p>
             </div>
 
-            // Processed Segments
+            {/* Processed Segments */}
             <div className={`${CARD} p-4`}>
               <p className={KPI_TITLE}>Processed segments</p>
               <p className="mt-3 text-3xl font-semibold">
-                {processedSegments.toLocaleString("en-US")}
+                {totalReviews.toLocaleString("en-US")}  {/*{processedSegments.toLocaleString("en-US")}*/}
               </p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
-                Classified feedback segments
+                Classified feedback segments VUHU
               </p>
             </div>
-          */}
+          
 
             {/* Sentiment split */}
             <div className={`${CARD} p-4`}>

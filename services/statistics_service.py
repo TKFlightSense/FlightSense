@@ -106,7 +106,8 @@ class StatisticsService:
             internal_date_to = date_from + relativedelta(days=i+1)
             positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
             negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
-            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            neutral_counts = self.db.get_department_neutral_counts(department_name, internal_date_from, internal_date_to)
+            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return weekly_stats_dict
 
@@ -122,7 +123,8 @@ class StatisticsService:
             internal_date_to = date_from + relativedelta(weeks=i+1)
             positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
             negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
-            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            neutral_counts = self.db.get_department_neutral_counts(department_name, internal_date_from, internal_date_to)
+            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return monthly_stats_dict
 
@@ -138,7 +140,8 @@ class StatisticsService:
             internal_date_to = date_from + relativedelta(months=i+1)
             positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
             negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
-            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            neutral_counts = self.db.get_department_neutral_counts(department_name, internal_date_from, internal_date_to)
+            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return yearly_stats_dict
 
@@ -203,14 +206,16 @@ class StatisticsService:
             "department_priority_distribution": department_priority_distributions
         }
 
-    def get_manager_positive_negative_counts(self, date_from: datetime, date_to: datetime):
+    def get_manager_positive_negative_neutral_counts(self, date_from: datetime, date_to: datetime):
         positive_counts = 0
         negative_counts = 0
+        neutral_counts = 0
         for department in self.departments:
             positive_counts += self.db.get_department_positive_counts(department.name, date_from, date_to)
             negative_counts += self.db.get_department_negative_counts(department.name, date_from, date_to)
-        return positive_counts, negative_counts
-    
+            neutral_counts += self.db.get_department_neutral_counts(department.name, date_from, date_to)
+        return positive_counts, negative_counts, neutral_counts
+
     def get_manager_weekly_stats(self, date_from: datetime):
         """
         date_from: 2025-12-01 00:00:00
@@ -221,8 +226,8 @@ class StatisticsService:
             key = f"day_{i + 1}"
             internal_date_from = date_from + relativedelta(days=i)
             internal_date_to = date_from + relativedelta(days=i + 1)
-            positive_counts, negative_counts = self.get_manager_positive_negative_counts(internal_date_from, internal_date_to)
-            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            positive_counts, negative_counts, neutral_counts = self.get_manager_positive_negative_neutral_counts(internal_date_from, internal_date_to)
+            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return weekly_stats_dict
 
@@ -236,8 +241,8 @@ class StatisticsService:
             key = f"week_{i + 1}"
             internal_date_from = date_from + relativedelta(weeks=i)
             internal_date_to = date_from + relativedelta(weeks=i + 1)
-            positive_counts, negative_counts = self.get_manager_positive_negative_counts(internal_date_from, internal_date_to)
-            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            positive_counts, negative_counts, neutral_counts = self.get_manager_positive_negative_neutral_counts(internal_date_from, internal_date_to)
+            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return monthly_stats_dict
 
@@ -251,11 +256,12 @@ class StatisticsService:
             key = f"month_{i + 1}"
             internal_date_from = date_from + relativedelta(months=i)
             internal_date_to = date_from + relativedelta(months=i + 1)
-            positive_counts, negative_counts = self.get_manager_positive_negative_counts(internal_date_from, internal_date_to)
-            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            positive_counts, negative_counts, neutral_counts = self.get_manager_positive_negative_neutral_counts(internal_date_from, internal_date_to)
+            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return yearly_stats_dict
 
+    """
     def get_high_priority_samples_for_department(self, department_name: str, date_from: datetime, date_to: datetime, max_per_label: 3) :
         
         for label in DepartmentToLabels[department_name].value:
@@ -294,10 +300,6 @@ class StatisticsService:
 
 
     def highlight_segment_in_review(self, review: str, index_str: str | None) -> str:
-        """
-        Given full review and index like 'start:end', returns HTML with the
-        segment wrapped in <mark>...</mark>. If index invalid, returns review.
-        """
         if not index_str:
             return review
 
@@ -318,4 +320,5 @@ class StatisticsService:
             + "</mark>"
             + review[end:]
         )
+        """
 
