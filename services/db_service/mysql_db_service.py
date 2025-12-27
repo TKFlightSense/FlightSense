@@ -120,6 +120,7 @@ class MySQLDbService:
         self._create_tgs_table()
         self._create_yer_isletme_bagaj_table()
         self._create_gelir_yonetimi_table()
+        self._create_review_status_table()
         logger.info("All MySQL tables created/verified successfully")
 
     # -------------------------------------------------------------------------
@@ -150,6 +151,31 @@ class MySQLDbService:
             logger.info("Table 'reviews' created/verified")
         except Error as e:
             logger.error(f"Error creating reviews table: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def _create_review_status_table(self):
+        """Create review_status table in MySQL."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS review_status (
+            review_id INT PRIMARY KEY,
+            status INT NOT NULL DEFAULT 0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_status (status),
+            FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'review_status' created/verified")
+        except Error as e:
+            logger.error(f"Error creating review_status table: {e}")
             raise
         finally:
             conn.close()
@@ -597,6 +623,49 @@ class MySQLDbService:
             raise
         finally:
             conn.close()
+    
+    def upsert_review_status(self, review_id: int, status: int) -> None:
+        query = """
+        INSERT INTO review_status (review_id, status)
+        VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE status = VALUES(status)
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(query, (review_id, status))
+            conn.commit()
+            cursor.close()
+        except Error as e:
+            logger.error(f"Error upserting review_status for review_id={review_id}: {e}")
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def get_latest_review_status(self):
+        query = """
+        SELECT rs.review_id, rs.status, r.review, r.flight_number, r.pnr, r.date
+        FROM review_status rs
+        JOIN reviews r ON r.id = rs.review_id
+        ORDER BY rs.review_id DESC
+        LIMIT 1
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query)
+            row = cursor.fetchone()
+            cursor.close()
+            return row
+        except Error as e:
+            logger.error(f"Error reading latest review_status: {e}")
+            raise
+        finally:
+            conn.close()
+
 
     # -------------------------------------------------------------------------
     # PROCESSED DATA OPERATIONS
