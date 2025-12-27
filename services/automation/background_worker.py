@@ -35,6 +35,10 @@ def main():
     # Track last stats update time
     last_stats_update = datetime.min
 
+    # Weekly schedule (default: Monday 06:00)
+    weekly_run_weekday = int(os.getenv("WEEKLY_REPORT_WEEKDAY", "0"))  # 0 = Monday
+    weekly_run_hour = int(os.getenv("WEEKLY_REPORT_HOUR", "6"))
+    weekly_run_minute = int(os.getenv("WEEKLY_REPORT_MINUTE", "0"))
     # Main loop
     while True:
         try:
@@ -63,12 +67,33 @@ def main():
                 else:
                     logger.error(f"Failed to update statistics: {stats_result.get('error')}")
 
+            # 3. Weekly Reports (Configurable)
+            weekly_scheduled = now.replace(
+                hour=weekly_run_hour,
+                minute=weekly_run_minute,
+                second=0,
+                microsecond=0,
+            )
+            weekly_scheduled -= timedelta(
+                days=(weekly_scheduled.weekday() - weekly_run_weekday) % 7
+            )
+
+            if now >= weekly_scheduled and last_weekly_run < weekly_scheduled:
+                logger.info("Running scheduled weekly reports...")
+                weekly_result = orchestrator.run_weekly_reporting()
+
+                if weekly_result.get("success"):
+                    logger.info(f"Weekly reports sent: {weekly_result.get('message')}")
+                    last_weekly_run = now
+                else:
+                    logger.error(f"Failed to send weekly reports: {weekly_result.get('error')}")
+
         except Exception as e:
             logger.error(f"Error in processing loop: {e}")
         
         # Sleep for a short interval to simulate "immediate" processing
         # 10 seconds is a reasonable balance between latency and load
         time.sleep(10)
-
+        ## TODO Wire weekly trigger: extend background_worker.py to track last-weekly-run and, e.g., fire every Monday at 06:00 (configurable), calling a new reporting entrypoint.
 if __name__ == "__main__":
     main()
