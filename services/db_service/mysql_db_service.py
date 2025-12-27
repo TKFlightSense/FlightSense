@@ -110,9 +110,7 @@ class MySQLDbService:
         """Create all necessary tables if they don't exist."""
         self._create_reviews_table()
         self._create_review_details_table()
-        self._create_statistics_table()
         self._create_user_table()
-        self._create_tickets_table()
         self._create_cagri_merkezi_table()
         self._create_ikram_ucak_ici_table()
         self._create_kabin_hizmetleri_table()
@@ -136,9 +134,15 @@ class MySQLDbService:
             date DATE,
             flight_number VARCHAR(50),
             pnr VARCHAR(50),
+            origin_iata VARCHAR(50),
+            destination_iata VARCHAR(50),
+            route VARCHAR(50),
+            bidirectional_route VARCHAR(50),
             INDEX idx_date (date),
             INDEX idx_flight_number (flight_number),
-            INDEX idx_pnr (pnr)
+            INDEX idx_pnr (pnr),
+            INDEX idx_bidirectional_route (bidirectional_route),
+            INDEX idx_oute (route)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
         conn = self._get_connection()
@@ -176,73 +180,6 @@ class MySQLDbService:
             logger.info("Table 'review_status' created/verified")
         except Error as e:
             logger.error(f"Error creating review_status table: {e}")
-            raise
-        finally:
-            conn.close()
-
-    def _create_tickets_table(self):
-        """Create tickets table in MySQL."""
-        create_table_query = """
-        CREATE TABLE IF NOT EXISTS tickets (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            processed_data_id INT,
-            primary_label VARCHAR(100),
-            department VARCHAR(255),
-            summary VARCHAR(500) NOT NULL,
-            description TEXT NOT NULL,
-            external_key VARCHAR(50),
-            source VARCHAR(20) DEFAULT 'mock',
-            status VARCHAR(20) DEFAULT 'OPEN',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_processed_data_id (processed_data_id),
-            INDEX idx_status (status),
-            INDEX idx_external_key (external_key),
-            FOREIGN KEY (processed_data_id) REFERENCES reviews(id) ON DELETE SET NULL
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """
-        conn = self._get_connection()
-        try:
-            conn.database = self.database
-            cursor = conn.cursor()
-            cursor.execute(create_table_query)
-            conn.commit()
-            cursor.close()
-            logger.info("Table 'tickets' created/verified")
-        except Error as e:
-            logger.error(f"Error creating tickets table: {e}")
-            raise
-        finally:
-            conn.close()
-
-    def _create_statistics_table(self):
-        """Create statistics table in MySQL."""
-        create_table_query = """
-        CREATE TABLE IF NOT EXISTS statistics (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            label_type VARCHAR(255) NOT NULL,
-            starting_datetime DATETIME NOT NULL,
-            ending_datetime DATETIME NOT NULL,
-            positive_count INT DEFAULT 0,
-            negative_count INT DEFAULT 0,
-            neutral_count INT DEFAULT 0,
-            `low_priority` INT DEFAULT 0,
-            `medium_priority` INT DEFAULT 0,
-            `high_priority` INT DEFAULT 0,
-            INDEX idx_label_type (label_type),
-            INDEX idx_starting_datetime (starting_datetime),
-            INDEX idx_ending_datetime (ending_datetime)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """
-        conn = self._get_connection()
-        try:
-            conn.database = self.database
-            cursor = conn.cursor()
-            cursor.execute(create_table_query)
-            conn.commit()
-            cursor.close()
-            logger.info("Table 'statistics' created/verified")
-        except Error as e:
-            logger.error(f"Error creating statistics table: {e}")
             raise
         finally:
             conn.close()
