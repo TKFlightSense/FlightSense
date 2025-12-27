@@ -5,6 +5,7 @@ WORKDIR /app
 RUN pip install streamlit mysql-connector-python
 
 COPY app.py .
+COPY images/ ./images/
 
 EXPOSE 8501
 
