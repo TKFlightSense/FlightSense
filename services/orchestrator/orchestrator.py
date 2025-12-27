@@ -34,7 +34,6 @@ class FlightSenseOrchestrator:
         self.access = AccessControlService()
         self.auth = AuthService(self.db, secret_key, self.access)
         self.data = DataService(self.db, self.access)
-
         self.classifier = FeedbackClassifier()
         self.stats = StatisticsService(self.db)
         
@@ -55,7 +54,7 @@ class FlightSenseOrchestrator:
         self.email_agent = EmailSummaryAgent(db=self.db)
 
         self.reporting = ReportingService(
-            self.db, self.access, self.classifier, self.jira_agent, self.email_agent
+            self.db, self.access, self.classifier, self.jira_agent, self.email_agent, self.stats
         )
 
         # Initialize ReviewListener (if db_service is MySQLDbService)
@@ -245,6 +244,9 @@ class FlightSenseOrchestrator:
             return {"success": False, "error": "Unauthorized"}
         return self.reporting.create_tickets_for_filtered(user_info, filters)
       
+    def run_weekly_reporting(self) -> Dict:
+        return self.reporting.run_weekly_reports()
+
       # ---------- STATISTICS wrappers ----------
 
     def get_manager_stats(self, token: str,period: str, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> Dict:

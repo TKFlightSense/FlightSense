@@ -32,7 +32,8 @@ def main():
         logger.critical(f"Failed to initialize services: {e}")
         sys.exit(1)
 
-    # Track last stats update time
+    # Track last stats update time and weekly report time
+    last_weekly_run = datetime.min
     last_stats_update = datetime.min
 
     # Weekly schedule (default: Monday 06:00)
@@ -80,6 +81,7 @@ def main():
 
             if now >= weekly_scheduled and last_weekly_run < weekly_scheduled:
                 logger.info("Running scheduled weekly reports...")
+                last_weekly_run = weekly_scheduled  # mark before sending to avoid repeats
                 weekly_result = orchestrator.run_weekly_reporting()
 
                 if weekly_result.get("success"):

@@ -205,3 +205,68 @@ class EmailSummaryAgent:
             self._send_email(recipients, subject, body)
         except Exception as e:
             print(f"Failed to send alert email: {e}")
+
+    def _build_weekly_overview(self, payload: Dict[str, Any]) -> str:
+        def fmt_pct(value: float) -> str:
+            return f"{value:.1f}%"
+
+        def fmt_pp(delta: float) -> str:
+            return f"{delta:+.1f} pp"
+
+        dept = payload["department"]
+        date_from = payload["date_from"]
+        date_to = payload["date_to"]
+
+        curr = payload["sentiment_curr"]
+        prev = payload["sentiment_prev"]
+        delta = payload["sentiment_delta"]
+
+        lines = []
+        lines.append("Weekly Department Overview")
+        lines.append(f"Department: {dept}")
+        lines.append(f"Period: {date_from} to {date_to}")
+        lines.append("")
+        lines.append("Summary")
+        lines.append(f"- Total feedback: {payload['total_feedback']}")
+        lines.append(f"- Negative rate: {fmt_pct(prev.get('negative', 0.0))} -> {fmt_pct(curr.get('negative', 0.0))} ({fmt_pp(delta.get('negative', 0.0))})")
+        lines.append(f"- Positive rate: {fmt_pct(prev.get('positive', 0.0))} -> {fmt_pct(curr.get('positive', 0.0))} ({fmt_pp(delta.get('positive', 0.0))})")
+        lines.append(f"- Neutral rate:  {fmt_pct(prev.get('neutral', 0.0))} -> {fmt_pct(curr.get('neutral', 0.0))} ({fmt_pp(delta.get('neutral', 0.0))})")
+        lines.append("")
+        lines.append("Top shifts (labels)")
+        shifts = payload.get("label_shifts", [])
+        if shifts:
+            for s in shifts:
+                label = s["label"].replace("_", " ")
+                lines.append(f"- {label}: {s['prev']:.1f}% -> {s['curr']:.1f}% ({s['delta']:+.1f} pp)")
+        else:
+            lines.append("- No meaningful label shifts detected.")
+        lines.append("")
+        lines.append("Highlights")
+        for h in payload.get("highlights", []):
+            lines.append(f"- {h}")
+        lines.append("")
+        lines.append("Sample feedback")
+        samples = payload.get("samples", [])
+        if samples:
+            for i, text in enumerate(samples, start=1):
+                lines.append(f"{i}) {text}")
+        else:
+            lines.append("No sample feedback available.")
+        lines.append("")
+        lines.append("Notes")
+        lines.append("- This report compares the current week to the previous week.")
+        return "\n".join(lines)
+
+    def send_weekly_report(self, payload: Dict[str, Any]) -> None:
+        dept = payload.get("department")
+        recipients = DEPARTMENT_RECIPIENTS.get(dept, [])
+        if not recipients:
+            return
+
+        subject = f"{EMAIL_SUBJECT_TEMPLATE.format(department=dept)} - Weekly"
+        body = self._build_weekly_overview(payload)
+        self._send_email(
+            to_addrs=recipients,
+            subject=subject,
+            body=body,
+        )
