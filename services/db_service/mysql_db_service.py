@@ -110,6 +110,7 @@ class MySQLDbService:
         """Create all necessary tables if they don't exist."""
         self._create_reviews_table()
         self._create_review_details_table()
+        self._create_tickets_table()
         self._create_user_table()
         self._create_cagri_merkezi_table()
         self._create_ikram_ucak_ici_table()
@@ -124,7 +125,6 @@ class MySQLDbService:
     # -------------------------------------------------------------------------
     # TABLE CREATION
     # -------------------------------------------------------------------------
-
     def _create_reviews_table(self):
         """Create processed_data table in MySQL."""
         create_table_query = """
@@ -180,6 +180,40 @@ class MySQLDbService:
             logger.info("Table 'review_status' created/verified")
         except Error as e:
             logger.error(f"Error creating review_status table: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def _create_tickets_table(self):
+        """Create tickets table in MySQL."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS tickets (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            processed_data_id INT,
+            primary_label VARCHAR(100),
+            department VARCHAR(255),
+            summary VARCHAR(500) NOT NULL,
+            description TEXT NOT NULL,
+            external_key VARCHAR(50),
+            source VARCHAR(20) DEFAULT 'mock',
+            status VARCHAR(20) DEFAULT 'OPEN',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_processed_data_id (processed_data_id),
+            INDEX idx_status (status),
+            INDEX idx_external_key (external_key),
+            FOREIGN KEY (processed_data_id) REFERENCES reviews(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'tickets' created/verified")
+        except Error as e:
+            logger.error(f"Error creating tickets table: {e}")
             raise
         finally:
             conn.close()
