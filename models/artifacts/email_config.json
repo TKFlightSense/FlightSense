@@ -1,12 +1,12 @@
 {
   "department_recipients": {
-    "IUIUB": ["pbulut22@ku.edu.tr"],
-    "BMCOGM": ["pbulut22@ku.edu.tr"],
-    "KHB": ["pbulut22@ku.edu.tr"],
-    "TGS": ["pbulut22@ku.edu.tr"],
-    "RVBCM": ["pbulut22@ku.edu.tr"],
-    "CMYM": ["pbulut22@ku.edu.tr"],
-    "GYB": ["pbulut22@ku.edu.tr"]
+    "IUIUB": ["demo.flightsense@gmail.com"],
+    "BMCOGM": ["demo.flightsense@gmail.com"],
+    "KHB": ["demo.flightsense@gmail.com"],
+    "TGS": ["demo.flightsense@gmail.com"],
+    "RVBCM": ["demo.flightsense@gmail.com"],
+    "CMYM": ["demo.flightsense@gmail.com"],
+    "GYB": ["demo.flightsense@gmail.com"]
   },
   "email_subject_template": "[TKFlightSense] Feedback Report – {department}",
   "default_days_lookback": 1
