@@ -16,12 +16,12 @@ export const LOCAL_STORAGE_USER_KEY = "flightsense_user";
 export const MOCK_USERS: MockUser[] = [
   {
     username: "admin",
-    password: "admin123",
+    password: "test123",
     role: "admin",
   },
   { 
     username: "manager",
-    password: "manager123",
+    password: "test123",
     role: "manager",
   },
   {

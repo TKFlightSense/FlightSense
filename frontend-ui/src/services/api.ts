@@ -2,42 +2,40 @@ export type Period = "weekly" | "monthly" | "yearly";
 
 /* ---------- MANAGER TYPES ---------- */
 
+export interface SentimentCounts {positive: number; negative: number; neutral: number}
+
+export interface SentimentPercentages {positive: number; negative: number; neutral: number}
+
+export interface PriorityCounts {high: number; medium: number; low: number}
+
+export interface PriorityPercentages {high: number; medium: number; low: number}
+
+export interface HistoricalBucket {positive: number; negative: number; neutral: number}
+
+export type HistoricalData = Record<string, HistoricalBucket>;
+
+export type HighPrioritySamplesByKey = Record<string, string[]>;
+
 export interface ManagerStatisticsData {
   total: number;
   unique_reviews: number;
   processed_segments: number;
   department_distribution: Record<string, number>;
-  sentiment_counts: {
-    positive: number;
-    negative: number;
-    neutral: number;
-  };
-  sentiment_percentages: Record<string, number>;
-  priority_counts: {
-    high: number;
-    medium: number;
-    low: number;
-  };
-  priority_percentages: Record<string, number>;
+  sentiment_counts: SentimentCounts;
+  sentiment_percentages: SentimentPercentages;
+  priority_counts: PriorityCounts;
+  priority_percentages: PriorityPercentages;
   department_sentiment_distribution: {
     [deptLabel: string]: {
       sentiment: {
-        counts: {
-          positive: number;
-          negative: number;
-          neutral: number;
-        };
-        percentage: Record<string, number>;
+        counts: SentimentCounts
+        percentage: SentimentPercentages
       };
     };
   };
   period_label: string;
-  historical_data: {
-    [bucket: string]: {
-      positive: number;
-      negative: number;
-    };
-  };
+  historical_data: HistoricalData;
+  high_priority_samples: HighPrioritySamplesByKey;
 }
 
 export interface ManagerStatisticsResult {
@@ -56,70 +54,24 @@ export interface DepartmentStatisticsData {
   department_name: string;
   total: number;
 
-  sentiment_distribution: {
-    counts: {
-      positive: number;
-      negative: number;
-      neutral: number;
-    };
-    percentage: {
-      positive: number;
-      negative: number;
-      neutral: number;
-    };
-  };
+  sentiment_counts: SentimentCounts;
+  sentiment_percentages: SentimentPercentages;
+  priority_counts: PriorityCounts;
+  priority_percentages: PriorityPercentages;
 
-  priority_distribution: {
-    counts: {
-      high: number;
-      medium: number;
-      low: number;
-    };
-    percentage: {
-      high: number;
-      medium: number;
-      low: number;
-    };
-  };
+  
 
   label_distribution: {
     [labelKey: string]: {
-      counts: {
-        positive: number;
-        negative: number;
-        neutral: number;
-      };
-      percentage: {
-        positive: number;
-        negative: number;
-        neutral: number;
-      };
-    };
-  };
-
-  label_sentiment_distribution: {
-    [labelKey: string]: {
-      counts: {
-        positive: number;
-        negative: number;
-        neutral: number;
-      };
-      percentage: {
-        positive: number;
-        negative: number;
-        neutral: number;
-      };
+      counts: SentimentCounts
+      percentage: SentimentPercentages
     };
   };
 
   period_label: string;
 
-  historical_data: {
-    [bucket: string]: {
-      positive: number;
-      negative: number;
-    };
-  };
+  historical_data: HistoricalData;
+  high_priority_samples: HighPrioritySamplesByKey;
 }
 
 export interface DepartmentStatisticsResult {

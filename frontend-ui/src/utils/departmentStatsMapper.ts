@@ -1,33 +1,36 @@
-// src/utils/departmentStatsMapper.ts
+import type { DepartmentStatisticsData, Period, SentimentCounts, SentimentPercentages, PriorityCounts, PriorityPercentages } from "../services/api";
+import {LABEL_KEY_TO_NAME, JIRA_KEY_TO_DEPARTMENT_LABEL, type DepartmentCode} from "../departmentConfig"
 
-import type { DepartmentStatisticsData, Period } from "../services/api";
-
-export type DepartmentIssueUi = {
+export type DepartmentHighPrioritySamplesUi = {
   labelKey: string;
   labelDisplay: string;
-  count: number;
-  trend: "up" | "down" | "flat";
-  positive: number;
-  negative: number;
+  samples: string[];
 };
 
 export type DeptTrendPointUi = {
-  label: string;
-  positive: number;
-  negative: number;
+  time_label: string;
+  sentimentCounts: SentimentCounts
+};
+
+export type DepartmentLabelUi = {
+  key: string;
+  name: string;
+  totalReviews: number;
+  sentimentCounts: SentimentCounts;
+  sentimentPercentages: SentimentPercentages;
 };
 
 export type DepartmentStatsUi = {
-  departmentName: string; // backend'in gönderdiği görünen label
+  departmentName: string;
   periodLabel: string;
   totalReviews: number;
-  positive: number;
-  negative: number;
-  highPriority: number;
-  mediumPriority: number;
-  lowPriority: number;
-  topIssues: DepartmentIssueUi[];
-  trend: DeptTrendPointUi[];
+  sentimentCounts: SentimentCounts;
+  sentimentPercentages: SentimentPercentages;
+  priorityCounts: PriorityCounts;
+  priorityPercentages: PriorityPercentages;
+  labelDistribution: DepartmentLabelUi[];
+  highPrioritySamples: DepartmentHighPrioritySamplesUi[];
+  historicalData: DeptTrendPointUi[];
 };
 
 function mapHistoricalDataToTrend(
@@ -46,62 +49,97 @@ function mapHistoricalDataToTrend(
     }
 
     return {
-      label: shortLabel,
-      positive: value.positive ?? 0,
-      negative: value.negative ?? 0,
+      time_label: shortLabel,
+      sentimentCounts: {
+        positive: value.positive?? 0,
+        negative: value.negative ?? 0,
+        neutral: value.neutral ?? 0,
+      },
     };
   });
 }
 
-export function mapDepartmentStatsApiToUi(
-  apiData: DepartmentStatisticsData,
-  // display için backend label'ı route paramdan alıyoruz
-  departmentLabelFromRoute: string,
-  period: Period
-): DepartmentStatsUi {
+export function mapDepartmentStatsApiToUi(apiData: DepartmentStatisticsData, period: Period): DepartmentStatsUi {
+  const departmentName = JIRA_KEY_TO_DEPARTMENT_LABEL[apiData.department_name as DepartmentCode] ?? apiData.department_name;
   const totalReviews = apiData.total ?? 0;
   const periodLabel = apiData.period_label;
 
-  const positive = apiData.sentiment_distribution.counts.positive ?? 0;
-  const negative = apiData.sentiment_distribution.counts.negative ?? 0;
+  const sentimentCounts: SentimentCounts = {
+    positive: apiData.sentiment_counts?.positive ?? 0,
+    negative: apiData.sentiment_counts?.negative ?? 0,
+    neutral: apiData.sentiment_counts?.neutral ?? 0,
+  };
 
-  const highPriority = apiData.priority_distribution.counts.high ?? 0;
-  const mediumPriority = apiData.priority_distribution.counts.medium ?? 0;
-  const lowPriority = apiData.priority_distribution.counts.low ?? 0;
+  const sentimentPercentages: SentimentPercentages = {
+    positive: apiData.sentiment_percentages?.positive ?? 0,
+    negative: apiData.sentiment_percentages?.negative ?? 0,
+    neutral: apiData.sentiment_percentages?.neutral ?? 0,
+  };
 
-  const topIssues: DepartmentIssueUi[] = Object.entries(
+  const priorityCounts: PriorityCounts = {
+    high: apiData.priority_counts?.high ?? 0,
+    medium: apiData.priority_counts?.medium ?? 0,
+    low: apiData.priority_counts?.low ?? 0,
+  };
+
+  const priorityPercentages: PriorityPercentages = {
+    high: apiData.priority_percentages?.high ?? 0,
+    medium: apiData.priority_percentages?.medium ?? 0,
+    low: apiData.priority_percentages?.low ?? 0,
+  };
+
+  const labelDistribution: DepartmentLabelUi[] = Object.entries(
     apiData.label_distribution
   ).map(([labelKey, dist]) => {
-    const pos = dist.counts.positive ?? 0;
-    const neg = dist.counts.negative ?? 0;
-    const neu = dist.counts.neutral ?? 0;
-    const total = pos + neg + neu;
 
-    // Şimdilik trend bilgisi backend'de yok, "flat" diyelim
-    const trend: "up" | "down" | "flat" = "flat";
+    const counts: SentimentCounts = {
+      positive: dist?.counts.positive ?? 0,
+      negative: dist?.counts.negative ?? 0,
+      neutral: dist?.counts.neutral ?? 0,
+    };
+
+    const percentages: SentimentPercentages = {
+      positive: dist?.percentage.positive ?? 0,
+      negative: dist?.percentage.negative ?? 0,
+      neutral: dist?.percentage.neutral ?? 0,
+    };
+
+    const labelDisplay= LABEL_KEY_TO_NAME[labelKey] ?? labelKey;
+
+    const total = counts.positive + counts.negative + counts.neutral;
 
     return {
-      labelKey,
-      labelDisplay: labelKey, // istersen burada human-readable label mapping yapabilirsin
-      count: total,
-      trend,
-      positive: pos,
-      negative: neg,
+      key: labelKey,
+      name: labelDisplay,
+      totalReviews: total,
+      sentimentCounts: counts,
+      sentimentPercentages: percentages,
     };
-  });
+  }) ?? [];
 
-  const trend = mapHistoricalDataToTrend(apiData.historical_data, period);
+  const highPrioritySamples: DepartmentHighPrioritySamplesUi[] = Object
+    .entries(apiData.high_priority_samples ?? {} )
+    .map(([labelKey, reviews]) => {
+      const labelDisplay = LABEL_KEY_TO_NAME[labelKey] ?? labelKey;
+      return {
+        labelKey,
+        labelDisplay ,
+        samples: reviews,
+    };
+  }) ?? [];
+
+  const historicalData = mapHistoricalDataToTrend(apiData.historical_data, period) ?? [];
 
   return {
-    departmentName: departmentLabelFromRoute,
+    departmentName,
     periodLabel,
     totalReviews,
-    positive,
-    negative,
-    highPriority,
-    mediumPriority,
-    lowPriority,
-    topIssues,
-    trend,
+    sentimentCounts,
+    sentimentPercentages,
+    priorityCounts,
+    priorityPercentages,
+    labelDistribution,
+    highPrioritySamples,
+    historicalData,
   };
 }

@@ -9,11 +9,11 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { Theme } from "../../hooks/useTheme";
+import type { SentimentCounts } from "../../services/api";
 
 export type TrendPoint = {
-  label: string;
-  positive: number;
-  negative: number;
+  time_label: string;
+  sentimentCounts: SentimentCounts;
 };
 
 type Props = {
@@ -63,6 +63,10 @@ export default function FeedbackTrendChart({
                 <stop offset="0%" stopColor={THY_RED} stopOpacity={0.45} />
                 <stop offset="100%" stopColor={THY_RED} stopOpacity={0.06} />
               </linearGradient>
+              <linearGradient id="neutralFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#9ca3af" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#9ca3af" stopOpacity={0.05} />
+              </linearGradient>
             </defs>
 
             <CartesianGrid
@@ -71,7 +75,7 @@ export default function FeedbackTrendChart({
               stroke={gridColor}
             />
             <XAxis
-              dataKey="label"
+              dataKey="time_label"
               tick={{ fontSize: 11, fill: tickColor }}
               axisLine={{ stroke: axisColor }}
               tickLine={{ stroke: axisColor }}
@@ -98,7 +102,7 @@ export default function FeedbackTrendChart({
 
             <Area
               type="monotone"
-              dataKey="positive"
+              dataKey={(d) => d.sentimentCounts.positive}
               name="Positive"
               stroke="#22c55e"
               strokeWidth={2}
@@ -108,11 +112,21 @@ export default function FeedbackTrendChart({
             />
             <Area
               type="monotone"
-              dataKey="negative"
+              dataKey={(d) => d.sentimentCounts.negative}
               name="Negative"
               stroke={THY_RED}
               strokeWidth={2}
               fill="url(#negativeFill)"
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
+            />
+            <Area
+              type="monotone"
+              dataKey={(d) => d.sentimentCounts.neutral}
+              name="Neutral"
+              stroke="#9ca3af"
+              strokeWidth={2}
+              fill="url(#neutralFill)"
               dot={{ r: 3 }}
               activeDot={{ r: 5 }}
             />

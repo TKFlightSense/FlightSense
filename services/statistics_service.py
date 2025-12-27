@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict
+from typing import Dict, List
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from typing import Optional
@@ -106,7 +106,8 @@ class StatisticsService:
             internal_date_to = date_from + relativedelta(days=i+1)
             positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
             negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
-            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            neutral_counts = self.db.get_department_neutral_counts(department_name, internal_date_from, internal_date_to)
+            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return weekly_stats_dict
 
@@ -122,7 +123,8 @@ class StatisticsService:
             internal_date_to = date_from + relativedelta(weeks=i+1)
             positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
             negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
-            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            neutral_counts = self.db.get_department_neutral_counts(department_name, internal_date_from, internal_date_to)
+            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return monthly_stats_dict
 
@@ -138,7 +140,8 @@ class StatisticsService:
             internal_date_to = date_from + relativedelta(months=i+1)
             positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
             negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
-            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            neutral_counts = self.db.get_department_neutral_counts(department_name, internal_date_from, internal_date_to)
+            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return yearly_stats_dict
 
@@ -203,14 +206,16 @@ class StatisticsService:
             "department_priority_distribution": department_priority_distributions
         }
 
-    def get_manager_positive_negative_counts(self, date_from: datetime, date_to: datetime):
+    def get_manager_positive_negative_neutral_counts(self, date_from: datetime, date_to: datetime):
         positive_counts = 0
         negative_counts = 0
+        neutral_counts = 0
         for department in self.departments:
             positive_counts += self.db.get_department_positive_counts(department.name, date_from, date_to)
             negative_counts += self.db.get_department_negative_counts(department.name, date_from, date_to)
-        return positive_counts, negative_counts
-    
+            neutral_counts += self.db.get_department_neutral_counts(department.name, date_from, date_to)
+        return positive_counts, negative_counts, neutral_counts
+
     def get_manager_weekly_stats(self, date_from: datetime):
         """
         date_from: 2025-12-01 00:00:00
@@ -221,8 +226,8 @@ class StatisticsService:
             key = f"day_{i + 1}"
             internal_date_from = date_from + relativedelta(days=i)
             internal_date_to = date_from + relativedelta(days=i + 1)
-            positive_counts, negative_counts = self.get_manager_positive_negative_counts(internal_date_from, internal_date_to)
-            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            positive_counts, negative_counts, neutral_counts = self.get_manager_positive_negative_neutral_counts(internal_date_from, internal_date_to)
+            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return weekly_stats_dict
 
@@ -236,8 +241,8 @@ class StatisticsService:
             key = f"week_{i + 1}"
             internal_date_from = date_from + relativedelta(weeks=i)
             internal_date_to = date_from + relativedelta(weeks=i + 1)
-            positive_counts, negative_counts = self.get_manager_positive_negative_counts(internal_date_from, internal_date_to)
-            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            positive_counts, negative_counts, neutral_counts = self.get_manager_positive_negative_neutral_counts(internal_date_from, internal_date_to)
+            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return monthly_stats_dict
 
@@ -251,7 +256,69 @@ class StatisticsService:
             key = f"month_{i + 1}"
             internal_date_from = date_from + relativedelta(months=i)
             internal_date_to = date_from + relativedelta(months=i + 1)
-            positive_counts, negative_counts = self.get_manager_positive_negative_counts(internal_date_from, internal_date_to)
-            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts}
+            positive_counts, negative_counts, neutral_counts = self.get_manager_positive_negative_neutral_counts(internal_date_from, internal_date_to)
+            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
 
         return yearly_stats_dict
+
+    """
+    def get_high_priority_samples_for_department(self, department_name: str, date_from: datetime, date_to: datetime, max_per_label: 3) :
+        
+        for label in DepartmentToLabels[department_name].value:
+             results = self.db.get_high_priority_reviews_for_labels(label, date_from, date_to, max_per_label)
+        
+        samples: List[str] = []
+        response: Dict[str, List[str]] = {}
+        
+        for label, value in results.items():
+            full_text = value["review"] or ""
+            index_str = value.get("index")
+            highlighted = self.highlight_segment_in_review(full_text, index_str)
+            samples.append(highlighted)
+            response[label] = samples
+        
+        
+        return samples
+
+    def get_high_priority_samples_for_manager(self, date_from: datetime, date_to: datetime) :
+        result: Dict[str, Dict[str, List[str]]] = {}
+        for department in self.departments:
+            try:
+                labels = DepartmentToLabels[department].value
+            except KeyError:
+                continue
+
+            labelDict: Dict[str, List[str]]= {}
+            for label in labels:
+                samples = self.get_high_priority_samples_for_department(label, date_from, date_to, max_per_label=2)
+                if len(samples) >= 2:
+                    break
+                labelDict[label] = samples
+            if labelDict:
+                result[department] = labelDict
+        return result
+
+
+    def highlight_segment_in_review(self, review: str, index_str: str | None) -> str:
+        if not index_str:
+            return review
+
+        try:
+            start_str, end_str = index_str.split(":")
+            start = int(start_str)
+            end = int(end_str)
+        except Exception:
+            return review
+
+        if start < 0 or end <= start or end > len(review):
+            return review
+
+        return (
+            review[:start]
+            + "<mark>"
+            + review[start:end]
+            + "</mark>"
+            + review[end:]
+        )
+        """
+

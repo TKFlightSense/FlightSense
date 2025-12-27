@@ -226,7 +226,7 @@ class FlightSenseOrchestrator:
             return {"success": False, "error": "Unauthorized"}
         return self.data.get_category_analytics(user_info, label)
 
-    def push_processed_data(self, token: str, data) -> Dict:
+    def push_processed_data(self, token, data) -> Dict:
         user_info = self.verify_token(token)
         if not user_info:
             return {"success": False, "error": "Unauthorized"}
@@ -289,6 +289,9 @@ class FlightSenseOrchestrator:
             period_label = "Last year"
             historical_data = self.stats.get_manager_yearly_stats(date_from)
 
+        #high_priority_samples = self.stats.get_high_priority_samples_for_manager(date_from, date_to)
+        high_priority_samples = {}
+
         return {
             "success": True,
             "data": {
@@ -302,7 +305,8 @@ class FlightSenseOrchestrator:
                 "priority_percentages": priority["percentage"],
                 "department_sentiment_distribution": sentiment["department_sentiment_distribution"],
                 "period_label": period_label,
-                "historical_data": historical_data
+                "historical_data": historical_data,
+                "high_priority_samples": high_priority_samples,
             },
         }
 
@@ -340,9 +344,11 @@ class FlightSenseOrchestrator:
         label_dist = self.stats.get_department_label_distribution(department_name, date_from, date_to)
 
         label_sentiment = {}
+        high_priority_samples = {}
 
-        for label in DepartmentToLabels[department_name].value:
-            label_sentiment[label]= self.stats.get_label_sentiment_distribution(label, date_from, date_to)
+        #for label in DepartmentToLabels[department_name].value:
+           # label_sentiment[label]= self.stats.get_label_sentiment_distribution(label, date_from, date_to)
+          #  high_priority_samples[label] = self.stats.get_high_priority_samples_for_department(label, date_from, date_to, max_per_label=3)
 
         if period == "weekly":
             period_label = "Last 7 days"
@@ -354,20 +360,24 @@ class FlightSenseOrchestrator:
             period_label = "Last year"
             historical_data = self.stats.get_department_yearly_stats(department_name, date_from)
 
-
         return {
             "success": True,
             "data": {
                 "department_name": department_name,
                 "total": total,
-                "sentiment_distribution": sentiment,
-                "priority_distribution": priority,
+                "sentiment_counts": sentiment["counts"],
+                "sentiment_percentages": sentiment["percentage"],
+                "priority_counts": priority["counts"],
+                "priority_percentages": priority["percentage"],
                 "label_distribution": label_dist,
-                "label_sentiment_distribution": label_sentiment,
+               # "label_sentiment_distribution": label_sentiment,
                 "period_label": period_label,
-                "historical_data": historical_data
+                "historical_data": historical_data,
+                "high_priority_samples": high_priority_samples,
             },
         }
+
+
 
     def run_statistics_job(self, start_dt: datetime, end_dt: datetime) -> Dict:
         """
