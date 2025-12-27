@@ -98,6 +98,27 @@ services:
     networks:
       - flightsense-network
 
+  # Review Status UI
+  review-status:
+    build:
+      context: ./services/review_status
+      dockerfile: Dockerfile
+    container_name: flightsense-review-status
+    restart: unless-stopped
+    ports:
+      - "8502:8501"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-flightsense}
+      MYSQL_USER: ${MYSQL_USER:-flightsense}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-flightsense123}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - flightsense-network
+
   # Background Worker
   worker:
     build:
