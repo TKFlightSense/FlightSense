@@ -142,7 +142,7 @@ class MySQLDbService:
             INDEX idx_flight_number (flight_number),
             INDEX idx_pnr (pnr),
             INDEX idx_bidirectional_route (bidirectional_route),
-            INDEX idx_oute (route)
+            INDEX idx_route (route)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
         conn = self._get_connection()
