@@ -28,6 +28,8 @@ import {
   type DepartmentStatsUi,
 } from "../utils/departmentStatsMapper";
 import { MOCK_DEPARTMENT_STATS_BY_RANGE } from "../mock/mockDepartmentStats";
+import { useDepartmentHighPriority } from "../hooks/useHighPriorityReviews";
+import HighPriorityFeed from "../components/HighPriorityFeed";
 
 const THY_RED = "#b7312c";
 
@@ -36,12 +38,13 @@ export default function DepartmentDashboard() {
   const { user, logout, token } = useAuth() as any;
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-
+  
   const [timeRange, setTimeRange] = useState<Period>("monthly");
   const [stats, setStats] = useState<DepartmentStatsUi | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [jiraKey, setJiraKey] = useState<string | null>(null);
+
 
   if (!departmentName) {
     return (
@@ -61,10 +64,13 @@ export default function DepartmentDashboard() {
     );
   }
 
+  const label = decodeURIComponent(departmentName);
+  const deptCode = DEPARTMENT_LABEL_TO_CODE[label as DepartmentLabel] ?? label;
+  
+  const {items: highPriorityItems, loading: highPriorityLoading, error: highPriorityError} = useDepartmentHighPriority(deptCode, 5);
+
   useEffect(() => {
     if (!departmentName) return;
-    const label = decodeURIComponent(departmentName);
-    const deptCode = DEPARTMENT_LABEL_TO_CODE[label as DepartmentLabel] ?? label;
     setJiraKey(deptCode);
 
 
@@ -174,7 +180,6 @@ export default function DepartmentDashboard() {
     priorityCounts,
     priorityPercentages,
     labelDistribution,
-    highPrioritySamples,
     historicalData,
   } = stats;
 
@@ -292,7 +297,7 @@ export default function DepartmentDashboard() {
                   onClick={() => setTimeRange("weekly")}
                   className={periodButtonClass(timeRange, "weekly")}
                 >
-                  Weekly
+                  Last Week
                 </button>
                 <button
                   onClick={() => setTimeRange("monthly")}
@@ -305,7 +310,7 @@ export default function DepartmentDashboard() {
                   onClick={() => setTimeRange("yearly")}
                   className={periodButtonClass(timeRange, "yearly")}
                 >
-                  Yearly
+                  Last Year
                 </button>
               </div>
             </div>
@@ -451,36 +456,27 @@ export default function DepartmentDashboard() {
           {/* Bottom: top issues list */}
           <section className={`${CARD} p-4`}>
             <p className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-2">
-              Top issues in this department
+               High Priority Feedback
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-300 mb-3">
-              Selected high-priority feedback samples grouped by label for the selected period.</p>
+              Most recent high-priority reviews for this department.
+            </p>
 
-            {highPrioritySamples.length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                No high-priority samples available for this period.
+            {highPriorityLoading && (
+              <p className="text-xs text-slate-500">Loading high priority feedback…</p>
+            )}
+            {highPriorityError && (
+              <p className="text-xs text-red-500">
+                Failed to load high priority feedback
               </p>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {highPrioritySamples.map((item) => (
-                  <div
-                    key={item.labelKey}
-                    className="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 bg-white/70 dark:bg-slate-900/50"
-                  >
-                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-50 mb-2">
-                      {item.labelDisplay}
-                    </p>
-                    <ul className="space-y-1.5 text-[11px] text-slate-700 dark:text-slate-200">
-                      {item.samples.map((sample, idx) => (
-                        <li key={idx} className="relative pl-3">
-                          <span className="absolute left-0 top-1 h-1 w-1 rounded-full bg-slate-400 dark:bg-slate-500" />
-                          <span className="italic">“{sample}”</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
+            )}
+            {!highPriorityLoading && highPriorityItems.length === 0 && (
+              <p className="text-xs text-emerald-600">
+                No urgent issues detected 
+              </p>
+            )}
+            {!highPriorityLoading && !highPriorityError && (
+              <HighPriorityFeed items={highPriorityItems} />
             )}
           </section>
         </main>

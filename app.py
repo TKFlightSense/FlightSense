@@ -166,6 +166,23 @@ class ManagerStatisticsRequest(BaseModel):
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
     period: str
+
+class HighPriorityReviewItem(BaseModel):
+    label: str
+    review: str
+    highlightIndex: Optional[str] = None
+    date: date
+    flightNumber: Optional[str] = None
+    route: Optional[str] = None
+
+
+class DepartmentHighPriorityResponse(BaseModel):
+    department: str
+    items: List[HighPriorityReviewItem]
+
+
+class ManagerHighPriorityResponse(BaseModel):
+    departments: Dict[str, List[HighPriorityReviewItem]]
       
 
 # -------------------------------------------------------------------------
@@ -401,6 +418,66 @@ async def get_manager_statistics(
     except Exception as e:
         logger.error(f"Error while accessing manager stats: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+# -------------------------------------------------------------------------
+# HIGH PRIORITY ENDPOINTS
+# -------------------------------------------------------------------------
+@app.get("/api/high-priority/department", response_model=DepartmentHighPriorityResponse)
+async def get_department_high_priority(
+    department: str,
+    limit: int = 5,
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator),
+):
+    result = orch.get_department_high_priority_reviews(token, department, limit)
+
+    if not result.get("success"):
+        raise HTTPException(status_code=403, detail=result.get("error"))
+
+    items = [
+        HighPriorityReviewItem(
+            label=r["label"],
+            review=r["review"],
+            highlightIndex=r.get("highlight_index"),
+            date=r["date"],
+            flightNumber=r.get("flight_number"),
+            route=r.get("route"),
+        )
+        for r in result["items"]
+    ]
+
+    return DepartmentHighPriorityResponse(
+        department=result["department"],
+        items=items,
+    )
+
+@app.get("/api/high-priority/manager", response_model=ManagerHighPriorityResponse)
+async def get_manager_high_priority(
+    limit_per_department: int = 3,
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator),
+):
+    result = orch.get_manager_high_priority_reviews(token, limit_per_department)
+
+    if not result.get("success"):
+        raise HTTPException(status_code=403, detail=result.get("error"))
+
+    departments: Dict[str, List[HighPriorityReviewItem]] = {}
+
+    for dept, rows in result["departments"].items():
+        departments[dept] = [
+            HighPriorityReviewItem(
+                label=r["label"],
+                review=r["review"],
+                highlightIndex=r.get("highlight_index"),
+                date=r["date"],
+                flightNumber=r.get("flight_number"),
+                route=r.get("route"),
+            )
+            for r in rows
+        ]
+
+    return ManagerHighPriorityResponse(departments=departments)
 
 
 # -------------------------------------------------------------------------

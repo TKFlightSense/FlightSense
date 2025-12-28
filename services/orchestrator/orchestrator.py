@@ -291,9 +291,6 @@ class FlightSenseOrchestrator:
             period_label = "Last year"
             historical_data = self.stats.get_manager_yearly_stats(date_from)
 
-        #high_priority_samples = self.stats.get_high_priority_samples_for_manager(date_from, date_to)
-        high_priority_samples = {}
-
         return {
             "success": True,
             "data": {
@@ -308,7 +305,6 @@ class FlightSenseOrchestrator:
                 "department_sentiment_distribution": sentiment["department_sentiment_distribution"],
                 "period_label": period_label,
                 "historical_data": historical_data,
-                "high_priority_samples": high_priority_samples,
             },
         }
 
@@ -345,13 +341,6 @@ class FlightSenseOrchestrator:
         priority = self.stats.get_department_priority_distribution(department_name, date_from, date_to)
         label_dist = self.stats.get_department_label_distribution(department_name, date_from, date_to)
 
-        label_sentiment = {}
-        high_priority_samples = {}
-
-        #for label in DepartmentToLabels[department_name].value:
-           # label_sentiment[label]= self.stats.get_label_sentiment_distribution(label, date_from, date_to)
-          #  high_priority_samples[label] = self.stats.get_high_priority_samples_for_department(label, date_from, date_to, max_per_label=3)
-
         if period == "weekly":
             period_label = "Last 7 days"
             historical_data = self.stats.get_department_weekly_stats(department_name, date_from)
@@ -372,13 +361,52 @@ class FlightSenseOrchestrator:
                 "priority_counts": priority["counts"],
                 "priority_percentages": priority["percentage"],
                 "label_distribution": label_dist,
-               # "label_sentiment_distribution": label_sentiment,
                 "period_label": period_label,
                 "historical_data": historical_data,
-                "high_priority_samples": high_priority_samples,
             },
         }
+    
+    # ---------- HIGH-PRIORITY wrappers ----------
 
+    def get_department_high_priority_reviews(self, token: str, department: str,limit: int = 5):
+        user_info = self.verify_token(token)
+        if not user_info:
+            return {"success": False, "error": "Unauthorized"}
+
+        role = user_info.get("role")
+        user_dept = user_info.get("department")
+        logger.info(
+            "[DEBUG] role=%s department=%s",
+            role,
+            user_dept,
+        )
+        if not self.access.is_full_access_role(role):
+            if user_dept != department:
+                return {"success": False, "error": "Forbidden: wrong department"}
+
+        rows = self.db.get_recent_high_priority_reviews_for_department(department_code=department, limit=limit)
+
+        return {
+            "success": True,
+            "department": department,
+            "items": rows,
+        }
+    
+    def get_manager_high_priority_reviews(self, token: str, limit_per_department: int = 3):
+        user_info = self.verify_token(token)
+        if not user_info:
+            return {"success": False, "error": "Unauthorized"}
+
+        role = user_info.get("role")
+        if not self.access.is_full_access_role(role):
+            return {"success": False, "error": "Forbidden: manager access required"}
+
+        data = self.db.get_manager_high_priority_overview(limit_per_department=limit_per_department)
+
+        return {
+            "success": True,
+            "departments": data,
+        }
 
 
     def run_statistics_job(self, start_dt: datetime, end_dt: datetime) -> Dict:

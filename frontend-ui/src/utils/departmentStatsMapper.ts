@@ -1,12 +1,6 @@
 import type { DepartmentStatisticsData, Period, SentimentCounts, SentimentPercentages, PriorityCounts, PriorityPercentages } from "../services/api";
 import {LABEL_KEY_TO_NAME, JIRA_KEY_TO_DEPARTMENT_LABEL, type DepartmentCode} from "../departmentConfig"
 
-export type DepartmentHighPrioritySamplesUi = {
-  labelKey: string;
-  labelDisplay: string;
-  samples: string[];
-};
-
 export type DeptTrendPointUi = {
   time_label: string;
   sentimentCounts: SentimentCounts
@@ -29,7 +23,6 @@ export type DepartmentStatsUi = {
   priorityCounts: PriorityCounts;
   priorityPercentages: PriorityPercentages;
   labelDistribution: DepartmentLabelUi[];
-  highPrioritySamples: DepartmentHighPrioritySamplesUi[];
   historicalData: DeptTrendPointUi[];
 };
 
@@ -117,17 +110,6 @@ export function mapDepartmentStatsApiToUi(apiData: DepartmentStatisticsData, per
     };
   }) ?? [];
 
-  const highPrioritySamples: DepartmentHighPrioritySamplesUi[] = Object
-    .entries(apiData.high_priority_samples ?? {} )
-    .map(([labelKey, reviews]) => {
-      const labelDisplay = LABEL_KEY_TO_NAME[labelKey] ?? labelKey;
-      return {
-        labelKey,
-        labelDisplay ,
-        samples: reviews,
-    };
-  }) ?? [];
-
   const historicalData = mapHistoricalDataToTrend(apiData.historical_data, period) ?? [];
 
   return {
@@ -139,7 +121,6 @@ export function mapDepartmentStatsApiToUi(apiData: DepartmentStatisticsData, per
     priorityCounts,
     priorityPercentages,
     labelDistribution,
-    highPrioritySamples,
     historicalData,
   };
 }

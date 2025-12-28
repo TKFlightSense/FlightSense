@@ -14,12 +14,6 @@ export type ManagerDepartmentUi = {
   sentimentPercentages: SentimentPercentages;
 };
 
-export type ManagerHighPrioritySamplesUi = {
-  department_id: string;
-  department_name: string;
-  samples: string[];
-};
-
 export type ManagerStatsUi = {
   periodLabel: string;
   totalReviews: number;
@@ -31,7 +25,6 @@ export type ManagerStatsUi = {
   priorityPercentages: PriorityPercentages;
   departments: ManagerDepartmentUi[];
   historicalData: ManagerTrendPoint[];
-  highPrioritySamples: ManagerHighPrioritySamplesUi[];
 };
 
 function mapHistoricalDataToTrend(
@@ -121,16 +114,6 @@ export function mapManagerStatsApiToUi(apiData: ManagerStatisticsData, period: P
 
   const historicalData = mapHistoricalDataToTrend(apiData.historical_data, period) ?? [];
 
-  const highPrioritySamples: ManagerHighPrioritySamplesUi[] = Object.entries(
-    apiData.high_priority_samples ?? {})
-    .map(([department_id, samples]) => {
-      const department_name = DEPARTMENT_CODE_TO_LABEL[department_id as DepartmentCode] ?? department_id;
-      return {
-        department_id,
-        department_name,
-        samples,
-      };
-    }) ?? [];
   return {
     periodLabel,
     totalReviews,
@@ -142,6 +125,5 @@ export function mapManagerStatsApiToUi(apiData: ManagerStatisticsData, period: P
     priorityPercentages,
     departments,
     historicalData,
-    highPrioritySamples,
   };
 }

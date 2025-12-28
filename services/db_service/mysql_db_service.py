@@ -1136,33 +1136,80 @@ class MySQLDbService:
         result = self.execute(query, (date_from.date(), date_to.date()), fetch=True)
         return result[0][0] if result and result[0][0] is not None else 0
 
-    def get_high_priority_reviews_for_labels(self, label, date_from: datetime, date_to: datetime, max_rows: int):
+    def get_recent_high_priority_reviews_for_department(self, department_code: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Returns most recent HIGH priority processed review segments
+        for a given department.
+        """
+
+        try:
+            labels = DepartmentToLabels[department_code].value
+        except KeyError:
+            raise ValueError(f"Unknown department code: {department_code}")
+                
+        if not labels:
+            return []
+
+        placeholders = ", ".join(["%s"] * len(labels))
 
         query = f"""
-                SELECT 
-                    pr.label,
-                    pr.`index`,
-                    r.id AS review_id,
-                    r.review,
-                    pr.created_at
-                FROM processed_reviews pr
-                JOIN reviews r ON r.id = pr.review_id
-                WHERE pr.priority = 'HIGH' AND pr.label = %s AND pr.created_at >= %s AND pr.created_at <= %s
-                ORDER BY pr.created_at DESC
-                LIMIT %s
-            """
-        rows = self.execute(query, (label, date_from, date_to, max_rows), fetch=True) or []
+            SELECT
+                pr.label,
+                r.review,
+                pr.index as highlight_index,
+                r.date,
+                r.flight_number,
+                r.route
+            FROM processed_reviews pr
+            JOIN reviews r ON pr.review_id = r.id
+            WHERE pr.priority = 'HIGH'
+            AND pr.label IN ({placeholders})
+            ORDER BY r.date DESC
+            LIMIT %s
+        """
 
-        results: Dict[str, Dict[str, Any]] = {}
+        params = labels + [limit]
 
-        for label, index_str, review_id, review_text, created_at in rows:
-            results[label] = {
-                "index": index_str,
-                "review_id": review_id,
-                "review": review_text,
-                "created_at": created_at,
-            }
-        return results
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            cursor.close()
+            return rows
+        except Error as e:
+            logger.error(
+                f"Error fetching high priority reviews for department={department_code}: {e}"
+            )
+            raise
+        finally:
+            conn.close()
+
+    def get_manager_high_priority_overview(self, limit_per_department: int = 3) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Returns recent HIGH priority reviews for each department.
+        Used by manager dashboard.
+        """
+        result: Dict[str, List[Dict[str, Any]]] = {}
+
+        for dept_enum in DepartmentToLabels:
+            department_code = dept_enum.name
+            labels = dept_enum.value
+
+            if not labels:
+                continue
+
+            try:
+                rows = self.get_recent_high_priority_reviews_for_department(department_code=department_code, limit=limit_per_department)
+                result[department_code] = rows
+            except Exception as e:
+                logger.warning(
+                    f"Skipping department {department_code} due to error: {e}"
+                )
+                result[department_code] = []
+
+        return result
 
     def update_department_statistics(self, start_dt: datetime, end_dt: datetime):
         """

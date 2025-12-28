@@ -7,8 +7,10 @@ import {MOCK_MANAGER_STATS_BY_RANGE} from "../mock/mockManagerStats";
 import FeedbackTrendChart from "../components/charts/FeedbackTrendChart";
 import DistributionPie, {type PieItem} from "../components/charts/DistributionPie";
 import { useTheme } from "../hooks/useTheme";
-
 import {PAGE_WRAPPER, PAGE_BACKGROUND_OVERLAY, TOPBAR, CARD, KPI_TITLE} from "../styles/dashboardTokens";
+import { useManagerHighPriority } from "../hooks/useHighPriorityReviews";
+import HighPriorityFeed from "../components/HighPriorityFeed";
+
 
 const THY_RED = "#b7312c";
 
@@ -21,6 +23,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState<ManagerStatsUi | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const {data: highPriorityByDept, loading: highPriorityLoading, error: highPriorityError} = useManagerHighPriority(2);
+
 
   useEffect(() => {
     if (!user) return;
@@ -106,7 +111,7 @@ export default function Dashboard() {
   }
 
 
-  const{periodLabel, totalReviews, uniqueReviews, processedSegments, sentimentCounts, sentimentPercentages, priorityCounts, priorityPercentages, departments, historicalData, highPrioritySamples} = stats;
+  const{periodLabel, totalReviews, uniqueReviews, processedSegments, sentimentCounts, sentimentPercentages, priorityCounts, priorityPercentages, departments, historicalData} = stats;
 
   const departmentPieData: PieItem[] = departments.map((dep) => ({
     id: dep.id,
@@ -213,19 +218,19 @@ export default function Dashboard() {
                   onClick={() => setTimeRange("weekly")}
                   className={periodButtonClass(timeRange, "weekly")}
                 >
-                  Weekly
+                  Last Week
                 </button>
                 <button
                   onClick={() => setTimeRange("monthly")}
                   className={periodButtonClass(timeRange, "monthly")}
                 >
-                  Monthly
+                  Last Month
                 </button>
                 <button
                   onClick={() => setTimeRange("yearly")}
                   className={periodButtonClass(timeRange, "yearly")}
                 >
-                  Yearly
+                  Last Year
                 </button>
               </div>
             </div>
@@ -256,7 +261,7 @@ export default function Dashboard() {
                 {totalReviews.toLocaleString("en-US")}  {/*{processedSegments.toLocaleString("en-US")}*/}
               </p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
-                Classified feedback segments VUHU
+                Classified feedback segments
               </p>
             </div>
           
@@ -390,31 +395,29 @@ export default function Dashboard() {
               High-priority review samples across departments
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-300 mb-3">
-              Selected high-priority feedback samples from each department for the selected period
+              Most recent high-priority feedback from each department
             </p>
 
-            {highPrioritySamples.length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                No high-priority samples available for this period.
+            {highPriorityLoading && (
+              <p className="text-xs text-slate-500">
+                Loading high-priority feedback…
               </p>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {highPrioritySamples.map((item) => (
-                  <div
-                    key={item.department_id}
-                    className="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 bg-white/70 dark:bg-slate-900/50"
-                  >
-                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-50 mb-2">
-                      {item.department_name}
+            )}
+
+            {highPriorityError && (
+              <p className="text-xs text-red-500">
+                Failed to load high-priority feedback
+              </p>
+            )}
+
+            {!highPriorityLoading && !highPriorityError && (
+              <div className="space-y-6">
+                {Object.entries(highPriorityByDept).filter(([, items]) => items.length > 0).map(([dept, items]) => (
+                  <div key={dept}>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      {dept}
                     </p>
-                    <ul className="space-y-1.5 text-[11px] text-slate-700 dark:text-slate-200">
-                      {item.samples.map((sample, idx) => (
-                        <li key={idx} className="relative pl-3">
-                          <span className="absolute left-0 top-1 h-1 w-1 rounded-full bg-slate-400 dark:bg-slate-500" />
-                          <span className="italic">“{sample}”</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <HighPriorityFeed items={items} />
                   </div>
                 ))}
               </div>

@@ -1,7 +1,5 @@
 export type Period = "weekly" | "monthly" | "yearly";
 
-/* ---------- MANAGER TYPES ---------- */
-
 export interface SentimentCounts {positive: number; negative: number; neutral: number}
 
 export interface SentimentPercentages {positive: number; negative: number; neutral: number}
@@ -14,7 +12,7 @@ export interface HistoricalBucket {positive: number; negative: number; neutral: 
 
 export type HistoricalData = Record<string, HistoricalBucket>;
 
-export type HighPrioritySamplesByKey = Record<string, string[]>;
+/* ---------- MANAGER TYPES ---------- */
 
 export interface ManagerStatisticsData {
   total: number;
@@ -35,7 +33,6 @@ export interface ManagerStatisticsData {
   };
   period_label: string;
   historical_data: HistoricalData;
-  high_priority_samples: HighPrioritySamplesByKey;
 }
 
 export interface ManagerStatisticsResult {
@@ -71,7 +68,6 @@ export interface DepartmentStatisticsData {
   period_label: string;
 
   historical_data: HistoricalData;
-  high_priority_samples: HighPrioritySamplesByKey;
 }
 
 export interface DepartmentStatisticsResult {
@@ -83,6 +79,27 @@ export interface DepartmentStatisticsHttpResponse {
   success: boolean;
   result: DepartmentStatisticsResult;
 }
+
+/* ---------- HIGH PRIORITY TYPES ---------- */
+
+export interface HighPriorityReviewItem {
+  label: string;
+  review: string;
+  highlightIndex?: string;
+  date: string;
+  flightNumber?: string;
+  route?: string;
+}
+
+export interface DepartmentHighPriorityResponse {
+  department: string;
+  items: HighPriorityReviewItem[];
+}
+
+export interface ManagerHighPriorityResponse {
+  departments: Record<string, HighPriorityReviewItem[]>;
+}
+
 
 /* ---------- COMMON HTTP ---------- */
 
@@ -150,4 +167,48 @@ export async function fetchDepartmentStatistics(
 
   const json: DepartmentStatisticsHttpResponse = await res.json();
   return json.result; // { success, data }
+}
+
+/* ---------- HIGH PRIORITY FETCH ---------- */
+
+export async function fetchDepartmentHighPriority(
+  department: string,
+  limit = 5
+): Promise<DepartmentHighPriorityResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/high-priority/department?department=${department}&limit=${limit}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("flightsense_token")}`,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to fetch department high priority");
+  }
+  return res.json();
+}
+
+export async function fetchManagerHighPriority(
+  limitPerDepartment = 3
+): Promise<ManagerHighPriorityResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/high-priority/manager?limit_per_department=${limitPerDepartment}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("flightsense_token")}`,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to fetch manager high priority");
+  }
+
+  return res.json();
 }
