@@ -1339,6 +1339,43 @@ class MySQLDbService:
             raise
         finally:
             conn.close()
+
+    # -------------------------------------------------------------------------
+    # ANOMALY DETECTION HELPERS
+    # -------------------------------------------------------------------------
+    def get_anomaly_detection_data(self):
+        
+        query = """
+                SELECT
+                    r.flight_number,
+                    r.bidirectional_route,
+                    pr.label,
+                    CASE pr.sentiment
+                        WHEN 'POSITIVE' THEN 1.0
+                        WHEN 'NEUTRAL'  THEN 0.0
+                        WHEN 'NEGATIVE' THEN -1.0
+                    END AS sentiment_score
+                FROM reviews r
+                JOIN processed_reviews pr
+                    ON pr.review_id = r.id
+                WHERE pr.sentiment IN ('POSITIVE', 'NEUTRAL', 'NEGATIVE');
+                """
+
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            cursor.close()
+            return rows
+        except Error as e:
+            logger.error(
+                f"Error fetching anomaly detection data: {e}"
+            )
+            raise
+        finally:
+            conn.close()
     # -------------------------------------------------------------------------
     # CLEANUP
     # -------------------------------------------------------------------------
