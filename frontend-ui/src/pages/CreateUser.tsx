@@ -64,7 +64,6 @@ export default function CreateUser() {
         }
       );
 
-      // SAFE response parsing (no JSON crash)
       let data: any = null;
       try {
         const text = await res.text();

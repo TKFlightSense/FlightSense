@@ -182,6 +182,21 @@ export default function Dashboard() {
                 </p>
               )}
             </div>
+            {user?.role === "admin" && (
+              <button
+                onClick={() => navigate("/admin/create-user")}
+                className="
+                  text-xs px-4 py-1.5 rounded-full
+                  border border-red-300 text-red-600 bg-white
+                  hover:bg-red-50 hover:border-red-400
+                  transition
+                  dark:border-red-600 dark:text-red-400 dark:bg-slate-900/70
+                  dark:hover:bg-red-900/20
+                "
+              >
+                👤➕ Create User
+              </button>
+            )}
             <button
               onClick={toggleTheme}
               className="text-xs px-3 py-1.5 rounded-full border border-slate-300 bg-white/80 text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition
