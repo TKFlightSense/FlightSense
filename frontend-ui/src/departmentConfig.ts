@@ -1,3 +1,5 @@
+export type UserRole = "admin" | "manager" | "viewer";
+
 export type DepartmentCode = "IUIUB" | "BMCOGM" | "KHB" | "TGS" | "RVBCM" | "CMYM" | "GYB";
 export type DepartmentId = DepartmentCode; // Alias for compatibility
 

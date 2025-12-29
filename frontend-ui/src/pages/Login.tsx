@@ -44,10 +44,10 @@ export default function Login() {
       // 2. Navigate on success
       if (user.role === "admin" || user.role === "manager") {
         navigate("/dashboard");
-      } else if (user.role === "department_viewer" && user.departmentId) {
+      } else if (user.role === "viewer" && user.departmentId) {
         navigate(`/department/${user.departmentId}`);
       } else {
-        navigate("/dashboard");
+        navigate("/");
       }
     } catch (err: any) {
       console.warn("API login failed, checking mocks...", err);
@@ -64,7 +64,7 @@ export default function Login() {
         if (mockUser.role === "admin" || mockUser.role === "manager") {
           navigate("/dashboard");
         } else if (
-          mockUser.role === "department_viewer" &&
+          mockUser.role === "viewer" &&
           mockUser.departmentId
         ) {
           navigate(`/department/${mockUser.departmentId}`);

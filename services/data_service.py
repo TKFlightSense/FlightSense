@@ -34,6 +34,7 @@ class DataService:
         """
         try:
             role = user_info["role"]
+            department = user_info.get("department")
 
             if isinstance(filters, dict):
                 data_filter = DataFilter.from_dict(filters)
@@ -51,7 +52,7 @@ class DataService:
             data_filter.to_enum()
 
             if data_filter.label_type:
-                if not self.access.can_access_label(role, data_filter.label_type):
+                if not self.access.can_access_label(role, department, data_filter.label_type):
                     return {
                         "success": False,
                         "error": f"You don't have permission to access {data_filter.label_type} data",
@@ -62,7 +63,7 @@ class DataService:
                 not data_filter.label_type
                 and not self.access.is_full_access_role(role)
             ):
-                allowed_labels = self.access.get_allowed_labels(role)
+                allowed_labels = self.access.get_allowed_labels(role, department)
                 if len(allowed_labels) == 1:
                     data_filter.label_type = allowed_labels[0]
 
@@ -98,8 +99,9 @@ class DataService:
         """
         try:
             role = user_info["role"]
+            department = user_info.get("department")
 
-            if not self.access.can_access_page(role, page):
+            if not self.access.can_access_department(role, department, page):
                 return {
                     "success": False,
                     "error": f"You don't have permission to access {page} page",
@@ -117,7 +119,7 @@ class DataService:
                 total_reviews = self.db._get_row_count("processed_data")
 
             recent_stats = self.db.get_statistics_data(limit=10)
-            allowed_labels = self.access.get_allowed_labels(role)
+            allowed_labels = self.access.get_allowed_labels(role, department)
 
             return {
                 "success": True,
@@ -149,8 +151,9 @@ class DataService:
         """
         try:
             role = user_info["role"]
+            department = user_info.get("department")
 
-            if not self.access.can_access_label(role, label):
+            if not self.access.can_access_label(role, department, label):
                 return {
                     "success": False,
                     "error": f"You don't have permission to access {label} analytics",

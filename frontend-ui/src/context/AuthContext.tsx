@@ -5,11 +5,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { DepartmentId } from "../departmentConfig";
+import type { DepartmentId, UserRole } from "../departmentConfig";
 import {
   LOCAL_STORAGE_USER_KEY,
   type MockUser,
-  type UserRole,
 } from "../mock/mockAuth";
 
 const LOCAL_STORAGE_TOKEN_KEY = "flightsense_token";

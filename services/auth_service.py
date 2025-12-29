@@ -10,6 +10,7 @@ from mysql.connector import Error as MySQLError
 from services.db_service.mysql_db_service import MySQLDbService 
 from services.access_control_service import AccessControlService
 from models.roles import VALID_ROLES
+from models.enums.enums import Departments
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,12 @@ class AuthService:
 
             if role not in VALID_ROLES:
                 raise ValueError(f"Invalid role. Must be one of: {VALID_ROLES}")
+
+            if role == "viewer" and department is None:
+                raise ValueError("Viewer users must have a department")
+
+            if department is not None and department not in Departments.__members__:
+                raise ValueError(f"Invalid department: {department}")
 
             password_hash = bcrypt.hashpw(
                 password.encode("utf-8"), bcrypt.gensalt()
@@ -101,7 +108,7 @@ class AuthService:
 
             self.db.update_last_login(username)
             token = self._generate_token(user)
-            allowed_pages = self.access_control.get_allowed_pages(user["role"])
+            allowed_departments = self.access_control.get_allowed_departments(user["role"], user.get("department"))
 
             return {
                 "success": True,
@@ -111,7 +118,7 @@ class AuthService:
                     "email": user["email"],
                     "role": user["role"],
                     "department": user.get("department"),
-                    "allowed_pages": allowed_pages,
+                    "allowed_departments": allowed_departments,
                 },
             }
         except MySQLError as e:

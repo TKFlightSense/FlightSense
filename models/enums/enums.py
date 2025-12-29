@@ -4,14 +4,7 @@ from enum import Enum
 class UserRole(str, Enum):
     ADMIN = "admin"
     MANAGER = "manager"
-
-    # Subject-specific dashboards
-    FLIGHT_DELAY = "flight_delay"
-    CHECKIN_BOARDING_PROCESS = "checkin_boarding_process"
-    BAGGAGE = "baggage"
-    INFLIGHT_EXPERIENCE = "inflight_experience"
-    PRICING_FEES = "pricing_fees"
-    ONLINE_BOOKING = "online_booking"
+    VIEWER = "viewer"
 
 
 class SentimentLabel(str, Enum):
@@ -43,16 +36,14 @@ class StatusNumericalVal(int, Enum):
     POSITIVE = 1
 
 class Departments(str, Enum):
-    """
-    Full department names
-    """
-    IUIUB = "İkram ve Uçak İçi Ürünler Başkanlığı"
-    BMCOGM = "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü"
-    KHB = "Kabin Hizmetleri Başkanlığı"
-    TGS = "Turkish Ground Services"
-    RVBCM = "Rezervasyon ve Biletleme Çözümleri Müdürlüğü"
-    CMYM = "Çağrı Merkezi Yönetim Müdürlüğü"
-    GYB = "Gelir Yönetimi Başkanlığı"
+    IUIUB = "IUIUB"
+    BMCOGM = "BMCOGM"
+    KHB = "KHB"
+    TGS = "TGS"
+    RVBCM = "RVBCM"
+    CMYM = "CMYM"
+    GYB = "GYB"
+
 
 class LabelToDepartment(str, Enum):
     """

@@ -2,73 +2,62 @@
   "valid_roles": [
     "admin",
     "manager",
-    "viewer",
-    "flight_delay",
-    "checkin_boarding",
-    "baggage",
-    "inflight_experience",
-    "pricing_fees",
-    "online_booking",
-    "customer_support"
+    "viewer"
   ],
+
   "full_access_roles": [
     "admin",
     "manager"
   ],
-  "role_to_pages": {
+
+  "role_to_departments": {
     "admin": [
-      "dashboard",
-      "flight_delay",
-      "checkin_boarding",
-      "baggage",
-      "inflight_experience",
-      "pricing_fees",
-      "online_booking",
-      "customer_support"
+      "IUIUB",
+      "BMCOGM",
+      "KHB",
+      "TGS",
+      "RVBCM",
+      "CMYM",
+      "GYB"
     ],
     "manager": [
-      "dashboard",
-      "flight_delay",
-      "checkin_boarding",
-      "baggage",
-      "inflight_experience",
-      "pricing_fees",
-      "online_booking",
-      "customer_support"
+      "IUIUB",
+      "BMCOGM",
+      "KHB",
+      "TGS",
+      "RVBCM",
+      "CMYM",
+      "GYB"
     ],
-    "viewer": ["dashboard"],
-    "flight_delay": ["flight_delay"],
-    "checkin_boarding": ["checkin_boarding"],
-    "baggage": ["baggage"],
-    "inflight_experience": ["inflight_experience"],
-    "pricing_fees": ["pricing_fees"],
-    "online_booking": ["online_booking"],
-    "customer_support": ["customer_support"]
+    "viewer": []
   },
-  "role_to_labels": {
-    "baggage": [
-      "baggage_lost",
-      "baggage_damaged"
-    ],
-    "inflight_experience": [
+
+  "department_to_labels": {
+    "IUIUB": [
       "inflight_experience_food_beverage",
+      "inflight_experience_entertainment"
+    ],
+    "KHB": [
       "inflight_experience_seats_comfort",
-      "inflight_experience_entertainment",
       "inflight_experience_cabin_service",
       "inflight_experience_cleanliness"
     ],
-    "pricing_fees": [
-      "pricing_and_loyalty"
-    ],
-    "online_booking": [
-      "booking_and_ticketing"
-    ],
-    "customer_support": [
-      "customer_support"
-    ],
-    "checkin_boarding": [
+    "TGS": [
       "checkin_process",
       "boarding_process"
+    ],
+    "BMCOGM": [
+      "baggage_lost",
+      "baggage_damaged"
+    ],
+    "RVBCM": [
+      "booking_and_ticketing"
+    ],
+    "CMYM": [
+      "customer_support"
+    ],
+    "GYB": [
+      "pricing_and_loyalty"
     ]
   }
 }

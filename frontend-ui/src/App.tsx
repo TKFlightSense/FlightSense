@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import DepartmentDashboard from "./pages/DepartmentDashboard";
+import CreateUser from "./pages/CreateUser";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -10,6 +11,16 @@ function App() {
       <Routes>
         {/* Public route */}
         <Route path="/" element={<Login />} />
+
+        <Route
+          path="/admin/create-user"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <CreateUser />
+            </ProtectedRoute>
+          }
+        />
+
 
         {/* Manager/Admin dashboard */}
         <Route
@@ -26,7 +37,7 @@ function App() {
           path="/department/:departmentName"
           element={
             <ProtectedRoute
-              allowedRoles={["department_viewer", "manager", "admin"]}
+              allowedRoles={["viewer", "manager", "admin"]}
             >
               <DepartmentDashboard />
             </ProtectedRoute>

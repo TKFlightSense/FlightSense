@@ -14,6 +14,7 @@ from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
+from models.enums.enums import UserRole, Departments
 
 # Import database services
 from services.db_service.mysql_db_service import MySQLDbService
@@ -112,6 +113,7 @@ def get_orchestrator() -> FlightSenseOrchestrator:
 
 def get_token_from_header(authorization: Optional[str] = Header(None)) -> str:
     """Extract JWT token from Authorization header."""
+    logger.info(f"Authorization header received: {authorization}")
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
     
@@ -120,6 +122,25 @@ def get_token_from_header(authorization: Optional[str] = Header(None)) -> str:
     
     return authorization[7:]  # Remove "Bearer " prefix
 
+def require_admin(
+    token: str = Depends(get_token_from_header),
+    orch: FlightSenseOrchestrator = Depends(get_orchestrator),
+):
+    """
+    Dependency that ensures the caller is an admin user.
+    """
+    user_info = orch.verify_token(token)
+
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    if user_info.get("role") != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Admin privileges required",
+        )
+
+    return user_info
 
 # -------------------------------------------------------------------------
 # REQUEST/RESPONSE MODELS
@@ -129,8 +150,8 @@ class RegisterRequest(BaseModel):
     username: str
     email: str
     password: str
-    role: str = "viewer"
-    department: Optional[str] = None
+    role: UserRole = UserRole.VIEWER
+    department: Optional[Departments] = None
 
 
 class LoginRequest(BaseModel):
@@ -215,6 +236,7 @@ async def get_version():
 @app.post("/api/auth/register")
 async def register(
     request: RegisterRequest,
+    _: Dict = Depends(require_admin),
     orch: FlightSenseOrchestrator = Depends(get_orchestrator)
 ):
     """Register a new user."""

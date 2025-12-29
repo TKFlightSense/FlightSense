@@ -1,6 +1,6 @@
 import type { DepartmentId } from "../departmentConfig";
 
-export type UserRole = "admin" | "manager" | "department_viewer";
+export type UserRole = "admin" | "manager" | "viewer";
 
 export type MockUser = {
   username: string;
@@ -27,25 +27,25 @@ export const MOCK_USERS: MockUser[] = [
   {
     username: "ikram.user",
     password: "test123",
-    role: "department_viewer",
+    role: "viewer",
     departmentId: "IUIUB",
   },
   {
     username: "bagaj.user",
     password: "test123",
-    role: "department_viewer",
+    role: "viewer",
     departmentId: "BMCOGM",
   },
   {
     username: "kabin.user",
     password: "test123",
-    role: "department_viewer",
+    role: "viewer",
     departmentId: "KHB",
   },
   {
     username: "tgs.user",
     password: "test123",
-    role: "department_viewer",
+    role: "viewer",
     departmentId: "TGS",
   },
 ];

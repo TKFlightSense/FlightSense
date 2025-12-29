@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import type { UserRole } from "../mock/mockAuth";
+import type { UserRole } from "../departmentConfig";
 
 type ProtectedRouteProps = {
   children: ReactNode;

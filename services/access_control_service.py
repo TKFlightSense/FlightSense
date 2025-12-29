@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 from pathlib import Path
 import json
 
-from models.labels import ALL_LABELS
+from models.enums.enums import Departments
 
 
 def _load_access_control_config() -> Dict[str, Any]:
@@ -34,10 +34,14 @@ class AccessControlService:
 
     def __init__(self) -> None:
         # Load configurations from the global config
-        self.role_to_pages: Dict[str, List[str]] = _ACCESS_CONFIG["role_to_pages"]
-        self.role_to_labels: Dict[str, List[str]] = _ACCESS_CONFIG["role_to_labels"]
         self.valid_roles: List[str] = VALID_ROLES
         self.full_access_roles: List[str] = FULL_ACCESS_ROLES
+        self.role_to_departments: Dict[str, List[str]] = _ACCESS_CONFIG[
+            "role_to_departments"
+        ]
+        self.department_to_labels: Dict[str, List[str]] = _ACCESS_CONFIG[
+            "department_to_labels"
+        ]
 
     # ---------- roles ----------
 
@@ -47,17 +51,22 @@ class AccessControlService:
     def is_full_access_role(self, role: str) -> bool:
         return role in self.full_access_roles
 
-    # ---------- pages ----------
+    # ---------- departments ----------
 
-    def get_allowed_pages(self, role: str) -> List[str]:
-        return self.role_to_pages.get(role, [])
+    def get_allowed_departments(self, role: str, user_department: Optional[str]) -> List[str]:
+        if self.is_full_access_role(role):
+            return list(self.role_to_departments.get(role, []))
+        if user_department:
+            return [user_department]
+        return []
 
-    def can_access_page(self, role: str, page: str) -> bool:
-        return page in self.get_allowed_pages(role)
-
+    def can_access_department(self, role: str, user_department: Optional[str]) -> bool:
+        if self.is_full_access_role(role):
+            return True
+        return user_department == department
     # ---------- labels ----------
 
-    def get_allowed_labels(self, role: str) -> List[str]:
+    def get_allowed_labels(self, role: str, user_department: Optional[str]) -> List[str]:
         """
         Returns list of fine-grained labels a role can see.
         Full access roles (admin/manager) get [] here, meaning "no restriction".
@@ -65,23 +74,19 @@ class AccessControlService:
         if self.is_full_access_role(role):
             # full access – treat as unrestricted
             return []
-        return self.role_to_labels.get(role, [])
+        if not user_department:
+            return []
+        return self.department_to_labels.get(user_department, [])
 
-    def can_access_label(self, role: str, label: str) -> bool:
+    def can_access_label(self, role: str, user_department: Optional[str], label: str) -> bool:
         """
         Returns True if the given role is allowed to interact with this label.
         """
         if self.is_full_access_role(role):
             return True
 
-        allowed = self.get_allowed_labels(role)
+        if not user_department:
+            return False
 
-        # if no explicit mapping for the role, we can either:
-        #   - treat as no restriction, or
-        #   - treat as "cannot access anything".
-        # Here we treat "no mapping" as "no restriction" to keep it flexible.
-        if not allowed:
-            return True
-
-        return label in allowed
+        return label in self.department_to_labels.get(user_department, [])
     
