@@ -37,31 +37,39 @@ def ingest_reviews(csv_file, username, password):
         print(f"[ERROR] CSV must contain a '{required_col}' column.")
         return
 
-    # Fill missing optional columns
+    # Normalize column names (support both 'date' and 'review_date')
+    if 'review_date' in df.columns and 'date' not in df.columns:
+        df['date'] = df['review_date']
+        print("    [INFO] Mapped 'review_date' column to 'date'")
+
+    # Fill missing optional columns with defaults or generate them
     if 'date' not in df.columns:
         print("    [INFO] Generating random dates for the last 7 days...")
         
-        # 1. Define the time window
         end_date = pd.Timestamp.now()
         start_date = end_date - pd.Timedelta(days=7)
-        
-        # 2. Calculate the total range in seconds
         time_range_seconds = (end_date - start_date).total_seconds()
-        
-        # 3. Generate random seconds for each row
         random_seconds = np.random.randint(0, int(time_range_seconds), size=len(df))
-        
-        # 4. Add random seconds to the start_date
         random_dates = start_date + pd.to_timedelta(random_seconds, unit='s')
-        
-        # 5. Assign to dataframe (formatting as YYYY-MM-DD strings)
         df['date'] = random_dates.strftime('%Y-%m-%d')    
+    
     if 'flight_number' not in df.columns:
-            df['flight_number'] = None
+        df['flight_number'] = None
     if 'pnr' not in df.columns:
         df['pnr'] = "TSTPNR"
+    
+    # New route fields - set to None if not present
+    if 'origin_iata' not in df.columns:
+        df['origin_iata'] = None
+    if 'destination_iata' not in df.columns:
+        df['destination_iata'] = None
+    if 'route' not in df.columns:
+        df['route'] = None
+    if 'bidirectional_route' not in df.columns:
+        df['bidirectional_route'] = None
 
     print(f"    Found {len(df)} reviews to ingest.")
+    print(f"    Columns: {list(df.columns)}")
 
     # 2. Push to Database
     print("[2] Pushing reviews to database...")

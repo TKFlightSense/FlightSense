@@ -109,6 +109,7 @@ class MySQLDbService:
     def _create_tables(self):
         """Create all necessary tables if they don't exist."""
         self._create_reviews_table()
+        self._migrate_reviews_table()  # Add missing columns if needed
         self._create_review_details_table()
         self._create_tickets_table()
         self._create_user_table()
@@ -156,6 +157,49 @@ class MySQLDbService:
         except Error as e:
             logger.error(f"Error creating reviews table: {e}")
             raise
+        finally:
+            conn.close()
+
+    def _migrate_reviews_table(self):
+        """Add missing columns to reviews table (for existing databases)."""
+        columns_to_add = [
+            ("origin_iata", "VARCHAR(50)"),
+            ("destination_iata", "VARCHAR(50)"),
+            ("route", "VARCHAR(50)"),
+            ("bidirectional_route", "VARCHAR(50)"),
+        ]
+        
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            
+            # Check existing columns
+            cursor.execute("DESCRIBE reviews")
+            existing_columns = {row[0] for row in cursor.fetchall()}
+            
+            for col_name, col_type in columns_to_add:
+                if col_name not in existing_columns:
+                    alter_query = f"ALTER TABLE reviews ADD COLUMN {col_name} {col_type}"
+                    cursor.execute(alter_query)
+                    logger.info(f"Added column '{col_name}' to reviews table")
+            
+            # Add indexes if they don't exist (ignore errors if they already exist)
+            index_queries = [
+                "CREATE INDEX idx_route ON reviews(route)",
+                "CREATE INDEX idx_bidirectional_route ON reviews(bidirectional_route)",
+            ]
+            for idx_query in index_queries:
+                try:
+                    cursor.execute(idx_query)
+                except Error:
+                    pass  # Index already exists
+            
+            conn.commit()
+            cursor.close()
+        except Error as e:
+            logger.error(f"Error migrating reviews table: {e}")
+            # Don't raise - migration is best-effort for backwards compatibility
         finally:
             conn.close()
 
@@ -643,24 +687,28 @@ class MySQLDbService:
     # -------------------------------------------------------------------------
 
     def push_processed_data(self, df: pd.DataFrame) -> int:
-        """Push DataFrame to processed_data table."""
+        """Push DataFrame to reviews table with full schema support."""
         conn = self._get_connection()
         try:
             conn.database = self.database
             cursor = conn.cursor()
 
             query = """
-            INSERT INTO reviews (review, date, flight_number, pnr)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO reviews (review, date, flight_number, pnr, origin_iata, destination_iata, route, bidirectional_route)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             data = []
             for _, row in df.iterrows():
                 data.append((
                     row.get("review"),
-                    row.get("date"),
+                    row.get("date") or row.get("review_date"),  # Support both column names
                     row.get("flight_number"),
                     row.get("pnr"),
+                    row.get("origin_iata"),
+                    row.get("destination_iata"),
+                    row.get("route"),
+                    row.get("bidirectional_route"),
                 ))
 
             cursor.executemany(query, data)
