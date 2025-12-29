@@ -221,7 +221,7 @@ with st.form("review_form", clear_on_submit=True):
     
     st.markdown("<div style='height: 0.5rem'></div>", unsafe_allow_html=True)
     
-    # Flight details in columns
+    # Flight details in columns - Row 1
     col1, col2 = st.columns(2)
     
     with col1:
@@ -236,6 +236,25 @@ with st.form("review_form", clear_on_submit=True):
             "PNR Code",
             value="TSTPNR",
             placeholder="e.g., ABC123"
+        )
+    
+    # Flight route details - Row 2
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        origin_iata = st.text_input(
+            "Origin Airport (IATA)",
+            value="",
+            placeholder="e.g., IST",
+            max_chars=3
+        )
+    
+    with col4:
+        destination_iata = st.text_input(
+            "Destination Airport (IATA)",
+            value="",
+            placeholder="e.g., JFK",
+            max_chars=3
         )
     
     # Date
@@ -257,15 +276,30 @@ with st.form("review_form", clear_on_submit=True):
                 conn = get_connection()
                 cursor = conn.cursor()
                 
+                # Build route strings from IATA codes
+                origin = origin_iata.strip().upper() if origin_iata else None
+                destination = destination_iata.strip().upper() if destination_iata else None
+                
+                route = None
+                bidirectional_route = None
+                if origin and destination:
+                    route = f"{origin}{destination}"
+                    # Bidirectional route: sorted alphabetically
+                    bidirectional_route = "".join(sorted([origin, destination])) + "".join(sorted([origin, destination], reverse=True))
+                
                 query = """
-                INSERT INTO reviews (review, date, flight_number, pnr)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO reviews (review, date, flight_number, pnr, origin_iata, destination_iata, route, bidirectional_route)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 values = (
                     review_text.strip(),
                     review_date,
                     flight_number.strip() if flight_number else None,
-                    pnr.strip() if pnr else None
+                    pnr.strip() if pnr else None,
+                    origin,
+                    destination,
+                    route,
+                    bidirectional_route
                 )
                 
                 cursor.execute(query, values)
