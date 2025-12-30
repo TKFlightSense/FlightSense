@@ -4,48 +4,49 @@ export type DepartmentCode = "IUIUB" | "BMCOGM" | "KHB" | "TGS" | "RVBCM" | "CMY
 export type DepartmentId = DepartmentCode; // Alias for compatibility
 
 export type DepartmentLabel =
-  | "İkram ve Uçak İçi Ürünler Başkanlığı"
-  | "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü"
-  | "Kabin Hizmetleri Başkanlığı"
+  | "In-Flight Catering & Onboard Products"
+  | "Baggage Customer Solutions & Operational Improvement"
+  | "Cabin Services"
   | "Turkish Ground Services"
-  | "Rezervasyon ve Biletleme Çözümleri Müdürlüğü"
-  | "Çağrı Merkezi Yönetim Müdürlüğü"
-  | "Gelir Yönetimi Başkanlığı";
+  | "Reservations & Ticketing Solutions"
+  | "Call Center Management"
+  | "Revenue Management";
 
 export const DEPARTMENT_LABEL_TO_CODE: Record<DepartmentLabel, DepartmentCode> = {
-  "İkram ve Uçak İçi Ürünler Başkanlığı": "IUIUB",
-  "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü": "BMCOGM",
-  "Kabin Hizmetleri Başkanlığı": "KHB",
+  "In-Flight Catering & Onboard Products": "IUIUB",
+  "Baggage Customer Solutions & Operational Improvement": "BMCOGM",
+  "Cabin Services": "KHB",
   "Turkish Ground Services": "TGS",
-  "Rezervasyon ve Biletleme Çözümleri Müdürlüğü": "RVBCM",
-  "Çağrı Merkezi Yönetim Müdürlüğü": "CMYM",
-  "Gelir Yönetimi Başkanlığı": "GYB",
+  "Reservations & Ticketing Solutions": "RVBCM",
+  "Call Center Management": "CMYM",
+  "Revenue Management": "GYB",
 };
 
 export const DEPARTMENT_CODE_TO_LABEL: Record<DepartmentCode, DepartmentLabel> = {
-  IUIUB: "İkram ve Uçak İçi Ürünler Başkanlığı",
-  BMCOGM: "Bagaj Müşteri Çözümleri ve Operasyon Geliştirme Müdürlüğü",
-  KHB: "Kabin Hizmetleri Başkanlığı",
+  IUIUB: "In-Flight Catering & Onboard Products",
+  BMCOGM: "Baggage Customer Solutions & Operational Improvement",
+  KHB: "Cabin Services",
   TGS: "Turkish Ground Services",
-  RVBCM: "Rezervasyon ve Biletleme Çözümleri Müdürlüğü",
-  CMYM: "Çağrı Merkezi Yönetim Müdürlüğü",
-  GYB: "Gelir Yönetimi Başkanlığı",
+  RVBCM: "Reservations & Ticketing Solutions",
+  CMYM: "Call Center Management",
+  GYB: "Revenue Management",
 };
 
 
 export const LABEL_KEY_TO_NAME: Record <string, string> = {
-  inflight_experience_food_beverage: "Yemek & İçecek Kalitesi",
-  inflight_experience_entertainment: "Uçak İçi Eğlence Sistemi",
-  inflight_experience_seats_comfort: "Koltuklar & Konfor",
-  inflight_experience_cabin_service: "Kabin Ekibi Hizmeti",
-  inflight_experience_cleanliness: "Temizlik & Hijyen",
-  checkin_process: "Check-in Süreci",
-  boarding_process: "Biniş (Boarding) Süreci",
-  baggage_lost: "Bagaj Kaybı",
-  baggage_damaged: "Hasarlı Bagaj",
-  booking_and_ticketing: "Rezervasyon & Bilet İşlemleri",
-  customer_support: "Çağrı Merkezi & Müşteri Desteği",
-  pricing_and_loyalty: "Fiyatlandırma & Üyelik Programı",
+  inflight_experience_food_beverage: "Food & Beverage Quality",
+  inflight_experience_entertainment: "In-Flight Entertainment",
+  inflight_experience_seats_comfort: "Seats & Comfort",
+  inflight_experience_cabin_service: "Cabin Crew Service",
+  inflight_experience_cleanliness: "Cleanliness & Hygiene",
+  checkin_process: "Check-in Process",
+  boarding_process: "Boarding Process",
+  flight_delay_cancellation: "Flight Delay / Cancellation",
+  baggage_lost: "Lost Baggage",
+  baggage_damaged: "Damaged Baggage",
+  booking_and_ticketing: "Booking & Ticketing",
+  customer_support: "Customer Support",
+  pricing_and_loyalty: "Pricing & Loyalty",
 };
 
 export const DEPARTMENT_JIRA_PROJECT_KEY: Record<DepartmentCode, string> = {
