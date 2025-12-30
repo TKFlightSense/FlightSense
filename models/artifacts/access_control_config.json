@@ -44,7 +44,8 @@
     ],
     "TGS": [
       "checkin_process",
-      "boarding_process"
+      "boarding_process",
+      "flight_delay_cancellation"
     ],
     "BMCOGM": [
       "baggage_lost",

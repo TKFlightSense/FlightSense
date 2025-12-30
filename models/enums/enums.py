@@ -56,6 +56,7 @@ class LabelToDepartment(str, Enum):
     inflight_experience_cleanliness = "KHB"
     checkin_process = "TGS"
     boarding_process = "TGS"
+    flight_delay_cancellation = "TGS"
     baggage_lost = "BMCOGM"
     baggage_damaged = "BMCOGM"
     booking_and_ticketing = "RVBCM"
@@ -76,6 +77,7 @@ class DepartmentToLabels(Enum):
     TGS = [
         "checkin_process",
         "boarding_process",
+        "flight_delay_cancellation",
     ]
     BMCOGM = [
         "baggage_lost",
