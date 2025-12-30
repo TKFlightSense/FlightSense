@@ -214,9 +214,6 @@ export default function DepartmentDashboard() {
             <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
               <span style={{ color: THY_RED }}>{deptDisplayName}</span>
             </h1>
-            <p className="text-[11px] text-slate-500 dark:text-slate-300">
-              Period · {periodLabel}
-            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -243,22 +240,6 @@ export default function DepartmentDashboard() {
                 </svg>
                 Open Jira Board
               </a>
-            )}
-
-            {user && (
-              <div className="text-right">
-                <p className="text-sm text-slate-900 dark:text-slate-50">
-                  {user.username}{" "}
-                  <span className="text-xs text-slate-500 dark:text-slate-300">
-                    ({user.role})
-                  </span>
-                </p>
-                {user.department && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Assigned dept: {user.department}
-                  </p>
-                )}
-              </div>
             )}
 
             <button

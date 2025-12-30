@@ -1,5 +1,5 @@
 export const PAGE_WRAPPER =
-  "min-h-screen relative overflow-hidden bg-slate-50 text-slate-900 " +
+  "min-h-screen relative bg-slate-50 text-slate-900 " +
   "dark:bg-slate-950 dark:text-slate-50";
 
 export const PAGE_BACKGROUND_OVERLAY =
@@ -9,7 +9,7 @@ export const PAGE_BACKGROUND_OVERLAY =
   "dark:opacity-60";
 
 export const TOPBAR =
-  "flex items-center justify-between px-8 py-4 border-b backdrop-blur " +
+  "relative z-50 flex items-center justify-between px-8 py-4 border-b backdrop-blur " +
   "bg-white/80 border-slate-200 " +
   "dark:bg-gradient-to-r dark:from-slate-950/95 dark:via-slate-800/95 dark:to-slate-950/95 dark:border-slate-800";
 

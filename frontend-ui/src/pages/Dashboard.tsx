@@ -10,6 +10,7 @@ import { useTheme } from "../hooks/useTheme";
 import {PAGE_WRAPPER, PAGE_BACKGROUND_OVERLAY, TOPBAR, CARD, KPI_TITLE} from "../styles/dashboardTokens";
 import { useManagerHighPriority } from "../hooks/useHighPriorityReviews";
 import HighPriorityFeed from "../components/HighPriorityFeed";
+import DepartmentDropdown from "../components/DepartmentDropdown";
 
 
 const THY_RED = "#b7312c";
@@ -150,7 +151,7 @@ export default function Dashboard() {
 
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Top bar */}
-        <header className={TOPBAR}>
+        <header className={`${TOPBAR} sticky top-0`}>
           <div>
             <p className="text-xs font-semibold tracking-[0.25em] text-slate-400 uppercase">
               FlightSense
@@ -158,48 +159,28 @@ export default function Dashboard() {
             <h1 className="text-lg font-semibold">
               <span style={{ color: THY_RED }}>Manager Dashboard</span>
             </h1>
-            <p className="text-[11px] text-slate-500 dark:text-slate-300">
-              Period · {periodLabel}
-            </p>
             {error && (
               <p className="mt-1 text-[11px] text-amber-500 dark:text-amber-300">
                 {error}
               </p>
             )}
           </div>
+          
 
           <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm text-slate-900 dark:text-slate-50">
-                {user.username}{" "}
-                <span className="text-xs text-slate-500 dark:text-slate-300">
-                  ({user.role})
-                </span>
-              </p>
-              {user.departmentId && (
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Dept: {user.departmentId}
-                </p>
-              )}
-            </div>
             {user?.role === "admin" && (
               <button
                 onClick={() => navigate("/admin/create-user")}
-                className="
-                  text-xs px-4 py-1.5 rounded-full
-                  border border-red-300 text-red-600 bg-white
-                  hover:bg-red-50 hover:border-red-400
-                  transition
-                  dark:border-red-600 dark:text-red-400 dark:bg-slate-900/70
-                  dark:hover:bg-red-900/20
-                "
+                className="text-xs px-4 py-1.5 rounded-full border border-slate-300 bg-white/80 text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition
+                         dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-50 dark:hover:bg-slate-800"
               >
-                👤➕ Create User
+                Create User 
               </button>
             )}
+            <DepartmentDropdown />
             <button
               onClick={toggleTheme}
-              className="text-xs px-3 py-1.5 rounded-full border border-slate-300 bg-white/80 text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition
+              className="text-xs px-4 py-1.5 rounded-full border border-slate-300 bg-white/80 text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition
                          dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-50 dark:hover:bg-slate-800"
             >
               {theme === "dark" ? "Light mode ☀️" : "Dark mode 🌙"}
