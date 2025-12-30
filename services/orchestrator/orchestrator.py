@@ -157,21 +157,53 @@ class FlightSenseOrchestrator:
             return {"success": False, "error": "Empty review text"}
 
         try:
+            # Mark as processing (best-effort). This prevents infinite retry loops
+            # when classification yields no segments or fails transiently.
+            if review_id is not None and hasattr(self.db, "upsert_review_status"):
+                try:
+                    self.db.upsert_review_status(int(review_id), 1)  # PROCESSING
+                except Exception as e:
+                    logger.warning(
+                        "Failed to set review_status=PROCESSING for review id=%s: %s",
+                        review_id,
+                        e,
+                    )
+
             # Step 1: Call LLM classifier
             logger.info(f"Classifying review id={review_id}")
             result = self.classifier.label_review(review_text)
+            if result.get("error"):
+                # LLM failure (empty output / invalid JSON / client not configured)
+                if review_id is not None and hasattr(self.db, "upsert_review_status"):
+                    try:
+                        self.db.upsert_review_status(int(review_id), -1)  # FAILED
+                    except Exception:
+                        pass
+                return {"success": False, "error": result.get("error")}
+
             segments = result.get("segments", [])
 
             if not segments:
+                # Valid "no label matched" outcome: mark as completed to avoid reprocessing.
                 logger.warning(f"No segments extracted from review id={review_id}")
-                return {"success": False, "error": "No segments extracted"}
+                if review_id is not None and hasattr(self.db, "upsert_review_status"):
+                    try:
+                        self.db.upsert_review_status(int(review_id), 4)  # COMPLETED (no segments)
+                    except Exception:
+                        pass
+                return {"success": True, "review_id": review_id, "segments_inserted": 0}
 
             # Step 2: Convert segments to DataFrame using segments_to_table
             segments_df = self.classifier.segments_to_table(review_id, segments)
 
             if segments_df.empty:
                 logger.warning(f"Segments DataFrame empty for review id={review_id}")
-                return {"success": False, "error": "Empty segments DataFrame"}
+                if review_id is not None and hasattr(self.db, "upsert_review_status"):
+                    try:
+                        self.db.upsert_review_status(int(review_id), 4)  # COMPLETED
+                    except Exception:
+                        pass
+                return {"success": True, "review_id": review_id, "segments_inserted": 0}
 
             # Step 3: Persist segments to processed_reviews table
             segments_list = segments_df.to_dict("records")
@@ -182,6 +214,13 @@ class FlightSenseOrchestrator:
             # Step 4: Trigger High Priority Automation
             self.reporting.handle_high_priority_automation(review_row, segments)
 
+            if review_id is not None and hasattr(self.db, "upsert_review_status"):
+                try:
+                    # For now, treat "classified + automation executed" as completed.
+                    self.db.upsert_review_status(int(review_id), 4)  # COMPLETED
+                except Exception:
+                    pass
+
             return {
                 "success": True,
                 "review_id": review_id,
@@ -190,6 +229,11 @@ class FlightSenseOrchestrator:
 
         except Exception as e:
             logger.error(f"Error processing review id={review_id}: {e}", exc_info=True)
+            if review_id is not None and hasattr(self.db, "upsert_review_status"):
+                try:
+                    self.db.upsert_review_status(int(review_id), -1)  # FAILED
+                except Exception:
+                    pass
             return {"success": False, "error": str(e)}
 
     # ---------- AUTH wrappers ----------

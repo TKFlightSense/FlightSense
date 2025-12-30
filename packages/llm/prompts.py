@@ -1,78 +1,67 @@
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Dict
 import json
+
 from models.labels import SENTIMENT_LABELS
 
 CLASSIFICATION_PROMPT_TEMPLATE = """
-You are a precise data labeling assistant for AIRLINE PASSENGER FEEDBACK.
-Use ONLY the labels from the provided list. Follow instructions STRICTLY.
-Do NOT add any extra text beyond the requested JSON output.
+You are a strict classification engine for AIRLINE PASSENGER FEEDBACK.
+Follow the rules exactly and output ONLY JSON.
 
-Review (original text):
+REVIEW (length={review_len}; indices refer to this exact string)
+<<<REVIEW_START>>>
 {review}
+<<<REVIEW_END>>>
 
-ALLOWED LABELS (exact strings + explanations + priority explanations)
----------------------------------------------------------------------
+ALLOWED LABELS (exact strings)
+{allowed_labels_json}
+
+LABEL DEFINITIONS + PRIORITY RULES (use these for disambiguation)
 {labels_block}
 
-
 TASK
-----
-Analyze the review and provide segmentation with classification.
+- Segment the review into at most {max_segments} NON-OVERLAPPING spans.
+- Assign EXACTLY ONE label per span (must be one of the allowed labels).
+- Assign priority and sentiment per span.
 
-For each segment:
-1. Identify CONTIGUOUS text spans that clearly express one of the topics
-2. Assign EXACTLY ONE label from the list ABOVE to each segment
-3. Assign priority to each segment according to priority explanations of the label in the above list
-4. Do POSITIVE/NEUTRAL/NEGATIVE analysis for the segment
-5. Provide character-level position (start index and length)
+SEGMENT RULES
+- Use 0-based character offsets: start >= 0, length > 0, start+length <= {review_len}
+- start and length MUST be integers (no strings, no floats).
+- Segments MUST be sorted by start ascending and MUST NOT overlap.
+- Only segment text that clearly matches one of the allowed labels.
+- If the review mentions a delay/cancellation, use "flight_delay_cancellation" (do NOT map it to check-in/boarding).
+- If a sentence contains multiple labeled topics, create multiple segments.
+- Prefer fewer, longer segments per topic (avoid tiny fragments).
+- Each segment MUST include the explicit evidence words for its label (e.g., \"delayed\", \"food\", \"dirty\", \"expensive\"). Do NOT select spans that exclude the evidence.
 
-Segmentation rules:
-- Use 0-based character indexes into the ORIGINAL review string
-- Each segment: {{"start": int, "length": int, "label": "label_name", "priority": "priority_level", "sentiment": "label_sentiment"}}
-- Segments MUST NOT overlap
-- Only segment text that clearly relates to a label
-- If a sentence has multiple issues, create separate segments for each
-- Keep segments concise while capturing the complete thought
-- Return AT MOST {max_segments} segments
-- If nothing fits any label, return empty segments list
-- If continuous text belongs to the same label, keep it as a single segment rather than splitting it
+PRIORITY
+- Use ONLY: LOW, MEDIUM, HIGH
+- Follow the PRIORITY guidance inside each label definition.
+- If uncertain, choose the LOWER priority.
 
-Labeling rules:
-- Use ONLY the exact label strings provided (no variations, no typos)
-- Choose the MOST specific label that fits the text
-- Do NOT force labels - empty segments list is valid
-- If multiple labels could apply, choose the ONE that best reflects the main focus
+SENTIMENT
+- Use ONLY: POSITIVE, NEGATIVE, NEUTRAL, NONE
+- POSITIVE: praise/satisfaction about the segment topic
+- NEGATIVE: complaint/dissatisfaction about the segment topic
+- NEUTRAL: factual/mixed/ambiguous about the segment topic
+- NONE: only if sentiment truly cannot be inferred (rare)
 
-Priority assignment rules:
-- Assign only the appropriate priority according to the specific "PRIORITY" instructions found within the label definition.
-- DO NOT assign priorities different than LOW, MEDIUM, HIGH
-- DO NOT assign HIGH frequently, pay attention to the priority explanations in the label.
-- If a situation falls between categories, default to the LOWER priority (e.g., if unclear between LOW and MEDIUM, choose LOW).
-
-Sentiment analysis rules:
-- Analyze the tone and assign "POSITIVE", "NEGATIVE", or "NEUTRAL".
-    - Use "NEUTRAL" for purely factual descriptions (e.g., "Dinner was served at 6pm") or ambivalent statements.
-    - Use "NEGATIVE" for complaints, sarcasm, or dissatisfaction.
-    - Use "POSITIVE" for praise, gratitude, or satisfaction.
+SEGMENT LIMIT
+- If more than {max_segments} segments are possible, keep the most severe/actionable:
+  HIGH > MEDIUM > LOW, then NEGATIVE > NEUTRAL > POSITIVE.
 
 OUTPUT FORMAT (JSON ONLY)
 -------------------------
-Return ONLY valid JSON with this exact structure:
-
+Return ONLY valid JSON with this exact structure and no other keys:
 {{
   "segments": [
     {{"start": int, "length": int, "label": "<one_of_the_allowed_labels>", "priority": "<LOW, MEDIUM, OR HIGH>", "sentiment": "<POSITIVE, NEGATIVE, NEUTRAL, or NONE>"}},
     ...
   ]
 }}
-
-Do NOT include explanations, comments, or any extra fields.
-Return ONLY the JSON object.
-
-Example of a valid output (for a different review):
-{{"segments": [{{"start": 0, "length": 42, "label": "baggage_lost", "priority": "HIGH", "sentiment": "NONE"}}]}}
+If nothing clearly matches any label, return: {"segments": []}
 """.strip()
 
 SUMMARIZATION_PROMPT_TEMPLATE = """
@@ -224,7 +213,7 @@ class PromptBuilder:
             lines.append(f"- {label}:")
             lines.append(f"  {desc}")
             lines.append("")  # blank line between labels
-            #priority ekle
+            # (Priority rules are embedded in each label definition.)
         return "\n".join(lines).strip()
 
     def _build_sentiment_labels_block(self) -> str:
@@ -233,12 +222,24 @@ class PromptBuilder:
         """
         return "\n".join(SENTIMENT_LABELS).strip()
 
+    def _build_allowed_labels_json(self) -> str:
+        """
+        Render allowed labels as a JSON array string to reduce typos.
+
+        This is intended to be copy/paste-safe for the model and keeps
+        labels case-sensitive and exact.
+        """
+        return json.dumps(list(self.labels.keys()), ensure_ascii=False)
+
     def build_classification_messages(self, review: str, max_segments: int = 3) -> str:
         """Build prompt for classification with labeled segments."""
         labels_block = self._build_labels_block()
         sentiment_labels_block = self._build_sentiment_labels_block()
+        allowed_labels_json = self._build_allowed_labels_json()
         return CLASSIFICATION_PROMPT_TEMPLATE.format(
             review=review,
+            review_len=len(review),
+            allowed_labels_json=allowed_labels_json,
             labels_block=labels_block,
             sentiment_labels_block=sentiment_labels_block,
             max_segments=max_segments,

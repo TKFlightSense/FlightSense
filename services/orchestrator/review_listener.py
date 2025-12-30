@@ -127,7 +127,8 @@ class ReviewListener:
     def _get_unprocessed_reviews(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Get reviews that don't have corresponding entries in processed_reviews.
-        Uses a simple LEFT JOIN to find unprocessed rows.
+        Uses a LEFT JOIN to find unprocessed rows, and skips rows that have been
+        marked as completed/failed in review_status.
         """
         limit = limit or self.batch_size
 
@@ -135,7 +136,9 @@ class ReviewListener:
         SELECT r.id, r.review, r.date, r.flight_number, r.pnr
         FROM reviews r
         LEFT JOIN processed_reviews pr ON r.id = pr.review_id
+        LEFT JOIN review_status rs ON r.id = rs.review_id
         WHERE pr.id IS NULL
+          AND (rs.status IS NULL OR rs.status = 0)
         LIMIT {limit}
         """
 
