@@ -12,7 +12,6 @@ from models.enums.enums import DepartmentTables, DepartmentToLabels
 from datetime import date, datetime, time
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -657,6 +656,68 @@ class MySQLDbService:
             conn.rollback()
             raise
         finally:
+            conn.close()
+
+    def claim_review_for_processing(self, review_id: int) -> bool:
+        """
+        Atomically claim a review for processing by transitioning its review_status to PROCESSING.
+
+        This prevents concurrent workers (or repeated triggers) from processing the same review twice.
+
+        Conventions:
+          - status=0: PENDING (or missing row)
+          - status=1: PROCESSING
+          - status=4: COMPLETED
+          - status=-1: FAILED
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            conn.start_transaction()
+
+            cursor.execute(
+                "SELECT status FROM review_status WHERE review_id = %s FOR UPDATE",
+                (review_id,),
+            )
+            row = cursor.fetchone()
+
+            if row is None:
+                cursor.execute(
+                    "INSERT INTO review_status (review_id, status) VALUES (%s, %s)",
+                    (review_id, 1),
+                )
+                conn.commit()
+                return True
+
+            # mysql-connector returns a tuple for non-dictionary cursors
+            current_status = row[0]
+            if current_status != 0:
+                conn.rollback()
+                return False
+
+            cursor.execute(
+                "UPDATE review_status SET status = %s WHERE review_id = %s AND status = %s",
+                (1, review_id, 0),
+            )
+            claimed = cursor.rowcount == 1
+            if claimed:
+                conn.commit()
+            else:
+                conn.rollback()
+            return claimed
+        except Error as e:
+            logger.error(f"Error claiming review_status for review_id={review_id}: {e}")
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            return False
+        finally:
+            try:
+                cursor.close()
+            except Exception:
+                pass
             conn.close()
 
     def get_latest_review_status(self):

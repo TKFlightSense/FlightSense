@@ -23,11 +23,6 @@ from services.db_service.mysql_db_service import MySQLDbService
 from services.orchestrator.orchestrator import FlightSenseOrchestrator
 from services.orchestrator.filter import DataFilter
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
 
 # -------------------------------------------------------------------------
@@ -494,11 +489,27 @@ async def get_manager_high_priority(
 
 if __name__ == "__main__":
     import uvicorn
+    import sys
     
     host = os.getenv("API_HOST", "0.0.0.0")
     port = int(os.getenv("API_PORT", "8000"))
-    reload = os.getenv("ENV", "development") == "development"
+    env_name = (os.getenv("ENVIRONMENT") or os.getenv("ENV") or "production").strip().lower()
+    reload = env_name == "development"
     
+    # Configure logging once (avoid duplicate handlers / duplicate lines).
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+        force=True,
+    )
+
+    # Ensure uvicorn loggers don't end up double-logging via propagation.
+    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        _l = logging.getLogger(logger_name)
+        _l.handlers.clear()
+        _l.propagate = True
+
     logger.info(f"Starting FlightSense API on {host}:{port}")
     
     uvicorn.run(
@@ -507,5 +518,5 @@ if __name__ == "__main__":
         port=port,
         reload=reload,
         log_level="info",
+        log_config=None,
     )
-

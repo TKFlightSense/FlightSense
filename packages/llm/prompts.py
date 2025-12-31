@@ -61,7 +61,7 @@ Return ONLY valid JSON with this exact structure and no other keys:
     ...
   ]
 }}
-If nothing clearly matches any label, return: {"segments": []}
+If nothing clearly matches any label, return: {{"segments": []}}
 """.strip()
 
 SUMMARIZATION_PROMPT_TEMPLATE = """

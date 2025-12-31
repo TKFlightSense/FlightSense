@@ -157,9 +157,17 @@ class FlightSenseOrchestrator:
             return {"success": False, "error": "Empty review text"}
 
         try:
-            # Mark as processing (best-effort). This prevents infinite retry loops
-            # when classification yields no segments or fails transiently.
-            if review_id is not None and hasattr(self.db, "upsert_review_status"):
+            # Atomically claim the review to prevent concurrent processing.
+            if review_id is not None and hasattr(self.db, "claim_review_for_processing"):
+                claimed = self.db.claim_review_for_processing(int(review_id))
+                if not claimed:
+                    logger.info(
+                        "Skipping review id=%s (already claimed or processed).",
+                        review_id,
+                    )
+                    return {"success": True, "review_id": review_id, "skipped": True}
+            elif review_id is not None and hasattr(self.db, "upsert_review_status"):
+                # Fallback (non-atomic): still better than nothing for older DB services.
                 try:
                     self.db.upsert_review_status(int(review_id), 1)  # PROCESSING
                 except Exception as e:

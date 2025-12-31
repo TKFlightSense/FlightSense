@@ -179,9 +179,12 @@ class ReviewListener:
         # Delegate all processing to orchestrator
         logger.info(f"Delegating review id={review_id} to orchestrator for processing")
         try:
-            self.orchestrator.process_review(review_row)
+            result = self.orchestrator.process_review(review_row)
+            if isinstance(result, dict) and not result.get("success", False):
+                raise RuntimeError(result.get("error") or "Orchestrator returned success=false")
         except Exception as e:
             logger.error(f"Error processing review id={review_id} via orchestrator: {e}", exc_info=True)
+            raise
 
     def get_stats(self) -> Dict[str, Any]:
         """Return listener statistics."""
