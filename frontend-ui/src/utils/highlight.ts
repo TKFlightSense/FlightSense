@@ -14,6 +14,29 @@ export type FullHighlightParts = {
   after: string;
 };
 
+function isWordChar(char: string) {
+  return /[a-zA-Z0-9]/.test(char);
+}
+
+function snapToWordBoundaries(
+  text: string,
+  start: number,
+  end: number
+) {
+  let s = start;
+  let e = end;
+
+  while (s > 0 && isWordChar(text[s - 1])) {
+    s--;
+  }
+
+  while (e < text.length && isWordChar(text[e])) {
+    e++;
+  }
+
+  return { start: s, end: e };
+}
+
 export function getHighlightedSnippet(
   text: string,
   highlightIndex?: string,
@@ -23,11 +46,13 @@ export function getHighlightedSnippet(
     return text.length > 160 ? text.slice(0, 160) + "…" : text;
   }
 
-  const [start, end] = highlightIndex.split(":").map(Number);
+  const [rawStart, rawEnd] = highlightIndex.split(":").map(Number);
 
-  if (isNaN(start) || isNaN(end)) {
+  if (isNaN(rawStart) || isNaN(rawEnd)) {
     return text.length > 160 ? text.slice(0, 160) + "…" : text;
   }
+
+  const { start, end } = snapToWordBoundaries(text, rawStart, rawEnd);
 
   const snippetStart = Math.max(0, start - context);
   const snippetEnd = Math.min(text.length, end + context);
@@ -48,9 +73,11 @@ export function getFullHighlightParts(
 ): FullHighlightParts | null {
   if (!highlightIndex) return null;
 
-  const [start, end] = highlightIndex.split(":").map(Number);
+  const [rawStart, rawEnd] = highlightIndex.split(":").map(Number);
 
-  if (isNaN(start) || isNaN(end)) return null;
+  if (isNaN(rawStart) || isNaN(rawEnd)) return null;
+
+  const { start, end } = snapToWordBoundaries(text, rawStart, rawEnd);
 
   return {
     before: text.slice(0, start),

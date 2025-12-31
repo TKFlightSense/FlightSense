@@ -206,7 +206,7 @@ export default function DepartmentDashboard() {
 
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Top bar */}
-        <header className={TOPBAR}>
+        <header className={`${TOPBAR} sticky top-0`}>
           <div>
             <p className="text-xs font-semibold tracking-[0.25em] text-slate-400 uppercase">
               FlightSense
