@@ -1,7 +1,7 @@
 {
   "provider": "openai",
   "models": {
-    "openai": "gpt-5-mini",
+    "openai": "gpt-4o-mini",
     "vllm": "PLACEHOLDER_NOT_ASSIGNED"
   },
   "max_tokens": 2048,
