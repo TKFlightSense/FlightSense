@@ -205,11 +205,13 @@ class MySQLDbService:
     def _create_review_status_table(self):
         """Create review_status table in MySQL."""
         create_table_query = """
-        CREATE TABLE IF NOT EXISTS review_status (
+            CREATE TABLE IF NOT EXISTS review_status (
             review_id INT PRIMARY KEY,
             status INT NOT NULL DEFAULT 0,
+            tracking_enabled TINYINT(1) NOT NULL DEFAULT 0,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_status (status),
+            INDEX idx_tracking_enabled (tracking_enabled),
             FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """

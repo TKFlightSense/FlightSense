@@ -304,9 +304,20 @@ with st.form("review_form", clear_on_submit=True):
                 
                 cursor.execute(query, values)
                 conn.commit()
-                
+                review_id = cursor.lastrowid  # <-- define it here
+
                 st.success("✅ Review submitted successfully! It will be processed automatically.")
-                
+                # Enable tracking in review_status
+                cursor.execute(
+                    """
+                    INSERT INTO review_status (review_id, status, tracking_enabled)
+                    VALUES (%s, 0, 1)
+                    ON DUPLICATE KEY UPDATE
+                        status = VALUES(status),
+                        tracking_enabled = VALUES(tracking_enabled)
+                    """, (review_id,))
+                conn.commit()
+
                 cursor.close()
                 conn.close()
             except Exception as e:

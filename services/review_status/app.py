@@ -1,43 +1,31 @@
 """
 FlightSense Review Status Tracker
 =================================
-A Streamlit dashboard for tracking review processing status in real-time.
+Streamlit UI for demoing review processing status in real-time.
 
-This page allows users to:
-- Enter their PNR code to track their review
-- See the current processing stage of their feedback
-- View classification results (label, sentiment, priority)
-- Check if a Jira ticket was created for high-priority reviews
+Behavior:
+- Polls only when tracking_enabled flag is true in review_status.
+- Each poll reads the latest row from review_status (review_id + status).
+- When status reaches terminal, tracking stops automatically by clearing flag.
 
-Database Tables Used:
-- reviews: Original submitted reviews (id, review, flight_number, pnr, created_at, processed)
-- processed_reviews: Classification results (review_id, label, sentiment, priority, summary, created_at)
-- jira_tickets: Ticket tracking (review_id, ticket_key, ticket_url, created_at)
-
-Processing Stages:
-1. SUBMITTED - Review received, waiting for processing
-2. PROCESSING - Currently being classified by LLM
-3. CLASSIFIED - Classification complete (label, sentiment, priority assigned)
-4. TICKET_CREATED - High priority: Jira ticket created
-5. COMPLETED - Processing finished
+Tables:
+- review_status (review_id FK -> reviews.id, status INT)
+- review_status (id=1, tracking_enabled)
+- reviews (id, review, flight_number, pnr, date)
 """
 
 import streamlit as st
 import mysql.connector
 from mysql.connector import Error
 import os
-from datetime import datetime
-from typing import Optional, Dict, Any, List
+import time
+from typing import Optional, Dict, Any
 
 # =============================================================================
 # DATABASE CONNECTION
 # =============================================================================
 
 def get_db_connection():
-    """
-    Create MySQL database connection using environment variables.
-    Same configuration as review_entry service.
-    """
     try:
         connection = mysql.connector.connect(
             host=os.getenv("MYSQL_HOST", "localhost"),
@@ -56,131 +44,97 @@ def get_db_connection():
 # DATABASE QUERIES
 # =============================================================================
 
-def get_review_by_pnr(pnr: str) -> Optional[Dict[str, Any]]:
-    """
-    Fetch review from 'reviews' table by PNR code.
-    Returns: dict with id, review, flight_number, pnr, created_at, processed
-    """
-    # TODO: Implement query
-    # SELECT id, review, flight_number, pnr, created_at, processed 
-    # FROM reviews WHERE pnr = %s ORDER BY created_at DESC LIMIT 1
-    pass
+def get_tracking_flag() -> bool:
+    query = "SELECT tracking_enabled FROM review_status ORDER BY review_id DESC LIMIT 1"
+    conn = get_db_connection()
+    if not conn:
+        return False
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query)
+        row = cursor.fetchone()
+        cursor.close()
+        return bool(row[0]) if row else False
+    except Error as e:
+        st.error(f"Query error: {e}")
+        return False
+    finally:
+        conn.close()
 
 
-def get_processed_segments(review_id: int) -> List[Dict[str, Any]]:
-    """
-    Fetch all processed segments for a review from 'processed_reviews' table.
-    Returns: list of dicts with label, sentiment, priority, summary, created_at
-    """
-    # TODO: Implement query
-    # SELECT label, sentiment, priority, summary, created_at
-    # FROM processed_reviews WHERE review_id = %s
-    pass
+def set_tracking_flag(review_id: int, value: bool) -> None:
+    query = "UPDATE review_status SET tracking_enabled = %s WHERE review_id = %s"
+    conn = get_db_connection()
+    if not conn:
+        return
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, (1 if value else 0, review_id))
+        conn.commit()
+        cursor.close()
+    except Error as e:
+        st.error(f"Update error: {e}")
+    finally:
+        conn.close()
 
 
-def get_jira_ticket(review_id: int) -> Optional[Dict[str, Any]]:
+def get_latest_review_status() -> Optional[Dict[str, Any]]:
+    query = """
+    SELECT rs.review_id, rs.status, r.review, r.flight_number, r.pnr, r.date
+    FROM review_status rs
+    JOIN reviews r ON r.id = rs.review_id
+    ORDER BY rs.review_id DESC
+    LIMIT 1
     """
-    Check if a Jira ticket was created for this review.
-    Returns: dict with ticket_key, ticket_url, created_at or None
-    """
-    # TODO: Implement query
-    # SELECT ticket_key, ticket_url, created_at
-    # FROM jira_tickets WHERE review_id = %s
-    pass
 
+    conn = get_db_connection()
+    if not conn:
+        return None
 
-def get_all_reviews_by_pnr(pnr: str) -> List[Dict[str, Any]]:
-    """
-    Fetch all reviews for a PNR (in case of multiple submissions).
-    Returns: list of review dicts ordered by created_at DESC
-    """
-    # TODO: Implement query
-    pass
-
-
-# =============================================================================
-# STATUS DETERMINATION LOGIC
-# =============================================================================
-
-def determine_status(review: Dict, segments: List, ticket: Optional[Dict]) -> str:
-    """
-    Determine the current processing status of a review.
-    
-    Returns one of:
-    - "SUBMITTED" - In reviews table, processed=0
-    - "PROCESSING" - processed=1 but no segments yet
-    - "CLASSIFIED" - Has segments in processed_reviews
-    - "TICKET_CREATED" - Has entry in jira_tickets
-    - "COMPLETED" - Fully processed
-    """
-    # TODO: Implement status logic
-    pass
-
-
-def get_status_display_info(status: str) -> Dict[str, str]:
-    """
-    Get display properties for each status.
-    Returns: dict with icon, color, description
-    """
-    status_map = {
-        "SUBMITTED": {
-            "icon": "📥",
-            "color": "#6b7280",  # gray
-            "description": "Your feedback has been received and is queued for processing."
-        },
-        "PROCESSING": {
-            "icon": "⚙️",
-            "color": "#f59e0b",  # amber
-            "description": "Your feedback is currently being analyzed by our AI system."
-        },
-        "CLASSIFIED": {
-            "icon": "✅",
-            "color": "#10b981",  # green
-            "description": "Analysis complete. Your feedback has been categorized."
-        },
-        "TICKET_CREATED": {
-            "icon": "🎫",
-            "color": "#3b82f6",  # blue
-            "description": "A support ticket has been created for your feedback."
-        },
-        "COMPLETED": {
-            "icon": "🏁",
-            "color": "#22c55e",  # green
-            "description": "Processing complete. Thank you for your feedback!"
-        }
-    }
-    return status_map.get(status, status_map["SUBMITTED"])
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(query)
+        row = cursor.fetchone()
+        cursor.close()
+        return row
+    except Error as e:
+        st.error(f"Query error: {e}")
+        return None
+    finally:
+        conn.close()
 
 
 # =============================================================================
-# UI COMPONENTS
+# STATUS DISPLAY
 # =============================================================================
 
-def render_status_timeline(current_status: str):
-    """
-    Render a visual timeline showing processing stages.
-    Highlights the current stage.
-    """
-    # TODO: Implement timeline visualization
-    # Stages: SUBMITTED -> PROCESSING -> CLASSIFIED -> (TICKET_CREATED) -> COMPLETED
-    pass
+STATUS_MAP = {
+    0: {"label": "Arrived", "color": "#6b7280", "description": "Review received."},
+    1: {"label": "Segmented and Labeled", "color": "#f59e0b", "description": "LLM processing complete."},
+    2: {"label": "Relevant department obtained", "color": "#3b82f6", "description": "Routed to department."},
+    3: {"label": "Completed", "color": "#22c55e", "description": "Processing finished."},
+}
+
+TERMINAL_STATUS = 3
 
 
-def render_classification_results(segments: List[Dict]):
-    """
-    Display classification results in expandable cards.
-    Shows: label, sentiment (with color), priority (with badge), summary
-    """
-    # TODO: Implement segment display
-    pass
+def render_status_timeline(current_status: int):
+    stages = [0, 1, 2, 3]
+    for s in stages:
+        meta = STATUS_MAP.get(s, STATUS_MAP[0])
+        if s < current_status:
+            state = "completed"
+        elif s == current_status:
+            state = "active"
+        else:
+            state = "pending"
 
-
-def render_ticket_info(ticket: Dict):
-    """
-    Display Jira ticket information with link.
-    """
-    # TODO: Implement ticket display with clickable link
-    pass
+        st.markdown(
+            f"<div class='timeline-step {state}'>"
+            f"<strong>{meta['label']}</strong> - {meta['description']}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
 
 # =============================================================================
@@ -188,39 +142,27 @@ def render_ticket_info(ticket: Dict):
 # =============================================================================
 
 def apply_thy_branding():
-    """
-    Apply Turkish Airlines branding CSS.
-    Same style as review_entry for consistency.
-    """
     st.markdown("""
     <style>
-        /* THY Red: #b7312c */
-        /* TODO: Add custom CSS matching review_entry branding */
-        
         .stApp {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         }
-        
-        /* Status card styling */
         .status-card {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 1.5rem;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        /* Timeline styling */
         .timeline-step {
             display: flex;
             align-items: center;
-            padding: 0.75rem 0;
+            padding: 0.5rem 0;
+            color: #cbd5e1;
         }
-        
         .timeline-step.active {
             color: #b7312c;
             font-weight: bold;
         }
-        
         .timeline-step.completed {
             color: #22c55e;
         }
@@ -233,71 +175,55 @@ def apply_thy_branding():
 # =============================================================================
 
 def main():
-    """
-    Main Streamlit application entry point.
-    """
     st.set_page_config(
         page_title="FlightSense - Review Status",
         page_icon="✈️",
         layout="centered",
         initial_sidebar_state="collapsed"
     )
-    
-    apply_thy_branding()
-    
-    # Header
-    st.title("📋 Review Status Tracker")
-    st.markdown("Track the status of your submitted feedback.")
-    
-    # PNR Input
-    st.markdown("---")
-    pnr_input = st.text_input(
-        "Enter your PNR Code",
-        placeholder="e.g., ABC123",
-        max_chars=10
-    )
-    
-    search_button = st.button("🔍 Track Status", type="primary", use_container_width=True)
-    
-    if search_button and pnr_input:
-        # TODO: Implement search logic
-        # 1. Call get_review_by_pnr(pnr_input)
-        # 2. If found, get segments and ticket info
-        # 3. Determine status
-        # 4. Render results
-        
-        with st.spinner("Searching..."):
-            # Placeholder for implementation
-            st.info("🔧 Status tracking functionality to be implemented.")
-            
-            # Example structure:
-            # review = get_review_by_pnr(pnr_input)
-            # if review:
-            #     segments = get_processed_segments(review['id'])
-            #     ticket = get_jira_ticket(review['id'])
-            #     status = determine_status(review, segments, ticket)
-            #     
-            #     render_status_timeline(status)
-            #     
-            #     if segments:
-            #         render_classification_results(segments)
-            #     
-            #     if ticket:
-            #         render_ticket_info(ticket)
-            # else:
-            #     st.warning("No review found with this PNR code.")
-    
-    # Footer with logo
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        # TODO: Add Turkish Airlines logo (copy from review_entry/images/)
-        st.markdown(
-            "<p style='text-align: center; color: #888; font-size: 0.8rem;'>"
-            "Powered by FlightSense AI</p>",
-            unsafe_allow_html=True
-        )
 
+    apply_thy_branding()
+
+    st.title("Review Status Tracker")
+    st.markdown("Tracks the latest review status from the database.")
+
+    poll_seconds = int(os.getenv("REVIEW_STATUS_POLL_SECONDS", "2"))
+    tracking_enabled = get_tracking_flag()
+
+    if tracking_enabled:
+        status_row = get_latest_review_status()
+        if not status_row:
+            st.warning("No status found yet.")
+        else:
+            status_code = int(status_row.get("status", 0))
+            status_meta = STATUS_MAP.get(status_code, STATUS_MAP[0])
+
+            st.markdown(
+                f"<div class='status-card'>"
+                f"<h3>Current Status: {status_meta['label']}</h3>"
+                f"<p>{status_meta['description']}</p>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+
+            st.write("Review details")
+            st.write(f"Review ID: {status_row.get('review_id')}")
+            st.write(f"PNR: {status_row.get('pnr')}")
+            st.write(f"Flight: {status_row.get('flight_number')}")
+            st.write(f"Date: {status_row.get('date')}")
+            st.write(f"Text: {status_row.get('review')}")
+
+            st.markdown("---")
+            render_status_timeline(status_code)
+
+            if status_code >= TERMINAL_STATUS:
+                st.success("Processing completed. Tracking stopped.")
+                set_tracking_flag(status_row["review_id"], False)
+            else:
+                time.sleep(poll_seconds)
+                st.rerun()
+    else:
+        st.info("Waiting for tracking flag to turn on...")
 
 if __name__ == "__main__":
     main()
