@@ -136,9 +136,9 @@ class ReviewListener:
         SELECT r.id, r.review, r.date, r.flight_number, r.pnr
         FROM reviews r
         LEFT JOIN processed_reviews pr ON r.id = pr.review_id
-        LEFT JOIN review_status rs ON r.id = rs.review_id
+        LEFT JOIN review_processing_status rps ON r.id = rps.review_id
         WHERE pr.id IS NULL
-          AND (rs.status IS NULL OR rs.status = 0)
+          AND (rps.status IS NULL OR rps.status = 0)
         LIMIT {limit}
         """
 

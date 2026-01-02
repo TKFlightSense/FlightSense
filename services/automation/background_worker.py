@@ -54,7 +54,7 @@ def main():
             
             # 2. Periodic Statistics Update (Hourly)
             now = datetime.now()
-            if now - last_stats_update > timedelta(seconds=10):
+            if now - last_stats_update > timedelta(hours=1):
                 logger.info("Running scheduled hourly statistics update...")
                 
                 # Calculate the last full hour window

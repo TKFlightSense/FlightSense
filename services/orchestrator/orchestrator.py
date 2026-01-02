@@ -135,8 +135,10 @@ class FlightSenseOrchestrator:
             self.db.update_department_statistics(prev_hour_start, current_hour_start)
             
             logger.info(f"Updated statistics for {prev_hour_start} - {current_hour_end}")
+            self.db.upsert_review_status(3, None)
         except Exception as e:
             logger.error(f"Error updating recent statistics: {e}", exc_info=True)
+            self.db.upsert_review_status(-1, None)
 
     def process_review(self, review_row: Dict[str, Any]) -> Dict:
         """
@@ -155,6 +157,16 @@ class FlightSenseOrchestrator:
         if not review_text:
             logger.warning(f"Review {review_id} has empty text, skipping")
             return {"success": False, "error": "Empty review text"}
+
+        # Atomically claim the review for processing to prevent concurrent duplicates.
+        if review_id is not None and hasattr(self.db, "claim_review_for_processing"):
+            claimed = self.db.claim_review_for_processing(int(review_id))
+            if not claimed:
+                logger.info(
+                    "Skipping review id=%s (already claimed or processed).",
+                    review_id,
+                )
+                return {"success": True, "review_id": review_id, "skipped": True}
 
         # Mark as processing
         if review_id is not None and hasattr(self.db, "upsert_review_status"):
@@ -177,6 +189,11 @@ class FlightSenseOrchestrator:
                         self.db.upsert_review_status(-1, int(review_id))  # FAILED
                     except Exception:
                         pass
+                if review_id is not None and hasattr(self.db, "upsert_review_processing_status"):
+                    try:
+                        self.db.upsert_review_processing_status(int(review_id), -1)  # FAILED
+                    except Exception:
+                        pass
                 return {"success": False, "error": result.get("error")}
 
             segments = result.get("segments", [])
@@ -189,6 +206,11 @@ class FlightSenseOrchestrator:
                         self.db.upsert_review_status(3, int(review_id))  # COMPLETED
                     except Exception:
                         pass
+                if review_id is not None and hasattr(self.db, "upsert_review_processing_status"):
+                    try:
+                        self.db.upsert_review_processing_status(int(review_id), 4)  # COMPLETED
+                    except Exception:
+                        pass
                 return {"success": True, "review_id": review_id, "segments_inserted": 0}
 
             # Step 2: convert to DataFrame and guard for empty
@@ -198,6 +220,11 @@ class FlightSenseOrchestrator:
                 if review_id is not None and hasattr(self.db, "upsert_review_status"):
                     try:
                         self.db.upsert_review_status(3, int(review_id))  # COMPLETED
+                    except Exception:
+                        pass
+                if review_id is not None and hasattr(self.db, "upsert_review_processing_status"):
+                    try:
+                        self.db.upsert_review_processing_status(int(review_id), 4)  # COMPLETED
                     except Exception:
                         pass
                 return {"success": True, "review_id": review_id, "segments_inserted": 0}
@@ -219,6 +246,11 @@ class FlightSenseOrchestrator:
                     self.db.upsert_review_status(3, int(review_id))  # COMPLETED
                 except Exception:
                     pass
+            if review_id is not None and hasattr(self.db, "upsert_review_processing_status"):
+                try:
+                    self.db.upsert_review_processing_status(int(review_id), 4)  # COMPLETED
+                except Exception:
+                    pass
 
             logger.info(f"Processed review id={review_id}: inserted {inserted} segments")
             return {
@@ -232,6 +264,11 @@ class FlightSenseOrchestrator:
             if review_id is not None and hasattr(self.db, "upsert_review_status"):
                 try:
                     self.db.upsert_review_status(-1, int(review_id))  # FAILED
+                except Exception:
+                    pass
+            if review_id is not None and hasattr(self.db, "upsert_review_processing_status"):
+                try:
+                    self.db.upsert_review_processing_status(int(review_id), -1)  # FAILED
                 except Exception:
                     pass
             return {"success": False, "error": str(e)}
