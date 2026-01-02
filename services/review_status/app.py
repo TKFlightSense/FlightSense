@@ -195,7 +195,7 @@ def main():
     st.title("Review Status Tracker")
     st.markdown("Tracks the latest review status from the database.")
 
-    tracking_enabled = get_tracking_flag()
+    tracking_enabled = get_tracking_flag()  
 
     if tracking_enabled:
         status_row = get_latest_review_status()
