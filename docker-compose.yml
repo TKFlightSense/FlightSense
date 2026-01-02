@@ -106,7 +106,7 @@ services:
     container_name: flightsense-review-status
     restart: unless-stopped
     ports:
-      - "8502:8501"
+      - "8502:8502"
     environment:
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306

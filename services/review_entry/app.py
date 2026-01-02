@@ -310,12 +310,16 @@ with st.form("review_form", clear_on_submit=True):
                 # Enable tracking in review_status
                 cursor.execute(
                     """
-                    INSERT INTO review_status (review_id, status, tracking_enabled)
-                    VALUES (%s, 0, 1)
+                    INSERT INTO review_status (id, review_id, status, tracking_enabled)
+                    VALUES (1, %s, 0, 1)
                     ON DUPLICATE KEY UPDATE
+                        review_id = VALUES(review_id),
                         status = VALUES(status),
                         tracking_enabled = VALUES(tracking_enabled)
-                    """, (review_id,))
+                    """,
+                    (review_id,),
+                )
+
                 conn.commit()
 
                 cursor.close()

@@ -203,17 +203,18 @@ class MySQLDbService:
             conn.close()
 
     def _create_review_status_table(self):
-        """Create review_status table in MySQL."""
+        """Create review_status table in MySQL (single-row tracker)."""
         create_table_query = """
-            CREATE TABLE IF NOT EXISTS review_status (
-            review_id INT PRIMARY KEY,
+        CREATE TABLE IF NOT EXISTS review_status (
+            id TINYINT PRIMARY KEY DEFAULT 1,
+            review_id INT NOT NULL,
             status INT NOT NULL DEFAULT 0,
             tracking_enabled TINYINT(1) NOT NULL DEFAULT 0,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_status (status),
-            INDEX idx_tracking_enabled (tracking_enabled),
-            FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            INDEX idx_review_status_review_id (review_id),
+            CONSTRAINT fk_review_status_review FOREIGN KEY (review_id)
+                REFERENCES reviews(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """
         conn = self._get_connection()
         try:
@@ -640,25 +641,115 @@ class MySQLDbService:
         finally:
             conn.close()
     
-    def upsert_review_status(self, review_id: int, status: int) -> None:
-        query = """
-        INSERT INTO review_status (review_id, status)
-        VALUES (%s, %s)
-        ON DUPLICATE KEY UPDATE status = VALUES(status)
+    def upsert_review_status(
+        self, status: int, review_id: int, tracking_enabled: bool = True
+    ) -> None:
+        """
+        Single-row tracker (id=1) with monotonic progression.
+        - Preserves existing review_id once set.
+        - Blocks jumping from 1 -> 3; -1 (FAILED) always allowed.
         """
         conn = self._get_connection()
         try:
             conn.database = self.database
             cursor = conn.cursor()
-            cursor.execute(query, (review_id, status))
+            conn.start_transaction()
+
+            cursor.execute(
+                "SELECT id, review_id, status, tracking_enabled FROM review_status WHERE id = 1 FOR UPDATE"
+            )
+            row = cursor.fetchone()
+
+            current_id = None
+            current_review_id = None
+            current_status = None
+            current_tracking = None
+            if row:
+                current_id, current_review_id, current_status, current_tracking = row
+
+            # Decide if we allow the new status
+            allow_update = False
+            if current_status is None:
+                allow_update = True  # first write
+            elif status == -1:
+                allow_update = True  # failures always allowed
+            elif status == 3 and current_status < 2:
+                allow_update = False  # block premature COMPLETED
+            elif status < current_status:
+                allow_update = False  # block regressions
+            else:
+                allow_update = True  # forward/duplicate moves allowed
+
+            if row is None:
+                if review_id is None:
+                    raise ValueError("review_id is required for initial insert")
+                cursor.execute(
+                    """
+                    INSERT INTO review_status (id, review_id, status, tracking_enabled)
+                    VALUES (1, %s, %s, %s)
+                    """,
+                    (review_id, status, 1 if tracking_enabled else 0),
+                )
+            elif allow_update:
+                # Keep the original review_id once set
+                effective_review_id = current_review_id if current_review_id is not None else review_id
+                cursor.execute(
+                    """
+                    UPDATE review_status
+                    SET review_id = %s,
+                        status = %s,
+                        tracking_enabled = %s
+                    WHERE id = 1
+                    """,
+                    (effective_review_id, status, 1 if tracking_enabled else 0),
+                )
+            # else: blocked update; keep current state
+
             conn.commit()
             cursor.close()
         except Error as e:
-            logger.error(f"Error upserting review_status for review_id={review_id}: {e}")
+            logger.error(f"Error upserting review_status: {e}")
             conn.rollback()
             raise
         finally:
             conn.close()
+
+
+    # Backward compatibility: alias
+    def get_latest_review_status(self):
+        return self.get_review_status()
+
+    def get_review_status(self) -> Optional[Dict[str, Any]]:
+        """
+        Returns the single-row tracker (id=1) joined with its review.
+        """
+        query = """
+        SELECT rs.review_id, rs.status, rs.tracking_enabled,
+               r.review, r.flight_number, r.pnr, r.date
+        FROM review_status rs
+        JOIN reviews r ON r.id = rs.review_id
+        WHERE rs.id = 1
+        LIMIT 1
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query)
+            row = cursor.fetchone()
+            cursor.close()
+            return row
+        except Error as e:
+            logger.error(f"Error reading review_status: {e}")
+            raise
+        finally:
+            conn.close()
+
+    # Backward compatibility: alias
+    def get_latest_review_status(self):
+        return self.get_review_status()
+
+
 
     def claim_review_for_processing(self, review_id: int) -> bool:
         """
@@ -721,29 +812,6 @@ class MySQLDbService:
             except Exception:
                 pass
             conn.close()
-
-    def get_latest_review_status(self):
-        query = """
-        SELECT rs.review_id, rs.status, r.review, r.flight_number, r.pnr, r.date
-        FROM review_status rs
-        JOIN reviews r ON r.id = rs.review_id
-        ORDER BY rs.review_id DESC
-        LIMIT 1
-        """
-        conn = self._get_connection()
-        try:
-            conn.database = self.database
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute(query)
-            row = cursor.fetchone()
-            cursor.close()
-            return row
-        except Error as e:
-            logger.error(f"Error reading latest review_status: {e}")
-            raise
-        finally:
-            conn.close()
-
 
     # -------------------------------------------------------------------------
     # PROCESSED DATA OPERATIONS
@@ -1351,7 +1419,7 @@ class MySQLDbService:
                 WHERE date_from = %s AND date_to = %s
                 """
                 cursor.execute(delete_query, (start_dt, end_dt))
-                
+
                 # 2. Aggregate data based on processed_reviews.created_at
                 placeholders = ', '.join(['%s'] * len(labels))
                 
@@ -1402,6 +1470,35 @@ class MySQLDbService:
             raise
         finally:
             conn.close()
+
+    # -------------------------------------------------------------------------
+    # STATUS HELPERS
+    # -------------------------------------------------------------------------
+    def increment_review_status(self, review_id: int, max_status: int = 3) -> None:
+        """
+        Atomically increment review_status.status for a review.
+        If the row does not exist, it will be created at 0 before incrementing.
+        Caps at max_status to avoid runaway increments.
+        """
+        query = """
+        INSERT INTO review_status (review_id, status)
+        VALUES (%s, 0)
+        ON DUPLICATE KEY UPDATE status = LEAST(status + 1, %s)
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(query, (review_id, max_status))
+            conn.commit()
+            cursor.close()
+        except Error as e:
+            logger.error(f"Error incrementing review_status for review_id={review_id}: {e}")
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
 
     # -------------------------------------------------------------------------
     # ANOMALY DETECTION HELPERS

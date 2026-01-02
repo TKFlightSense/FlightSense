@@ -140,14 +140,14 @@ class FlightSenseOrchestrator:
 
     def process_review(self, review_row: Dict[str, Any]) -> Dict:
         """
-        Process a single review: classify it and persist segments.
-        Called by ReviewListener when new reviews are detected.
-        
-        Args:
-            review_row: Dict with keys: id, review, date, flight_number, pnr
-            
-        Returns:
-            Dict with success status and number of segments inserted
+        Process a single review: classify it, persist segments, run automations,
+        and update the single-row review_status tracker.
+
+        Status conventions (single-row tracker, id=1):
+          - 1: PROCESSING (work started)
+          - 2: SEGMENTED (classification done)
+          - 3: COMPLETED (automation done / no segments)
+          - -1: FAILED
         """
         review_id = review_row.get("id")
         review_text = review_row.get("review", "")
@@ -156,79 +156,71 @@ class FlightSenseOrchestrator:
             logger.warning(f"Review {review_id} has empty text, skipping")
             return {"success": False, "error": "Empty review text"}
 
-        try:
-            # Atomically claim the review to prevent concurrent processing.
-            if review_id is not None and hasattr(self.db, "claim_review_for_processing"):
-                claimed = self.db.claim_review_for_processing(int(review_id))
-                if not claimed:
-                    logger.info(
-                        "Skipping review id=%s (already claimed or processed).",
-                        review_id,
-                    )
-                    return {"success": True, "review_id": review_id, "skipped": True}
-            elif review_id is not None and hasattr(self.db, "upsert_review_status"):
-                # Fallback (non-atomic): still better than nothing for older DB services.
-                try:
-                    self.db.upsert_review_status(int(review_id), 1)  # PROCESSING
-                except Exception as e:
-                    logger.warning(
-                        "Failed to set review_status=PROCESSING for review id=%s: %s",
-                        review_id,
-                        e,
-                    )
+        # Mark as processing
+        if review_id is not None and hasattr(self.db, "upsert_review_status"):
+            try:
+                self.db.upsert_review_status(1, int(review_id))  # PROCESSING
+            except Exception as e:
+                logger.warning(
+                    "Failed to set review_status=PROCESSING for review id=%s: %s",
+                    review_id,
+                    e,
+                )
 
-            # Step 1: Call LLM classifier
+        try:
+            # Step 1: classify
             logger.info(f"Classifying review id={review_id}")
             result = self.classifier.label_review(review_text)
             if result.get("error"):
-                # LLM failure (empty output / invalid JSON / client not configured)
                 if review_id is not None and hasattr(self.db, "upsert_review_status"):
                     try:
-                        self.db.upsert_review_status(int(review_id), -1)  # FAILED
+                        self.db.upsert_review_status(-1, int(review_id))  # FAILED
                     except Exception:
                         pass
                 return {"success": False, "error": result.get("error")}
 
             segments = result.get("segments", [])
 
+            # No segments: treat as completed
             if not segments:
-                # Valid "no label matched" outcome: mark as completed to avoid reprocessing.
                 logger.warning(f"No segments extracted from review id={review_id}")
                 if review_id is not None and hasattr(self.db, "upsert_review_status"):
                     try:
-                        self.db.upsert_review_status(int(review_id), 4)  # COMPLETED (no segments)
+                        self.db.upsert_review_status(3, int(review_id))  # COMPLETED
                     except Exception:
                         pass
                 return {"success": True, "review_id": review_id, "segments_inserted": 0}
 
-            # Step 2: Convert segments to DataFrame using segments_to_table
+            # Step 2: convert to DataFrame and guard for empty
             segments_df = self.classifier.segments_to_table(review_id, segments)
-
             if segments_df.empty:
                 logger.warning(f"Segments DataFrame empty for review id={review_id}")
                 if review_id is not None and hasattr(self.db, "upsert_review_status"):
                     try:
-                        self.db.upsert_review_status(int(review_id), 4)  # COMPLETED
+                        self.db.upsert_review_status(3, int(review_id))  # COMPLETED
                     except Exception:
                         pass
                 return {"success": True, "review_id": review_id, "segments_inserted": 0}
 
-            # Step 3: Persist segments to processed_reviews table
-            segments_list = segments_df.to_dict("records")
-            inserted = self.db.insert_review_details_bulk(segments_list)
+            # Step 3: persist segments
+            inserted = self.db.insert_review_details_bulk(segments_df.to_dict("records"))
 
-            logger.info(f"Processed review id={review_id}: inserted {inserted} segments")
-            
-            # Step 4: Trigger High Priority Automation
+            if review_id is not None and hasattr(self.db, "upsert_review_status"):
+                try:
+                    self.db.upsert_review_status(2, int(review_id))  # SEGMENTED
+                except Exception:
+                    pass
+
+            # Step 4: automation hooks
             self.reporting.handle_high_priority_automation(review_row, segments)
 
             if review_id is not None and hasattr(self.db, "upsert_review_status"):
                 try:
-                    # For now, treat "classified + automation executed" as completed.
-                    self.db.upsert_review_status(int(review_id), 4)  # COMPLETED
+                    self.db.upsert_review_status(3, int(review_id))  # COMPLETED
                 except Exception:
                     pass
 
+            logger.info(f"Processed review id={review_id}: inserted {inserted} segments")
             return {
                 "success": True,
                 "review_id": review_id,
@@ -239,10 +231,11 @@ class FlightSenseOrchestrator:
             logger.error(f"Error processing review id={review_id}: {e}", exc_info=True)
             if review_id is not None and hasattr(self.db, "upsert_review_status"):
                 try:
-                    self.db.upsert_review_status(int(review_id), -1)  # FAILED
+                    self.db.upsert_review_status(-1, int(review_id))  # FAILED
                 except Exception:
                     pass
             return {"success": False, "error": str(e)}
+
 
     # ---------- AUTH wrappers ----------
 
@@ -474,3 +467,5 @@ class FlightSenseOrchestrator:
         except Exception as e:
             logger.error(f"Error running statistics job: {e}")
             return {"success": False, "error": str(e)}
+        finally:
+            self.db.upsert_review_status(3, None)

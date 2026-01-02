@@ -15,6 +15,7 @@ Tables:
 """
 
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh 
 import mysql.connector
 from mysql.connector import Error
 import os
@@ -45,7 +46,7 @@ def get_db_connection():
 # =============================================================================
 
 def get_tracking_flag() -> bool:
-    query = "SELECT tracking_enabled FROM review_status ORDER BY review_id DESC LIMIT 1"
+    query = "SELECT tracking_enabled FROM review_status WHERE id = 1 LIMIT 1"
     conn = get_db_connection()
     if not conn:
         return False
@@ -62,14 +63,14 @@ def get_tracking_flag() -> bool:
         conn.close()
 
 
-def set_tracking_flag(review_id: int, value: bool) -> None:
-    query = "UPDATE review_status SET tracking_enabled = %s WHERE review_id = %s"
+def set_tracking_flag(value: bool) -> None:
+    query = "UPDATE review_status SET tracking_enabled = %s WHERE id = 1"
     conn = get_db_connection()
     if not conn:
         return
     try:
         cursor = conn.cursor()
-        cursor.execute(query, (1 if value else 0, review_id))
+        cursor.execute(query, (1 if value else 0,))
         conn.commit()
         cursor.close()
     except Error as e:
@@ -80,17 +81,22 @@ def set_tracking_flag(review_id: int, value: bool) -> None:
 
 def get_latest_review_status() -> Optional[Dict[str, Any]]:
     query = """
-    SELECT rs.review_id, rs.status, r.review, r.flight_number, r.pnr, r.date
+    SELECT
+        rs.review_id,
+        rs.status,
+        rs.tracking_enabled,
+        r.review,
+        r.flight_number,
+        r.pnr,
+        r.date
     FROM review_status rs
     JOIN reviews r ON r.id = rs.review_id
-    ORDER BY rs.review_id DESC
+    WHERE rs.id = 1
     LIMIT 1
     """
-
     conn = get_db_connection()
     if not conn:
         return None
-
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute(query)
@@ -102,6 +108,7 @@ def get_latest_review_status() -> Optional[Dict[str, Any]]:
         return None
     finally:
         conn.close()
+
 
 
 # =============================================================================
@@ -173,55 +180,53 @@ def apply_thy_branding():
 # =============================================================================
 # MAIN APPLICATION
 # =============================================================================
-
 def main():
     st.set_page_config(
         page_title="FlightSense - Review Status",
-        page_icon="✈️",
+        page_icon="Гo^Лў?",
         layout="centered",
         initial_sidebar_state="collapsed"
     )
+    poll_seconds = int(os.getenv("REVIEW_STATUS_POLL_SECONDS", "2"))
+    st_autorefresh(interval=poll_seconds * 1000, key="status_autorefresh")
 
     apply_thy_branding()
 
     st.title("Review Status Tracker")
     st.markdown("Tracks the latest review status from the database.")
 
-    poll_seconds = int(os.getenv("REVIEW_STATUS_POLL_SECONDS", "2"))
     tracking_enabled = get_tracking_flag()
 
     if tracking_enabled:
         status_row = get_latest_review_status()
         if not status_row:
             st.warning("No status found yet.")
-        else:
-            status_code = int(status_row.get("status", 0))
-            status_meta = STATUS_MAP.get(status_code, STATUS_MAP[0])
+            return
 
-            st.markdown(
-                f"<div class='status-card'>"
-                f"<h3>Current Status: {status_meta['label']}</h3>"
-                f"<p>{status_meta['description']}</p>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
+        status_code = int(status_row.get("status", 0))
+        status_meta = STATUS_MAP.get(status_code, STATUS_MAP[0])
 
-            st.write("Review details")
-            st.write(f"Review ID: {status_row.get('review_id')}")
-            st.write(f"PNR: {status_row.get('pnr')}")
-            st.write(f"Flight: {status_row.get('flight_number')}")
-            st.write(f"Date: {status_row.get('date')}")
-            st.write(f"Text: {status_row.get('review')}")
+        st.markdown(
+            f"<div class='status-card'>"
+            f"<h3>Current Status: {status_meta['label']}</h3>"
+            f"<p>{status_meta['description']}</p>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
 
-            st.markdown("---")
-            render_status_timeline(status_code)
+        st.write("Review details")
+        st.write(f"Review ID: {status_row.get('review_id')}")
+        st.write(f"PNR: {status_row.get('pnr')}")
+        st.write(f"Flight: {status_row.get('flight_number')}")
+        st.write(f"Date: {status_row.get('date')}")
+        st.write(f"Text: {status_row.get('review')}")
 
-            if status_code >= TERMINAL_STATUS:
-                st.success("Processing completed. Tracking stopped.")
-                set_tracking_flag(status_row["review_id"], False)
-            else:
-                time.sleep(poll_seconds)
-                st.rerun()
+        st.markdown("---")
+        render_status_timeline(status_code)
+
+        if status_code >= TERMINAL_STATUS:
+            st.success("Processing completed. Tracking stopped.")
+            # set_tracking_flag(False)
     else:
         st.info("Waiting for tracking flag to turn on...")
 

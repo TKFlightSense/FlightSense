@@ -12,6 +12,7 @@ WORKDIR /app
 # Install dependencies
 RUN pip install --no-cache-dir \
     streamlit \
+    streamlit-autorefresh \
     mysql-connector-python
 
 # Copy application files
