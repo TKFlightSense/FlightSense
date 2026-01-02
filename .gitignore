@@ -110,3 +110,5 @@ yarn.lock
 # Documentation builds
 docs/_build/
 site/
+
+test.csv
