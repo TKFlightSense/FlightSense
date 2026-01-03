@@ -7,7 +7,7 @@ from typing import Optional
 MIN_ROUTE_SAMPLES = 20
 
 class AnomalyDetectionService:
-    
+
     def __init__(self, db_service: Optional[MySQLDbService] = None):
         self.db = db_service if db_service is not None else MySQLDbService()
         self.route_scores = defaultdict(list)
@@ -51,3 +51,4 @@ class AnomalyDetectionService:
                 r['percentile'] = (distances < r['distance']).mean() * 100
 
             return results
+        
