@@ -6,6 +6,7 @@ from typing import Optional, List, Tuple, Dict, Any
 import logging
 import os
 from decimal import Decimal
+import csv
 
 from models.labels import ALL_LABELS
 from models.enums.enums import DepartmentTables, DepartmentToLabels
@@ -119,9 +120,8 @@ class MySQLDbService:
         self._create_tgs_table()
         self._create_yer_isletme_bagaj_table()
         self._create_gelir_yonetimi_table()
-        # Per-review processing status (used by ReviewListener/orchestrator to avoid repeats)
+        self._create_airport_coordinates_table()
         self._create_review_processing_status_table()
-        # Single-row tracker (used by services/review_status Streamlit UI)
         self._create_review_status_table()
         logger.info("All MySQL tables created/verified successfully")
 
@@ -308,6 +308,30 @@ class MySQLDbService:
             logger.info("Table 'review_status' created/verified")
         except Error as e:
             logger.error(f"Error creating review_status table: {e}")
+            raise
+        finally:
+            conn.close()
+    
+    def _create_airport_coordinates_table(self):
+        """Create airport_coordinates table in MySQL."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS airport_coordinates (
+            iata_code VARCHAR(10) PRIMARY KEY,
+            latitude DOUBLE NOT NULL,
+            longitude DOUBLE NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+            cursor.execute(create_table_query)
+            conn.commit()
+            cursor.close()
+            logger.info("Table 'airport_coordinates' created/verified")
+        except Error as e:
+            logger.error(f"Error creating airport_coordinates table: {e}")
             raise
         finally:
             conn.close()
@@ -1609,6 +1633,8 @@ class MySQLDbService:
                 SELECT
                     r.flight_number,
                     r.bidirectional_route,
+                    r.origin_iata,
+                    r.destination_iata,
                     pr.label,
                     CASE pr.sentiment
                         WHEN 'POSITIVE' THEN 1.0
@@ -1636,6 +1662,59 @@ class MySQLDbService:
             raise
         finally:
             conn.close()
+    
+    def get_airport_coord(self, iata_code):
+        query = """
+            SELECT latitude, longitude
+            FROM airport_coordinates
+            WHERE iata_code = %s
+        """
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query, (iata_code,))
+            return cursor.fetchone()
+        finally:
+            conn.close()
+
+
+    def ingest_airport_coord(self):
+        conn = self._get_connection()
+        try:
+            conn.database = self.database
+            cursor = conn.cursor()
+
+            data = []
+
+            with open("scripts/airports.csv", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    iata = row[4]
+                    if iata == "\\N":
+                        continue
+
+                    lat = row[6]
+                    lon = row[7]
+
+                    if not lat or not lon:
+                        continue
+
+                    data.append((iata, lat, lon))
+
+            if data:
+                cursor.executemany("""
+                    INSERT IGNORE INTO airport_coordinates (iata_code, latitude, longitude)
+                    VALUES (%s, %s, %s)
+                """, data)
+
+            conn.commit()
+
+        finally:
+            cursor.close()
+            conn.close()
+
+
     # -------------------------------------------------------------------------
     # CLEANUP
     # -------------------------------------------------------------------------
