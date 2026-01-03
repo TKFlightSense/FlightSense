@@ -143,7 +143,7 @@ export async function fetchManagerStatistics(
 export async function fetchDepartmentStatistics(
   token: string,
   params: {
-    department_name: string; // backend code: "TGS", "KABIN", "IUIUB", "BMCOGM", ...
+    department_name: string; // backend code: "TGS", "KHB", "IUIUB", "BMCOGM", ...
     period: Period;
     date_from?: string | null;
     date_to?: string | null;
