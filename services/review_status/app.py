@@ -85,6 +85,12 @@ def get_latest_review_status() -> Optional[Dict[str, Any]]:
         rs.review_id,
         rs.status,
         rs.tracking_enabled,
+        EXISTS(
+            SELECT 1
+            FROM processed_reviews pr
+            WHERE pr.review_id = rs.review_id
+              AND UPPER(pr.priority) = 'HIGH'
+        ) AS is_high_priority,
         r.review,
         r.flight_number,
         r.pnr,
@@ -116,32 +122,39 @@ def get_latest_review_status() -> Optional[Dict[str, Any]]:
 # =============================================================================
 
 STATUS_MAP = {
-    0: {"label": "Arrived", "color": "#6b7280", "description": "Review received."},
-    1: {"label": "Segmented and Labeled", "color": "#f59e0b", "description": "LLM processing complete."},
-    2: {"label": "Relevant department obtained", "color": "#3b82f6", "description": "Routed to department."},
-    3: {"label": "Completed", "color": "#22c55e", "description": "Processing finished."},
+    0: {"label": "Arrived", "description": "Review received."},
+    1: {"label": "Segmented and Labeled", "description": "LLM processing complete."},
+    2: {"label": "Relevant department obtained", "description": "Routed to department."},
+    3: {"label": "Completed", "description": "Processing finished."},
 }
 
 TERMINAL_STATUS = 3
 
 
-def render_status_timeline(current_status: int):
+def render_status_boxes(current_status: int) -> None:
+    """Render 4 status boxes; each box turns green when reached."""
     stages = [0, 1, 2, 3]
-    for s in stages:
-        meta = STATUS_MAP.get(s, STATUS_MAP[0])
-        if s < current_status:
-            state = "completed"
-        elif s == current_status:
-            state = "active"
-        else:
-            state = "pending"
+    cols = st.columns(len(stages))
 
-        st.markdown(
-            f"<div class='timeline-step {state}'>"
-            f"<strong>{meta['label']}</strong> - {meta['description']}"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
+    for col, stage in zip(cols, stages):
+        meta = STATUS_MAP.get(stage, STATUS_MAP[0])
+        reached = current_status >= stage
+        state_class = "reached" if reached else "pending"
+
+        with col:
+            st.markdown(
+                """
+                <div class="status-box {state_class}">
+                  <div class="status-box-title">{title}</div>
+                  <div class="status-box-desc">{desc}</div>
+                </div>
+                """.format(
+                    state_class=state_class,
+                    title=meta["label"],
+                    desc=meta["description"],
+                ),
+                unsafe_allow_html=True,
+            )
 
 
 # =============================================================================
@@ -151,27 +164,112 @@ def render_status_timeline(current_status: int):
 def apply_thy_branding():
     st.markdown("""
     <style>
+        /* Professional silver background */
         .stApp {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
         }
+
+        /* Hide Streamlit chrome */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+
+        .page-title {
+            text-align: center;
+            margin: 0.25rem 0 0.75rem 0;
+            font-size: 1.6rem;
+            font-weight: 500;
+            color: #111827;
+            letter-spacing: -0.02em;
+        }
+
         .status-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 1.25rem 1.25rem;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 28px rgba(17, 24, 39, 0.06);
         }
-        .timeline-step {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 0;
-            color: #cbd5e1;
+
+        .status-box {
+            border-radius: 14px;
+            padding: 0.9rem 0.9rem;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            min-height: 92px;
+            box-shadow: 0 8px 18px rgba(17, 24, 39, 0.05);
         }
-        .timeline-step.active {
-            color: #b7312c;
-            font-weight: bold;
+        .status-box-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #111827;
+            margin-bottom: 0.35rem;
         }
-        .timeline-step.completed {
-            color: #22c55e;
+        .status-box-desc {
+            font-size: 0.75rem;
+            color: #6b7280;
+            line-height: 1.2;
+        }
+
+        .status-box.pending {
+            background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+            border-color: #e5e7eb;
+        }
+
+        /* Green when step reached */
+        .status-box.reached {
+            background: linear-gradient(180deg, #ecfdf5 0%, #f0fdf4 100%);
+            border-color: rgba(22, 163, 74, 0.35);
+        }
+        .status-box.reached .status-box-title,
+        .status-box.reached .status-box-desc {
+            color: #065f46;
+        }
+
+        .meta-row {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            padding: 1.05rem 1.0rem;
+            gap: 0.5rem 1rem;
+            margin-top: 0.75rem;
+            min-height: 110px;
+        }
+        .meta-item {
+            font-size: 0.9rem;
+            color: #111827;
+        }
+        .meta-item span {
+            color: #6b7280;
+            font-weight: 500;
+            margin-right: 0.35rem;
+        }
+
+        .current-line {
+            text-align: center;
+            margin: 0.75rem 0 0.25rem 0;
+            color: #4b5563;
+            font-size: 0.92rem;
+            font-weight: 500;
+        }
+
+        .priority-alert {
+            margin-top: 0.75rem;
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            border: 1px solid rgba(185, 28, 28, 0.25);
+            background: linear-gradient(180deg, #fef2f2 0%, #fff1f2 100%);
+            box-shadow: 0 10px 26px rgba(185, 28, 28, 0.08);
+        }
+        .priority-alert-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #7f1d1d;
+            margin: 0;
+        }
+        .priority-alert-desc {
+            margin-top: 0.25rem;
+            font-size: 0.85rem;
+            color: #991b1b;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -183,7 +281,7 @@ def apply_thy_branding():
 def main():
     st.set_page_config(
         page_title="FlightSense - Review Status",
-        page_icon="Гo^Лў?",
+        page_icon="✈️",
         layout="centered",
         initial_sidebar_state="collapsed"
     )
@@ -192,8 +290,15 @@ def main():
 
     apply_thy_branding()
 
-    st.title("Review Status Tracker")
-    st.markdown("Tracks the latest review status from the database.")
+    logo_path = os.path.join(os.path.dirname(__file__), "images", "tklogo.png")
+    if os.path.exists(logo_path):
+        c1, c2, c3 = st.columns([1, 1.2, 1])
+        with c2:
+            st.image(logo_path, use_container_width=True)
+    else:
+        st.warning("Logo file not found in container: images/tklogo.png")
+
+    st.markdown('<div class="page-title">FlightSense Review Status</div>', unsafe_allow_html=True)
 
     tracking_enabled = get_tracking_flag()  
 
@@ -205,24 +310,50 @@ def main():
 
         status_code = int(status_row.get("status", 0))
         status_meta = STATUS_MAP.get(status_code, STATUS_MAP[0])
+        is_high_priority = bool(status_row.get("is_high_priority"))
+
+        # Main focus: status boxes
+        render_status_boxes(status_code)
 
         st.markdown(
-            f"<div class='status-card'>"
-            f"<h3>Current Status: {status_meta['label']}</h3>"
-            f"<p>{status_meta['description']}</p>"
-            f"</div>",
-            unsafe_allow_html=True
+            '<div class="current-line">Current: {label} — {desc}</div>'.format(
+                label=status_meta["label"],
+                desc=status_meta["description"],
+            ),
+            unsafe_allow_html=True,
         )
 
-        st.write("Review details")
-        st.write(f"Review ID: {status_row.get('review_id')}")
-        st.write(f"PNR: {status_row.get('pnr')}")
-        st.write(f"Flight: {status_row.get('flight_number')}")
-        st.write(f"Date: {status_row.get('date')}")
-        st.write(f"Text: {status_row.get('review')}")
+        if is_high_priority:
+            st.markdown(
+                """
+                <div class="priority-alert">
+                  <p class="priority-alert-title">High Priority — Immediate action taken</p>
+                  <div class="priority-alert-desc">
+                    This review was flagged as high priority and has been routed for immediate attention.
+                  </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        st.markdown(
+            """
+            <div class="meta-row">
+              <div class="meta-item"><span>Review ID</span>{review_id}</div>
+              <div class="meta-item"><span>Date</span>{date}</div>
+              <div class="meta-item"><span>PNR</span>{pnr}</div>
+              <div class="meta-item"><span>Flight</span>{flight}</div>
+            </div>
+            """.format(
+                review_id=status_row.get("review_id") or "–",
+                date=status_row.get("date") or "–",
+                pnr=status_row.get("pnr") or "–",
+                flight=status_row.get("flight_number") or "–",
+            ),
+            unsafe_allow_html=True,
+        )
 
         st.markdown("---")
-        render_status_timeline(status_code)
 
         if status_code >= TERMINAL_STATUS:
             st.success("Processing completed. Tracking stopped.")
