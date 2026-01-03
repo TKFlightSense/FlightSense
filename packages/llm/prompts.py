@@ -39,7 +39,9 @@ SEGMENT RULES
 PRIORITY
 - Use ONLY: LOW, MEDIUM, HIGH
 - Follow the PRIORITY guidance inside each label definition.
+- Positive SENTIMENT is always LOW priority.
 - If uncertain, choose the LOWER priority.
+- Never assign HIGH priority unless it is clearly justified.
 
 SENTIMENT
 - Use ONLY: POSITIVE, NEGATIVE, NEUTRAL, NONE
