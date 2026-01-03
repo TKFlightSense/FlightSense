@@ -1,198 +1,101 @@
-# FlightSense
+# TKFlightSense
 
-AI-Powered Airline Customer Feedback Analysis & Ticketing System
+FlightSense is an end-to-end system for turning airline customer feedback into actionable, department-routed work.
 
-## Overview
+## Vision
 
-FlightSense is an enterprise-grade system that automatically analyzes airline passenger feedback using LLM-based classification, routes issues to appropriate departments via Jira-like tickets, and provides role-based analytics dashboards.
+Airlines receive huge volumes of free-form feedback that is difficult to triage quickly and consistently. FlightSense is built to:
 
-## Key Features
+- Convert unstructured text into structured insights (segments, labels, priority)
+- Route issues to the right operational owners (departments) automatically
+- Trigger immediate action when feedback is high priority
+- Provide dashboards so teams can see trends and outcomes, not just raw comments
 
-- **AI-Powered Classification** - LLM-based segmentation and labeling of passenger feedback
-- **Automated Ticketing** - Routes feedback to departments via Jira (TGS, Baggage, Catering, Cabin)
-- **Role-Based Access Control** - JWT authentication with department-specific permissions
-- **Analytics Dashboard** - Sentiment analysis, trend tracking, and subtopic distribution
-- **Automated Reports** - Daily email summaries to department teams
-- **Multi-Provider LLM** - Supports OpenAI and vLLM (local inference)
+The long-term goal is a “closed loop” feedback pipeline: intake → understanding → routing → action → reporting.
 
-## Quick Start
+## System at a Glance
 
-### 1. Installation
+FlightSense is split into small, composable services:
 
-```bash
-# Clone the repository
-git clone https://github.com/TKFlightSense/FlightSense.git
-cd FlightSense
+- **Review Entry UI (Streamlit)**: submits a new review into the database
+- **Processing Pipeline (Worker + Orchestrator)**: classifies and routes reviews
+- **Automation (Jira + Email)**: creates tickets/alerts for relevant teams
+- **Review Status UI (Streamlit)**: shows a live, step-based progress view
+- **Backend API (FastAPI)**: provides analytics/high-priority feeds to the frontend
+- **Frontend UI (React/Vite + Nginx)**: role-based dashboards
+- **MySQL**: source of truth for reviews, processed segments, and status tracking
 
-# Install dependencies
-pip install -r requirements.txt
+## End-to-End Pipeline
 
-# Install LLM provider (choose one)
-pip install openai  # For OpenAI API
-# OR
-pip install vllm    # For local inference (requires GPU)
-```
+### 1) Intake
 
-### 2. Configuration
+1. A user submits customer feedback via the Review Entry UI.
+2. A new row is inserted into the `reviews` table.
+3. The `review_status` tracking row (id=1) is updated to point to this review and enable tracking.
 
-```bash
-# Copy environment template
-cp .env.example .env
+### 2) Processing (Worker → Listener → Orchestrator)
 
-# Edit .env and set your API keys
-# Required: OPENAI_API_KEY, LLM_PROVIDER, LLM_MODEL
-```
+1. The background worker periodically checks for new/unprocessed reviews.
+2. The listener selects candidate reviews and passes them into the orchestrator.
+3. The orchestrator runs the core logic:
+	- **Segmentation**: split the review into meaningful parts
+	- **Labeling**: assign department/topic labels to each segment via an LLM-backed classifier
+	- **Priority detection**: identify high-priority cases for escalation
+	- **Persistence**: store structured outputs (e.g., in `processed_reviews`)
 
-### 3. Test LLM Setup
+### 3) Routing + Automation
 
-```bash
-# Run the test suite
-python test_llm_setup.py
-```
+1. Based on labels, FlightSense maps segments to departments.
+2. For routed outputs, the automation layer can:
+	- Create Jira tickets
+	- Send alert emails for high-priority items
 
-### 4. Initialize Database
+### 4) Live Status Tracking
 
-```bash
-# The database will auto-initialize on first run
-# Or manually initialize:
-python -c "from services.db_service.db_service import DbService; DbService()"
-```
+The Review Status UI reads `review_status` (id=1) and displays a step timeline that turns green as the pipeline advances.
 
-## LLM Integration
+Status codes (current UI mapping):
 
-FlightSense supports multiple LLM providers:
+- `0` Arrived
+- `1` Segmented and Labeled
+- `2` Relevant department obtained
+- `3` Completed
 
-### OpenAI (Recommended for Getting Started)
+When the review is flagged high priority (detected from `processed_reviews.priority = HIGH`), the status page shows a dedicated red alert box indicating immediate action.
 
-```bash
-# Install
-pip install openai
+### 5) Analytics + Dashboards
 
-# Configure
-export OPENAI_API_KEY=sk-your-key-here
-export LLM_PROVIDER=openai
-export LLM_MODEL=gpt-4o-mini
-```
+1. The FastAPI backend serves aggregated statistics and high-priority feeds.
+2. The React frontend consumes these endpoints and renders role-based dashboards.
 
-### vLLM (For Production/High Volume)
+## Docker / Services Overview
 
-```bash
-# Install (requires GPU)
-pip install vllm
+The default Docker Compose setup runs:
 
-# Configure
-export LLM_PROVIDER=vllm
-export LLM_MODEL=meta-llama/Llama-3.1-8B-Instruct
-```
+- `mysql`: MySQL database
+- `app`: FastAPI backend
+- `worker`: background processing loop
+- `review-entry`: Streamlit intake UI
+- `review-status`: Streamlit status UI
+- `frontend`: React UI served behind Nginx
 
-See [docs/LLM_SETUP.md](docs/LLM_SETUP.md) for detailed setup instructions.
+## Configuration Philosophy
 
-## Usage Example
+FlightSense is designed to be configuration-driven:
 
-```python
-from packages.llm.classifier import FeedbackClassifier
+- Department routing rules and ticket mappings live under `configs/`
+- Model/label/routing artifacts live under `models/artifacts/`
+- Provider selection (OpenAI vs vLLM) is controlled via environment variables
 
-# Label and classify feedback
-classifier = FeedbackClassifier()
-review = "Flight delayed 3 hours. Baggage lost. Food was cold."
+## “What success looks like”
 
-# Get labeled segments
-segments = classifier.label_review(review)
+- A review comes in and is triaged in seconds, not days
+- High-priority issues trigger immediate action reliably
+- Department teams see fewer irrelevant tickets and more actionable ones
+- Leadership can measure trends, root causes, and improvement over time
 
-# Or classify batch for database
-df = classifier.classify_batch([review])
-print(df[['review', 'labels']])
-```
+## More docs
 
-## Project Structure
-
-```
-FlightSense/
-├── models/              # Data models, labels, roles, enums
-├── packages/            # Reusable components
-│   ├── llm/            # LLM client, classifier, segmentation
-│   ├── stats/          # Statistics and analytics
-│   ├── jira_client/    # Jira API wrapper
-│   └── tickets/        # Ticket management
-├── services/            # Business logic
-│   ├── auth_service.py
-│   ├── data_service.py
-│   ├── reporting_service.py
-│   ├── agents/         # Automation agents
-│   ├── db_service/     # Database operations
-│   └── orchestrator/   # Main orchestrator
-├── configs/             # Configuration files
-└── docs/               # Documentation
-```
-
-## Documentation
-
-- [LLM Setup Guide](docs/LLM_SETUP.md) - Comprehensive LLM configuration
-- [LLM Package README](packages/llm/README.md) - API documentation
-
-## Features in Detail
-
-### Fine-Grained Feedback Classification
-
-12 specific categories:
-- Inflight experience (food, seats, entertainment, service, cleanliness)
-- Check-in and boarding process
-- Baggage (lost, damaged)
-- Booking and ticketing
-- Customer support
-- Pricing and loyalty
-
-### Department Routing
-
-Automatic ticket creation and routing:
-- **TGS**: Check-in, boarding issues
-- **YerIsletmeBsk-BagajMusteriCozumveOperasyonelGelistirmeMudurlugu**: Lost/damaged baggage
-- **IkramveUcakIciUrunlerBsk**: Inflight food and entertainment
-- **KabinHizmetleriBsk**: Cabin cleanliness and services
-
-### Role-Based Access
-
-User roles:
-- `admin` - Full access
-- `manager` - Full access with reporting
-- `viewer` - Read-only dashboard
-- Department roles - Limited to specific categories
-
-## Development
-
-### Run Tests
-
-```bash
-# Test LLM integration
-python test_llm_setup.py
-
-# Run all tests (if pytest is configured)
-pytest
-```
-
-### Code Quality
-
-```bash
-# Format code
-make fmt
-
-# Run linters
-make lint
-```
-
-## Requirements
-
-- Python 3.10+
-- SQLite (included)
-- OpenAI API key OR GPU for vLLM (16GB+ VRAM recommended)
-
-## License
-
-[Add your license here]
-
-## Support
-
-For issues or questions:
-- Check [docs/LLM_SETUP.md](docs/LLM_SETUP.md) for troubleshooting
-- Review logs for error details
-- Open an issue on GitHub
+- See [docs/IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md) for deeper implementation notes
+- See [docs/DOCKER.md](docs/DOCKER.md) for container details
+- See [docs/LLM_SETUP.md](docs/LLM_SETUP.md) for model/provider configuration

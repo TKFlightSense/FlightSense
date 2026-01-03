@@ -56,6 +56,9 @@ coverage.xml
 *.cover
 .hypothesis/
 
+# Local SMTP test script
+smtp_test.py
+
 # Logs
 *.log
 logs/
@@ -110,3 +113,5 @@ yarn.lock
 # Documentation builds
 docs/_build/
 site/
+
+test.csv

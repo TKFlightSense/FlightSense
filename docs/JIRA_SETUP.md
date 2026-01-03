@@ -21,9 +21,9 @@ Create 4 projects in your Jira workspace:
 - **Template**: Bug tracking or Incident Management
 - **Issue Types**: Incident, Bug
 
-### Project 3: KABIN (Cabin Services)
+### Project 3: KHB (Cabin Services)
 - **Name**: Kabin Hizmetleri
-- **Key**: KABIN
+- **Key**: KHB
 - **Template**: Kanban or Service Management
 - **Issue Types**: Task, Bug
 

@@ -16,10 +16,10 @@ st.set_page_config(
 # ─────────────────────────────────────────────────────────────────────────────
 # CUSTOM CSS - Turkish Airlines Branding
 # ─────────────────────────────────────────────────────────────────────────────
-THY_RED = "#E81932"
-THY_RED_DARK = "#C41428"
-THY_GRAY = "#1A1A1A"
-THY_LIGHT_GRAY = "#F5F5F5"
+THY_RED = "#b7312c"
+THY_RED_DARK = "#8f2521"
+THY_GRAY = "#111827"
+THY_LIGHT_GRAY = "#f3f4f6"
 
 st.markdown(f"""
 <style>
@@ -29,13 +29,27 @@ st.markdown(f"""
     /* Global styles */
     .stApp {{
         font-family: 'Inter', sans-serif;
+        background: linear-gradient(180deg, #f8fafc 0%, {THY_LIGHT_GRAY} 100%);
     }}
+
+    /* Hide Streamlit chrome */
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    header {{visibility: hidden;}}
     
     /* Header container */
     .header-container {{
         text-align: center;
-        padding: 2rem 0 1.5rem 0;
-        margin-bottom: 1rem;
+        padding: 1.5rem 0 1.25rem 0;
+        margin-bottom: 0.75rem;
+    }}
+
+    .brand-kicker {{
+        font-size: 0.75rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin: 0;
     }}
     
     /* Logo placeholder */
@@ -57,17 +71,21 @@ st.markdown(f"""
     
     /* Main title */
     .main-title {{
-        font-size: 1.75rem;
-        font-weight: 700;
+        font-size: 1.65rem;
+        font-weight: 800;
         color: {THY_GRAY};
-        margin: 0;
+        margin: 0.25rem 0 0.15rem 0;
         letter-spacing: -0.5px;
+    }}
+
+    .main-title .accent {{
+        color: {THY_RED};
     }}
     
     .subtitle {{
-        font-size: 0.9rem;
-        color: #666;
-        margin-top: 0.5rem;
+        font-size: 0.92rem;
+        color: #4b5563;
+        margin-top: 0.25rem;
         font-weight: 400;
     }}
     
@@ -76,8 +94,8 @@ st.markdown(f"""
         background: white;
         border-radius: 16px;
         padding: 2rem;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-        border: 1px solid #eee;
+        box-shadow: 0 14px 34px rgba(17, 24, 39, 0.06);
+        border: 1px solid #e5e7eb;
     }}
     
     /* Section headers */
@@ -104,7 +122,7 @@ st.markdown(f"""
     .stTextInput > div > div > input,
     .stTextArea > div > div > textarea {{
         border-radius: 10px !important;
-        border: 1.5px solid #ddd !important;
+        border: 1.5px solid #d1d5db !important;
         padding: 0.75rem 1rem !important;
         font-size: 0.95rem !important;
         transition: all 0.2s ease !important;
@@ -172,11 +190,6 @@ st.markdown(f"""
         font-size: 0.75rem;
     }}
     
-    /* Hide Streamlit branding */
-    #MainMenu {{visibility: hidden;}}
-    footer {{visibility: hidden;}}
-    header {{visibility: hidden;}}
-    
     /* Columns spacing */
     .row-widget.stHorizontalBlock {{
         gap: 1rem;
@@ -199,12 +212,26 @@ def get_connection():
 # ─────────────────────────────────────────────────────────────────────────────
 # HEADER
 # ─────────────────────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="header-container">
-    <h1 class="main-title">Customer Feedback Portal</h1>
-    <p class="subtitle">Turkish Airlines Quality Assurance</p>
-</div>
-""", unsafe_allow_html=True)
+logo_path = os.path.join(os.path.dirname(__file__), "images", "tklogo.png")
+
+st.markdown(
+    """
+    <div class="header-container">
+      <p class="brand-kicker">Turkish Airlines</p>
+      <h1 class="main-title"><span class="accent">Customer</span> Feedback Portal</h1>
+      <p class="subtitle">Quality Assurance · Review Intake</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+try:
+    c1, c2, c3 = st.columns([1, 1.2, 1])
+    with c2:
+        st.image(logo_path, use_container_width=True)
+except Exception:
+    # If the image isn't available in some environments, continue gracefully.
+    pass
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FORM
@@ -238,24 +265,7 @@ with st.form("review_form", clear_on_submit=True):
             placeholder="e.g., ABC123"
         )
     
-    # Flight route details - Row 2
-    col3, col4 = st.columns(2)
-    
-    with col3:
-        origin_iata = st.text_input(
-            "Origin Airport (IATA)",
-            value="",
-            placeholder="e.g., IST",
-            max_chars=3
-        )
-    
-    with col4:
-        destination_iata = st.text_input(
-            "Destination Airport (IATA)",
-            value="",
-            placeholder="e.g., JFK",
-            max_chars=3
-        )
+    # Route is defaulted automatically for demo consistency.
     
     # Date
     review_date = st.date_input(
@@ -276,9 +286,9 @@ with st.form("review_form", clear_on_submit=True):
                 conn = get_connection()
                 cursor = conn.cursor()
                 
-                # Build route strings from IATA codes
-                origin = origin_iata.strip().upper() if origin_iata else None
-                destination = destination_iata.strip().upper() if destination_iata else None
+                # Build route strings (default both endpoints to TST)
+                origin = "TST"
+                destination = "TST"
                 
                 route = None
                 bidirectional_route = None
@@ -310,12 +320,16 @@ with st.form("review_form", clear_on_submit=True):
                 # Enable tracking in review_status
                 cursor.execute(
                     """
-                    INSERT INTO review_status (review_id, status, tracking_enabled)
-                    VALUES (%s, 0, 1)
+                    INSERT INTO review_status (id, review_id, status, tracking_enabled)
+                    VALUES (1, %s, 0, 1)
                     ON DUPLICATE KEY UPDATE
+                        review_id = VALUES(review_id),
                         status = VALUES(status),
                         tracking_enabled = VALUES(tracking_enabled)
-                    """, (review_id,))
+                    """,
+                    (review_id,),
+                )
+
                 conn.commit()
 
                 cursor.close()
@@ -324,18 +338,13 @@ with st.form("review_form", clear_on_submit=True):
                 st.error(f"❌ Error submitting review: {e}")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LOGO
-# ─────────────────────────────────────────────────────────────────────────────
-st.markdown("<div style='height: 2rem'></div>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns([1, 1.5, 1])
-with col2:
-    st.image("images/Turkish_Airlines_logo.png", use_container_width=True)
-
-# ─────────────────────────────────────────────────────────────────────────────
 # FOOTER
 # ─────────────────────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="footer">
-    <p>TKFlightSense • Powered by Turkish Airlines</p>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div class="footer">
+      <p>TKFlightSense • Turkish Airlines</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
