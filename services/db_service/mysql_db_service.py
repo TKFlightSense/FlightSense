@@ -1676,6 +1676,7 @@ class MySQLDbService:
                     r.bidirectional_route,
                     r.origin_iata,
                     r.destination_iata,
+                    r.date as event_time,
                     pr.label,
                     CASE pr.sentiment
                         WHEN 'POSITIVE' THEN 1.0
