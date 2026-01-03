@@ -1388,6 +1388,47 @@ class MySQLDbService:
         result = self.execute(query, (date_from, date_to), fetch=True)
         return result[0][0] if result and result[0][0] is not None else 0
 
+    def get_sentiment_counts_by_review_date(
+        self,
+        date_from: datetime,
+        date_to: datetime,
+        labels: Optional[List[str]] = None,
+    ) -> Dict[str, int]:
+        """Return sentiment counts for processed segments in a review-date range.
+
+        Uses `reviews.date` (DATE) as the source of truth for time bucketing.
+        Counts rows in `processed_reviews` (i.e., segments), not unique reviews.
+        """
+
+        from_date = date_from.date() if isinstance(date_from, datetime) else date_from
+        to_date = date_to.date() if isinstance(date_to, datetime) else date_to
+
+        label_filter = ""
+        params: List[Any] = [from_date, to_date]
+
+        if labels:
+            placeholders = ",".join(["%s"] * len(labels))
+            label_filter = f" AND pr.label IN ({placeholders})"
+            params.extend(labels)
+
+        query = f"""
+            SELECT
+                SUM(CASE WHEN LOWER(pr.sentiment) = 'positive' THEN 1 ELSE 0 END) AS positive,
+                SUM(CASE WHEN LOWER(pr.sentiment) = 'negative' THEN 1 ELSE 0 END) AS negative,
+                SUM(CASE WHEN LOWER(pr.sentiment) = 'neutral' THEN 1 ELSE 0 END) AS neutral
+            FROM processed_reviews pr
+            INNER JOIN reviews r ON r.id = pr.review_id
+            WHERE r.date >= %s AND r.date < %s{label_filter}
+        """
+
+        result = self.execute(query, tuple(params), fetch=True)
+        row = result[0] if result else None
+        return {
+            "positive": int(row[0] or 0) if row else 0,
+            "negative": int(row[1] or 0) if row else 0,
+            "neutral": int(row[2] or 0) if row else 0,
+        }
+
     def get_label_total_count(self, department_name, label, date_from, date_to):
         table = self.get_table_name(department_name)
 
