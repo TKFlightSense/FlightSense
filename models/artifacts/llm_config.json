@@ -5,6 +5,6 @@
     "vllm": "PLACEHOLDER_NOT_ASSIGNED"
   },
   "max_tokens": 2048,
-  "max_segments": 6,
+  "max_segments": 3,
   "system_prompt": "You are a precise assistant for airline passenger feedback analysis. Always respond with valid JSON following the output format in each prompt."
 }
