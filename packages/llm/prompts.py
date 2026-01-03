@@ -22,9 +22,9 @@ LABEL DEFINITIONS + PRIORITY RULES (use these for disambiguation)
 {labels_block}
 
 TASK
-- Segment the review into at most {max_segments} NON-OVERLAPPING spans.
+- Segment the review into at most {max_segments} NON-OVERLAPPING spans (including 0).
 - Assign EXACTLY ONE label per span (must be one of the allowed labels).
-- Assign priority and sentiment per span.
+- Assign priority and sentiment per span. (Look at the label definitions for guidance.)
 
 SEGMENT RULES
 - Use 0-based character offsets: start >= 0, length > 0, start+length <= {review_len}
@@ -32,14 +32,23 @@ SEGMENT RULES
 - Segments MUST be sorted by start ascending and MUST NOT overlap.
 - Only segment text that clearly matches one of the allowed labels.
 - If the review mentions a delay/cancellation, use "flight_delay_cancellation" (do NOT map it to check-in/boarding).
-- If a sentence contains multiple labeled topics, create multiple segments.
-- Prefer fewer, longer segments per topic (avoid tiny fragments).
+- Prefer the FEWEST segments possible. Start from 1 segment; only split when topics are clearly distinct and would go to different operational owners.
+- Do NOT over-segment by sentence. If splitting does not add value, keep it as one segment.
+- Do NOT output multiple segments with the same label.
+    - If the same label appears multiple times, either (a) create ONE span that covers the full relevant portion (even if it includes some in-between text), or (b) pick the most severe mention.
+- If there are many minor side mentions, ignore the least important ones instead of creating extra segments.
+- Prefer fewer, longer spans with complete evidence (avoid tiny fragments).
 - Each segment MUST include the explicit evidence words for its label (e.g., \"delayed\", \"food\", \"dirty\", \"expensive\"). Do NOT select spans that exclude the evidence.
 
 PRIORITY
 - Use ONLY: LOW, MEDIUM, HIGH
 - Follow the PRIORITY guidance inside each label definition.
+- Positive SENTIMENT is always LOW priority.
 - If uncertain, choose the LOWER priority.
+- HIGH should be RARE. Never assign HIGH unless it is explicitly severe and clearly justified.
+- Calibration: most complaints should be MEDIUM or LOW.
+    - For "flight_delay_cancellation": HIGH only for extreme disruption with abandonment/no care or similarly severe explicit impact.
+    - For "customer_support": HIGH only for explicit threats/abuse/discrimination/fraud or critical misinformation causing major harm.
 
 SENTIMENT
 - Use ONLY: POSITIVE, NEGATIVE, NEUTRAL, NONE

@@ -100,14 +100,17 @@ class StatisticsService:
         date_to: 2025-12-08 00:00:00 #anlaması kolay olsun diye
         """
         weekly_stats_dict = {}
+        labels = DepartmentToLabels[department_name].value
         for i in range(7):
             key = f"day_{i+1}"
             internal_date_from = date_from + relativedelta(days=i)
             internal_date_to = date_from + relativedelta(days=i+1)
-            positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
-            negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
-            neutral_counts = self.db.get_department_neutral_counts(department_name, internal_date_from, internal_date_to)
-            weekly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
+            counts = self.db.get_sentiment_counts_by_review_date(
+                internal_date_from,
+                internal_date_to,
+                labels=labels,
+            )
+            weekly_stats_dict[key] = counts
 
         return weekly_stats_dict
 
@@ -117,14 +120,17 @@ class StatisticsService:
         date_to: 2025-12-01 00:00:00
         """
         monthly_stats_dict = {}
+        labels = DepartmentToLabels[department_name].value
         for i in range(4):
             key = f"week_{i+1}"
             internal_date_from = date_from + relativedelta(weeks=i)
             internal_date_to = date_from + relativedelta(weeks=i+1)
-            positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
-            negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
-            neutral_counts = self.db.get_department_neutral_counts(department_name, internal_date_from, internal_date_to)
-            monthly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
+            counts = self.db.get_sentiment_counts_by_review_date(
+                internal_date_from,
+                internal_date_to,
+                labels=labels,
+            )
+            monthly_stats_dict[key] = counts
 
         return monthly_stats_dict
 
@@ -134,14 +140,17 @@ class StatisticsService:
         date_to: 2025-12-01 00:00:00
         """
         yearly_stats_dict = {}
+        labels = DepartmentToLabels[department_name].value
         for i in range(12):
             key = f"month_{i+1}"
             internal_date_from = date_from + relativedelta(months=i)
             internal_date_to = date_from + relativedelta(months=i+1)
-            positive_counts = self.db.get_department_positive_counts(department_name, internal_date_from, internal_date_to)
-            negative_counts = self.db.get_department_negative_counts(department_name, internal_date_from, internal_date_to)
-            neutral_counts = self.db.get_department_neutral_counts(department_name, internal_date_from, internal_date_to)
-            yearly_stats_dict[key] = {"positive": positive_counts, "negative": negative_counts, "neutral": neutral_counts}
+            counts = self.db.get_sentiment_counts_by_review_date(
+                internal_date_from,
+                internal_date_to,
+                labels=labels,
+            )
+            yearly_stats_dict[key] = counts
 
         return yearly_stats_dict
 
@@ -207,14 +216,8 @@ class StatisticsService:
         }
 
     def get_manager_positive_negative_neutral_counts(self, date_from: datetime, date_to: datetime):
-        positive_counts = 0
-        negative_counts = 0
-        neutral_counts = 0
-        for department in self.departments:
-            positive_counts += self.db.get_department_positive_counts(department.name, date_from, date_to)
-            negative_counts += self.db.get_department_negative_counts(department.name, date_from, date_to)
-            neutral_counts += self.db.get_department_neutral_counts(department.name, date_from, date_to)
-        return positive_counts, negative_counts, neutral_counts
+        counts = self.db.get_sentiment_counts_by_review_date(date_from, date_to)
+        return counts["positive"], counts["negative"], counts["neutral"]
 
     def get_manager_weekly_stats(self, date_from: datetime):
         """

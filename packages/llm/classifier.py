@@ -146,15 +146,35 @@ class FeedbackClassifier:
             non_overlapping.append(seg)
             last_end = seg["start"] + seg["length"]
 
-        if len(non_overlapping) <= max_segments:
-            return non_overlapping
+        # De-duplicate labels: keep at most one segment per label.
+        # If the model returned multiple segments with the same label,
+        # keep the most severe/actionable one.
+        priority_weight = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
+        sentiment_weight = {"NEGATIVE": 3, "NEUTRAL": 2, "POSITIVE": 1, "NONE": 0}
+        best_by_label: Dict[str, Dict[str, Any]] = {}
+        for seg in non_overlapping:
+            label = seg["label"]
+            score = (
+                priority_weight.get(seg["priority"], 0),
+                sentiment_weight.get(seg["sentiment"], 0),
+                seg["length"],
+            )
+            existing = best_by_label.get(label)
+            if existing is None:
+                best_by_label[label] = {**seg, "_score": score}
+                continue
+            if score > existing.get("_score", (0, 0, 0)):
+                best_by_label[label] = {**seg, "_score": score}
+
+        deduped = [{k: v for k, v in seg.items() if k != "_score"} for seg in best_by_label.values()]
+        deduped.sort(key=lambda s: (s["start"], -(s["length"])))
+
+        if len(deduped) <= max_segments:
+            return deduped
 
         # Too many segments: keep the most severe/actionable, then re-sort by start
-        priority_weight = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
-        sentiment_weight = {"NEGATIVE": 3, "NEUTRAL": 2, "POSITIVE": 1}
-
         ranked = sorted(
-            non_overlapping,
+            deduped,
             key=lambda s: (
                 priority_weight.get(s["priority"], 0),
                 sentiment_weight.get(s["sentiment"], 0),

@@ -31,15 +31,33 @@ function mapHistoricalDataToTrend(
   historical_data: ManagerStatisticsData["historical_data"],
   period: Period
 ): ManagerTrendPoint[] {
-  return Object.entries(historical_data).map(([bucket, value]) => {
+  const parseBucketIndex = (bucket: string): number => {
+    const parts = bucket.split("_");
+    const maybeIndex = Number(parts[1]);
+    return Number.isFinite(maybeIndex) ? maybeIndex : Number.POSITIVE_INFINITY;
+  };
+
+  const getMonthLabel = (monthIndex1Based: number): string => {
+    // Buckets are built as rolling month windows ending at "now".
+    // Label each bucket by the *end* month so the most recent bucket shows the current month.
+    const now = new Date();
+    const monthsBack = 12 - monthIndex1Based;
+    const d = new Date(now);
+    d.setMonth(now.getMonth() - monthsBack);
+    return d.toLocaleString("en-US", { month: "short" });
+  };
+
+  return Object.entries(historical_data)
+    .sort(([a], [b]) => parseBucketIndex(a) - parseBucketIndex(b))
+    .map(([bucket, value]) => {
     let shortLabel = bucket;
 
     if (period === "weekly" && bucket.startsWith("day_")) {
-      shortLabel = "D" + bucket.split("_")[1];
+      shortLabel = "d" + bucket.split("_")[1];
     } else if (period === "monthly" && bucket.startsWith("week_")) {
-      shortLabel = "W" + bucket.split("_")[1];
+      shortLabel = "w" + bucket.split("_")[1];
     } else if (period === "yearly" && bucket.startsWith("month_")) {
-      shortLabel = "M" + bucket.split("_")[1];
+      shortLabel = getMonthLabel(parseBucketIndex(bucket));
     }
 
     return {
