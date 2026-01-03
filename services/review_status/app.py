@@ -193,10 +193,10 @@ def apply_thy_branding():
 
         .status-box {
             border-radius: 14px;
-            padding: 0.9rem 0.9rem;
+            padding: 1.1rem 1.05rem;
             border: 1px solid #e5e7eb;
             background: #ffffff;
-            min-height: 92px;
+            min-height: 110px;
             box-shadow: 0 8px 18px rgba(17, 24, 39, 0.05);
         }
         .status-box-title {
