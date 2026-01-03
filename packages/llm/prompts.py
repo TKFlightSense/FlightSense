@@ -24,7 +24,7 @@ LABEL DEFINITIONS + PRIORITY RULES (use these for disambiguation)
 TASK
 - Segment the review into at most {max_segments} NON-OVERLAPPING spans.
 - Assign EXACTLY ONE label per span (must be one of the allowed labels).
-- Assign priority and sentiment per span.
+- Assign priority and sentiment per span. (Look at the label definitions for guidance.)
 
 SEGMENT RULES
 - Use 0-based character offsets: start >= 0, length > 0, start+length <= {review_len}
