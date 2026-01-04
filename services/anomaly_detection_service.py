@@ -336,10 +336,10 @@ class AnomalyDetectionService:
                 if start <= r["event_time"] < end
             ]
 
-            if len(window_rows) < MIN_ROUTE_SAMPLES:
+            if len(window_rows) < MIN_WINDOW_SAMPLES:
                 continue
 
-            label_anoms = self.calculate_label_level_anomalies(window_rows)
+            label_anoms = self.calculate_label_level_anomalies(window_rows, min_samples=MIN_LABEL_SAMPLES_DRIFT)
             dept_anoms = self.aggregate_department_anomalies(label_anoms)
 
             for d in dept_anoms:
