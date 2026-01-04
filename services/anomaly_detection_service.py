@@ -8,6 +8,9 @@ from models.enums.enums import LabelToDepartment
 from datetime import timedelta
 
 MIN_ROUTE_SAMPLES = 40
+MIN_LABEL_SAMPLES_DRIFT = 8  
+MIN_WINDOW_SAMPLES = 10
+
 
 LABEL_BASELINE_MAP = {
     # In-flight
@@ -161,6 +164,8 @@ class AnomalyDetectionService:
             r["percentile"] = (distances < r["distance"]).mean() * 100
             if r["percentile"] >= 90 and r["polarity_delta"] < 0:
                 r["anomaly_type"] = "BAD_ANOMALY"
+            elif r["percentile"] >= 80 and r["polarity_delta"] < 0:
+                 r["anomaly_type"] = "WATCHLIST"
             elif r["percentile"] >= 90 and r["polarity_delta"] > 0:
                 r["anomaly_type"] = "GOOD_OUTLIER"
             else:
@@ -168,7 +173,7 @@ class AnomalyDetectionService:
 
         return results
     
-    def calculate_label_level_anomalies(self, rows):
+    def calculate_label_level_anomalies(self, rows, min_samples=MIN_ROUTE_SAMPLES):
         """
         Computes (route, label) level anomalies with context-aware baselines.
         """
@@ -196,7 +201,7 @@ class AnomalyDetectionService:
         results = []
 
         for (route, label), scores in targets.items():
-            if len(scores) < MIN_ROUTE_SAMPLES:
+            if len(scores) < min_samples:
                 continue
 
             baseline_scores = []
@@ -216,7 +221,7 @@ class AnomalyDetectionService:
 
                 baseline_scores.extend(s2)
 
-            if len(baseline_scores) < MIN_ROUTE_SAMPLES:
+            if len(baseline_scores) < min_samples:
                 continue
 
             distance = wasserstein_distance(scores, baseline_scores)
@@ -241,10 +246,12 @@ class AnomalyDetectionService:
         distances = np.array([r["distance"] for r in results])
 
         for r in results:
-            r["percentile"] = (distances < r["distance"]).mean() * 100
+            r["percentile"] = float((distances < r["distance"]).mean() * 100)
 
             if r["percentile"] >= 90 and r["polarity_delta"] < 0:
                 r["anomaly_type"] = "BAD_ANOMALY"
+            elif r["percentile"] >= 80 and r["polarity_delta"] < 0:
+                 r["anomaly_type"] = "WATCHLIST"
             elif r["percentile"] >= 90 and r["polarity_delta"] > 0:
                 r["anomaly_type"] = "GOOD_OUTLIER"
             else:
@@ -279,6 +286,8 @@ class AnomalyDetectionService:
 
             if "BAD_ANOMALY" in types:
                 anomaly_type = "BAD_ANOMALY"
+            elif "WATCHLIST" in types:
+                anomaly_type = "WATCHLIST"
             elif "GOOD_OUTLIER" in types:
                 anomaly_type = "GOOD_OUTLIER"
             else:
@@ -306,7 +315,7 @@ class AnomalyDetectionService:
         Detects temporal drift for (route, department).
         """
 
-        dates = [row["date"] for row in rows if row.get("date")]
+        dates = [row["event_time"] for row in rows if row.get("event_time")]
         if len(dates) == 0:
             return []
 
@@ -324,7 +333,7 @@ class AnomalyDetectionService:
         for start, end in windows:
             window_rows = [
                 r for r in rows
-                if start <= r["date"] < end
+                if start <= r["event_time"] < end
             ]
 
             if len(window_rows) < MIN_ROUTE_SAMPLES:
