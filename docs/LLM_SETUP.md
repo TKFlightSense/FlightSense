@@ -1,42 +1,10 @@
-# LLM Integration Setup Guide
+# Deprecated
 
-This guide will help you set up and use the LLM integration in FlightSense.
+LLM documentation was consolidated.
 
-## Quick Start
+Use:
 
-### 1. Install Dependencies
-
-```bash
-# For OpenAI (recommended for quick start)
-pip install openai
-
-# For vLLM (optional, for local inference)
-pip install vllm
-```
-
-### 2. Configure Environment
-
-Copy the example environment file and add your API key:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and set:
-
-```bash
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-your-key-here
-LLM_MODEL=gpt-4o-mini
-```
-
-### 3. Test the Connection
-
-```python
-from packages.llm.client import LLMClient
-
-# Initialize client (reads from environment)
-client = LLMClient()
+- docs/LLM.md
 
 # Test with a simple prompt
 response = client.complete("Say hello!")

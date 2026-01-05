@@ -1,43 +1,10 @@
-# Docker Deployment Files
+# Deprecated
 
-This document lists all Docker-related files created for FlightSense deployment.
+Docker-related documentation was consolidated.
 
-## Files Created
+Use the single deployment guide instead:
 
-### 1. Dockerfile
-**Location:** `./Dockerfile`
-**Purpose:** Defines the Docker image for the FlightSense application
-**Features:**
-- Based on Python 3.11-slim
-- Multi-stage optimization ready
-- Non-root user for security
-- Health check included
-- 4 uvicorn workers for production
-
-### 2. docker-compose.yml
-**Location:** `./docker-compose.yml`
-**Purpose:** Orchestrates all services (app, MySQL)
-**Services:**
-- `mysql`: MySQL 8.0 database with persistent volume
-- `app`: FlightSense FastAPI application
-
-### 3. .dockerignore
-**Location:** `./.dockerignore`
-**Purpose:** Excludes unnecessary files from Docker build context
-**Excludes:** Python cache, virtual envs, .env files, logs, documentation
-
-### 4. Database Initialization Script
-**Location:** `./scripts/docker/init_db.sql`
-**Purpose:** Auto-creates database tables on first MySQL container start
-**Tables:** processed_data, tickets, statistics, user_data
-
-### 5. Docker Deployment Guide
-**Location:** `./docs/DOCKER.md`
-**Purpose:** Complete guide for Docker deployment
-**Sections:**
-- Quick start commands
-- Service architecture
-- Common Docker commands
+- docs/DEPLOYMENT.md
 - Production deployment checklist
 - Backup and restore procedures
 - Troubleshooting guide

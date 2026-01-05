@@ -1,43 +1,10 @@
-# Jira Integration Setup Guide
+# Deprecated
 
-## Prerequisites
-- Jira workspace created: `tkflightsense.atlassian.net`
-- API token generated
-- Jira account with project creation permissions
+Jira documentation was consolidated.
 
-## Step 1: Create Jira Projects
+Use:
 
-Create 4 projects in your Jira workspace:
-
-### Project 1: IKRAM (Inflight Services)
-- **Name**: Ikram ve Ucak Ici Urunler
-- **Key**: IKRAM
-- **Template**: Kanban or Service Management
-- **Issue Types**: Task, Bug
-
-### Project 2: BAGAJ (Baggage)
-- **Name**: Bagaj Musteri Cozum
-- **Key**: BAGAJ  
-- **Template**: Bug tracking or Incident Management
-- **Issue Types**: Incident, Bug
-
-### Project 3: KHB (Cabin Services)
-- **Name**: Kabin Hizmetleri
-- **Key**: KHB
-- **Template**: Kanban or Service Management
-- **Issue Types**: Task, Bug
-
-### Project 4: TGS (Ground Operations)
-- **Name**: TGS Ground Operations
-- **Key**: TGS
-- **Template**: Bug tracking or Incident Management
-- **Issue Types**: Incident, Bug
-
-**How to create projects:**
-1. Click "Create" button (top menu)
-2. Select "Project"
-3. Choose appropriate template
-4. Enter project name and key
+- docs/JIRA.md
 5. Click "Create project"
 
 ---

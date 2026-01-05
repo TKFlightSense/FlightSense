@@ -96,6 +96,7 @@ FlightSense is designed to be configuration-driven:
 
 ## More docs
 
-- See [docs/IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md) for deeper implementation notes
-- See [docs/DOCKER.md](docs/DOCKER.md) for container details
-- See [docs/LLM_SETUP.md](docs/LLM_SETUP.md) for model/provider configuration
+- Deployment: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- LLM setup: [docs/LLM.md](docs/LLM.md)
+- Jira integration: [docs/JIRA.md](docs/JIRA.md)
+- Email integration: [docs/EMAIL.md](docs/EMAIL.md)

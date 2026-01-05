@@ -1,33 +1,13 @@
-# LLM Integration Implementation Summary
+# Deprecated
 
-## What Was Implemented
+Documentation was consolidated.
 
-### 1. Core LLM Client (`packages/llm/client.py`)
+Use:
 
-A unified LLM client that supports multiple providers:
-
-**Features:**
-- ✅ OpenAI integration (GPT-4o, GPT-4o-mini, GPT-3.5-turbo)
-- ✅ vLLM integration (for local model deployment)
-- ✅ Environment-based configuration
-- ✅ Programmatic configuration options
-- ✅ Custom base URL support (Azure OpenAI, LocalAI, etc.)
-- ✅ Error handling and logging
-- ✅ Temperature and token limit controls
-
-**Configuration Options:**
-```python
-# Via environment variables
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-LLM_MODEL=gpt-4o-mini
-
-# Programmatically
-client = LLMClient(
-    provider="openai",
-    model="gpt-4o-mini",
-    api_key="sk-...",
-    temperature=0.0,
+- docs/DEPLOYMENT.md
+- docs/LLM.md
+- docs/JIRA.md
+- docs/EMAIL.md
     max_tokens=2048
 )
 ```
