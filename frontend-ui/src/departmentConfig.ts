@@ -68,7 +68,7 @@ export const JIRA_KEY_TO_DEPARTMENT_LABEL: Record<DepartmentCode, DepartmentLabe
 /**
  * Base URL for your Jira instance.
  */
-export const JIRA_BASE_URL = "https://tkflightsense.atlassian.net";
+export const JIRA_BASE_URL = "https://flightsense.atlassian.net";
 
 /**
  * Get the full Jira project URL for a department.
