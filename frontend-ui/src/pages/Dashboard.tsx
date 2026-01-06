@@ -239,9 +239,9 @@ export default function Dashboard() {
           {/* KPI cards */}
           <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
           
-            {/* Unique Reviews */}
+            {/* Total Reviews */}
             <div className={`${CARD} p-4`}>
-              <p className={KPI_TITLE}>Unique reviews</p>
+              <p className={KPI_TITLE}>Total reviews</p>
               <p className="mt-3 text-3xl font-semibold">
                 {uniqueReviews.toLocaleString("en-US")}
               </p>
@@ -250,9 +250,9 @@ export default function Dashboard() {
               </p>
             </div>
 
-            {/* Processed Segments */}
+            {/* Classified Segments */}
             <div className={`${CARD} p-4`}>
-              <p className={KPI_TITLE}>Processed segments</p>
+              <p className={KPI_TITLE}>Classified segments</p>
               <p className="mt-3 text-3xl font-semibold">
                 {totalReviews.toLocaleString("en-US")}  {/*{processedSegments.toLocaleString("en-US")}*/}
               </p>
