@@ -314,6 +314,8 @@ class AnomalyDetectionService:
         """
         Detects temporal drift for (route, department).
         """
+        if not self.route_meta:
+            self.construct_route_scores()
 
         dates = [row["event_time"] for row in rows if row.get("event_time")]
         if len(dates) == 0:
@@ -386,4 +388,6 @@ class AnomalyDetectionService:
                 })
 
         return drift_results
+
+    
 

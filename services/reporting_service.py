@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from services.statistics_service import StatisticsService
 from services.db_service.mysql_db_service import MySQLDbService
 from services.access_control_service import AccessControlService
+from services.anomaly_detection_service import AnomalyDetectionService
 from services.orchestrator.filter import DataFilter
 from packages.llm.classifier import FeedbackClassifier
 from services.agents.jira_agent import JiraTicketAgent
@@ -199,5 +200,77 @@ class ReportingService:
             self.email_agent.send_weekly_report(payload)
 
         return {"success": True, "message": "Weekly reports sent"}
+
+    def run_monthly_anomaly_reports(self) -> Dict[str, Any]:
+        if not self.email_agent:
+            logger.warning("Email agent not available for anomaly reports")
+            return {"success": False, "error": "Email agent not configured"}
+
+        anomaly_service = AnomalyDetectionService(db_service=self.db)
+        rows = self.db.get_anomaly_detection_data()
+
+        temporal_alerts = 0
+        distribution_alerts = 0
+        watchlist_alerts = 0
+
+        drift_results = anomaly_service.detect_temporal_drift(rows)
+
+        for d in drift_results:
+            payload = {
+                "route": d["route"],
+                "department": d["department"],
+                "label": "temporal_drift",
+                "anomaly_type": "NEGATIVE_DRIFT",
+            }
+
+            logger.info(
+                f"Sending NEGATIVE_DRIFT alert for "
+                f"{d['route']} | {d['department']}"
+            )
+
+            self.email_agent.send_anomaly_alert(**payload)
+            temporal_alerts += 1
+
+        anomaly_service.construct_route_scores()
+
+        label_anoms = anomaly_service.calculate_label_level_anomalies(rows)
+        dept_anoms = anomaly_service.aggregate_department_anomalies(label_anoms)
+
+        for a in dept_anoms:
+            route = a["route"]
+            department = a["department"]
+            anomaly_class = a["anomaly_type"]
+
+            if anomaly_class == "BAD_ANOMALY":
+                anomaly_type = "DISTRIBUTION_ALERT"
+                distribution_alerts += 1
+
+            elif anomaly_class == "WATCHLIST":
+                anomaly_type = "WATCHLIST"
+                watchlist_alerts += 1
+
+            else:
+                continue
+
+            payload = {
+                "route": route,
+                "department": department,
+                "label": ", ".join(a.get("labels", [])),
+                "anomaly_type": anomaly_type,
+            }
+
+            logger.info(
+                f"Sending {anomaly_type} for "
+                f"{route} | {department}"
+            )
+
+            self.email_agent.send_anomaly_alert(**payload)
+
+        return {
+            "success": True,
+            "temporal_drift_alerts": temporal_alerts,
+            "distribution_alerts": distribution_alerts,
+            "watchlist_alerts": watchlist_alerts,
+        }
 
 

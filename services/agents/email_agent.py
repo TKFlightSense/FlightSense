@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import date, timedelta
+from textwrap import dedent
 from pathlib import Path
 import os
 import json
@@ -270,3 +271,121 @@ class EmailSummaryAgent:
             subject=subject,
             body=body,
         )
+
+    def _temporal_drift_alert_body(self, route: str, department: str) -> str:
+            return dedent(f"""
+        Dear {department} Team,
+
+        Our automated monitoring system has detected a sustained negative trend in customer feedback for the following route and service area:
+
+            Route: {route}
+            Department: {department}
+
+        What was detected:
+        Customer sentiment distributions for this route have diverged significantly from comparable routes and have shown a consistent deterioration over multiple time windows.
+        This indicates a systematic issue rather than a short-term fluctuation.
+
+        Recommended Next Steps
+        - Review recent operational or staffing changes affecting this route
+        - Investigate service delivery processes related to the specified department
+        - Monitor upcoming feedback to assess recovery or further degradation
+
+        This alert is generated automatically to support early intervention and root cause analysis.
+        No immediate customer communication is required at this stage unless further escalation is identified.
+
+        Best regards,
+        FlightSense Monitoring System
+        Automated Customer Experience Intelligence
+        """).strip()
+
+
+    def _distribution_alert_body(self, route: str, department: str, label: str) -> str:
+            return dedent(f"""
+        Dear {department} Team,
+
+        Our monitoring system has detected a significant deviation in customer feedback distribution for the following route and service area:
+
+            Route: {route}
+            Department: {department}
+            Issue Type: {label}
+
+        What was detected:
+        Customer sentiment distribution for this route differs substantially from comparable routes within the same analysis period.
+        The detected deviation exceeds historical thresholds and warrants operational attention.
+
+        Recommended Next Steps
+        - Review recent service conditions or incidents on this route
+        - Validate whether the deviation aligns with known operational changes
+        - Continue monitoring to determine whether the issue persists over time
+
+        This alert is intended to support timely awareness and investigation.
+        Further escalation will occur automatically if the deviation becomes sustained.
+
+        Best regards,
+        FlightSense Monitoring System
+        Automated Customer Experience Intelligence
+        """).strip()
+
+
+    def _watchlist_notification_body(self, route: str, department: str, label: str) -> str:
+            return dedent(f"""
+        Dear {department} Team,
+
+        As part of our ongoing customer experience monitoring, the following route has been added to the watchlist based on recent feedback patterns:
+
+            Route: {route}
+            Department: {department}
+            Issue Type: {label}
+
+        What this means:
+        Recent customer feedback for this route shows a noticeable divergence from comparable routes when analyzed at the distribution level.
+        While this does not currently indicate a sustained or critical issue, the pattern suggests a potential emerging risk that warrants observation.
+
+        Recommended Action
+        - No immediate operational action is required
+        - Please keep this route under observation in upcoming periods
+
+        The system will continue monitoring and will escalate automatically if the trend becomes sustained.
+
+        This notification is intended for situational awareness and early visibility only.
+
+        Best regards,
+        FlightSense Monitoring System
+        Automated Customer Experience Intelligence
+        """).strip()
+
+    
+    def send_anomaly_alert(
+        self,
+        *,
+        route: str,
+        department: str,
+        label: str,
+        anomaly_type: str,
+    ) -> None:
+        recipients = DEPARTMENT_RECIPIENTS.get(department, [])
+        if not recipients:
+            return
+
+        if anomaly_type == "NEGATIVE_DRIFT":
+            subject = f"[TKFlightSense] Sustained Negative Trend Detected – {route} | {department}"
+            body = self._temporal_drift_alert_body(route, department)
+
+        elif anomaly_type == "DISTRIBUTION_ALERT":
+            subject = f"[TKFlightSense] Service Deviation Detected – {route} | {department}"
+            body = self._distribution_alert_body(route, department, label)
+
+        elif anomaly_type == "WATCHLIST":
+            subject = f"[TKFlightSense] Route Added to Watchlist – {route} | {department}"
+            body = self._watchlist_notification_body(route, department, label)
+
+        else:
+            return 
+
+        self._send_email(
+            to_addrs=recipients,
+            subject=subject,
+            body=body,
+        )
+
+

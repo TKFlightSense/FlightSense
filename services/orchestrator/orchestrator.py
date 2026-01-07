@@ -328,6 +328,9 @@ class FlightSenseOrchestrator:
       
     def run_weekly_reporting(self) -> Dict:
         return self.reporting.run_weekly_reports()
+    
+    def run_monthly_anomaly_reports(self) -> Dict:
+        return self.reporting.run_monthly_anomaly_reports()
 
       # ---------- STATISTICS wrappers ----------
 
